@@ -254,14 +254,37 @@ fn load_key(path: &str, passphrase: Option<&str>) -> AppResult<KeyPair> {
 
 /// 用独立短连接执行只读探测，避免干扰交互式 PTY。
 async fn collect_metrics(host: &HostRecord) -> AppResult<HostMetrics> {
+    // 使用 KEY=VALUE 输出，避免把发行版版本号等误解析成内存字节数。
     let script = r#"
-hostname; uname -s; uname -r; uname -m
-cat /etc/os-release 2>/dev/null | grep -E '^PRETTY_NAME=' | head -1 | cut -d= -f2 | tr -d '"'
-uptime
-free -b 2>/dev/null | awk '/Mem:/{print $2,$3} /Swap:/{print $2,$3}'
-df -B1 / 2>/dev/null | awk 'NR==2{print $2,$3}'
-cat /proc/loadavg 2>/dev/null
-ip -o -4 addr show scope global 2>/dev/null | awk '{print $2,$4}' | head -1
+OS=$(cat /etc/os-release 2>/dev/null | grep -E '^PRETTY_NAME=' | head -1 | cut -d= -f2- | tr -d '"')
+echo "HOSTNAME=$(hostname)"
+echo "KERNEL=$(uname -r)"
+echo "ARCH=$(uname -m)"
+echo "OS=${OS:-Linux}"
+echo "UPTIME=$(uptime)"
+echo "LOAD=$(cut -d' ' -f1-3 /proc/loadavg 2>/dev/null)"
+echo "MEM=$(free -b 2>/dev/null | awk '/^Mem:/{print $2,$3}')"
+echo "SWAP=$(free -b 2>/dev/null | awk '/^Swap:/{print $2,$3}')"
+echo "DISK=$(df -B1 / 2>/dev/null | awk 'NR==2{print $2,$3}')"
+IFACE=$(ip -o -4 route show default 2>/dev/null | awk '{print $5; exit}')
+if [ -z "$IFACE" ]; then IFACE=$(ls /sys/class/net 2>/dev/null | grep -v '^lo$' | head -1); fi
+echo "IFACE=${IFACE:-}"
+CPU1=$(awk '/^cpu /{print $2+$3+$4+$5+$6+$7+$8,$5}' /proc/stat 2>/dev/null)
+RX1=0; TX1=0
+if [ -n "$IFACE" ] && [ -r "/sys/class/net/$IFACE/statistics/rx_bytes" ]; then
+  RX1=$(cat "/sys/class/net/$IFACE/statistics/rx_bytes")
+  TX1=$(cat "/sys/class/net/$IFACE/statistics/tx_bytes")
+fi
+sleep 0.5
+CPU2=$(awk '/^cpu /{print $2+$3+$4+$5+$6+$7+$8,$5}' /proc/stat 2>/dev/null)
+RX2=$RX1; TX2=$TX1
+if [ -n "$IFACE" ] && [ -r "/sys/class/net/$IFACE/statistics/rx_bytes" ]; then
+  RX2=$(cat "/sys/class/net/$IFACE/statistics/rx_bytes")
+  TX2=$(cat "/sys/class/net/$IFACE/statistics/tx_bytes")
+fi
+echo "CPU1=$CPU1"
+echo "CPU2=$CPU2"
+echo "NET=$RX1 $TX1 $RX2 $TX2"
 "#;
 
     let output = run_exec(host, script).await.unwrap_or_default();
@@ -310,56 +333,85 @@ async fn run_exec(host: &HostRecord, command: &str) -> AppResult<String> {
 }
 
 fn parse_metrics(host: &HostRecord, raw: &str) -> HostMetrics {
-    let lines: Vec<&str> = raw.lines().map(str::trim).filter(|l| !l.is_empty()).collect();
-    let hostname = lines.first().unwrap_or(&host.name.as_str()).to_string();
-    let kernel = lines.get(2).unwrap_or(&"").to_string();
-    let arch = lines.get(3).unwrap_or(&"").to_string();
-    let os = lines
-        .iter()
-        .find(|l| l.contains("Ubuntu") || l.contains("Linux") || l.contains("Debian") || l.contains("CentOS"))
-        .copied()
-        .unwrap_or("Linux")
-        .to_string();
+    let mut fields = std::collections::HashMap::new();
+    for line in raw.lines() {
+        if let Some((key, value)) = line.split_once('=') {
+            fields.insert(key.trim().to_string(), value.trim().to_string());
+        }
+    }
 
-    let uptime_line = lines.iter().find(|l| l.contains("up ")).copied().unwrap_or("");
-    let uptime_days = extract_uptime_days(uptime_line);
-    let load_avg = lines
-        .iter()
-        .find(|l| l.split_whitespace().count() >= 3 && l.contains('.'))
-        .map(|l| l.split_whitespace().take(3).collect::<Vec<_>>().join(" "))
-        .unwrap_or_default();
+    let get = |key: &str| fields.get(key).map(String::as_str).unwrap_or("");
+    let pair = |key: &str| -> (u64, u64) {
+        let mut parts = get(key).split_whitespace().filter_map(|t| t.parse::<u64>().ok());
+        (parts.next().unwrap_or(0), parts.next().unwrap_or(0))
+    };
 
-    // free / df 粗解析：取前两个数字对
-    let nums: Vec<u64> = raw
-        .split_whitespace()
-        .filter_map(|t| t.parse::<u64>().ok())
-        .collect();
+    let uptime_text = get("UPTIME").to_string();
+    let (mem_total, mem_used) = pair("MEM");
+    let (swap_total, swap_used) = pair("SWAP");
+    let (disk_total, disk_used) = pair("DISK");
 
-    let (mem_total, mem_used) = (nums.first().copied().unwrap_or(0), nums.get(1).copied().unwrap_or(0));
-    let (swap_total, swap_used) = (nums.get(2).copied().unwrap_or(0), nums.get(3).copied().unwrap_or(0));
-    let (disk_total, disk_used) = (nums.get(4).copied().unwrap_or(0), nums.get(5).copied().unwrap_or(0));
+    let (cpu1_total, cpu1_idle) = pair("CPU1");
+    let (cpu2_total, cpu2_idle) = pair("CPU2");
+    let cpu_percent = {
+        let total_delta = cpu2_total.saturating_sub(cpu1_total) as f64;
+        let idle_delta = cpu2_idle.saturating_sub(cpu1_idle) as f64;
+        if total_delta > 0.0 {
+            ((total_delta - idle_delta) / total_delta * 100.0).clamp(0.0, 100.0)
+        } else {
+            0.0
+        }
+    };
 
+    let mut net_parts = get("NET").split_whitespace().filter_map(|t| t.parse::<u64>().ok());
+    let rx1 = net_parts.next().unwrap_or(0);
+    let tx1 = net_parts.next().unwrap_or(0);
+    let rx2 = net_parts.next().unwrap_or(rx1);
+    let tx2 = net_parts.next().unwrap_or(tx1);
+    let sample_secs = 0.5;
+    let net_rx_m_bs = (rx2.saturating_sub(rx1) as f64 / sample_secs) / (1024.0 * 1024.0);
+    let net_tx_k_bs = (tx2.saturating_sub(tx1) as f64 / sample_secs) / 1024.0;
+
+    let iface = get("IFACE");
     HostMetrics {
         ip: host.host.clone(),
-        os,
-        kernel,
-        arch,
-        hostname,
-        uptime_days,
-        uptime_text: uptime_line.to_string(),
-        load_avg,
-        cpu_percent: 0.0,
+        os: {
+            let os = get("OS");
+            if os.is_empty() {
+                "Linux".into()
+            } else {
+                os.to_string()
+            }
+        },
+        kernel: get("KERNEL").to_string(),
+        arch: get("ARCH").to_string(),
+        hostname: {
+            let name = get("HOSTNAME");
+            if name.is_empty() {
+                host.name.clone()
+            } else {
+                name.to_string()
+            }
+        },
+        uptime_days: extract_uptime_days(&uptime_text),
+        uptime_text,
+        load_avg: get("LOAD").to_string(),
+        cpu_percent,
         mem_used_gi_b: bytes_to_gib(mem_used),
         mem_total_gi_b: bytes_to_gib(mem_total),
         swap_used_mi_b: bytes_to_mib(swap_used),
         swap_total_mi_b: bytes_to_mib(swap_total),
         disk_used_gi_b: bytes_to_gib(disk_used),
         disk_total_gi_b: bytes_to_gib(disk_total),
-        net_iface: "eth0".into(),
-        net_rx_m_bs: 0.0,
-        net_tx_k_bs: 0.0,
-        net_rx_total_g_b: 0.0,
-        net_tx_total_g_b: 0.0,
+        net_iface: if iface.is_empty() {
+            "—".into()
+        } else {
+            iface.to_string()
+        },
+        net_rx_m_bs,
+        net_tx_k_bs,
+        net_rx_total_g_b: rx2 as f64 / 1_000_000_000.0,
+        net_tx_total_g_b: tx2 as f64 / 1_000_000_000.0,
     }
 }
 
