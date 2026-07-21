@@ -101,3 +101,39 @@ export function listRemoteDir(sessionId: string, path: string): Promise<RemoteDi
 export function readRemoteFile(sessionId: string, path: string): Promise<RemoteFileContent> {
   return invoke("read_remote_file", { sessionId, path });
 }
+
+export function remoteMkdir(sessionId: string, path: string): Promise<void> {
+  return invoke("remote_mkdir", { sessionId, path });
+}
+
+export function remoteCreateFile(sessionId: string, path: string): Promise<void> {
+  return invoke("remote_create_file", { sessionId, path });
+}
+
+export function remoteRename(sessionId: string, from: string, to: string): Promise<void> {
+  return invoke("remote_rename", { sessionId, from, to });
+}
+
+export function remoteDelete(sessionId: string, path: string): Promise<void> {
+  return invoke("remote_delete", { sessionId, path });
+}
+
+export function remoteChmod(sessionId: string, path: string, mode: string): Promise<void> {
+  return invoke("remote_chmod", { sessionId, path, mode });
+}
+
+export function remoteDownload(
+  sessionId: string,
+  remotePath: string,
+  localPath: string
+): Promise<void> {
+  return invoke("remote_download", { sessionId, remotePath, localPath });
+}
+
+export function remoteUpload(
+  sessionId: string,
+  localPath: string,
+  remotePath: string
+): Promise<void> {
+  return invoke("remote_upload", { sessionId, localPath, remotePath });
+}

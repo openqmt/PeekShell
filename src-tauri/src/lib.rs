@@ -137,6 +137,77 @@ async fn read_remote_file(
     state.read_file(&session_id, &path).await
 }
 
+#[tauri::command]
+async fn remote_mkdir(
+    state: tauri::State<'_, Arc<SessionManager>>,
+    session_id: String,
+    path: String,
+) -> AppResult<()> {
+    state.mkdir(&session_id, &path).await
+}
+
+#[tauri::command]
+async fn remote_create_file(
+    state: tauri::State<'_, Arc<SessionManager>>,
+    session_id: String,
+    path: String,
+) -> AppResult<()> {
+    state.create_file(&session_id, &path).await
+}
+
+#[tauri::command]
+async fn remote_rename(
+    state: tauri::State<'_, Arc<SessionManager>>,
+    session_id: String,
+    from: String,
+    to: String,
+) -> AppResult<()> {
+    state.rename_path(&session_id, &from, &to).await
+}
+
+#[tauri::command]
+async fn remote_delete(
+    state: tauri::State<'_, Arc<SessionManager>>,
+    session_id: String,
+    path: String,
+) -> AppResult<()> {
+    state.delete_path(&session_id, &path).await
+}
+
+#[tauri::command]
+async fn remote_chmod(
+    state: tauri::State<'_, Arc<SessionManager>>,
+    session_id: String,
+    path: String,
+    mode: String,
+) -> AppResult<()> {
+    state.chmod_path(&session_id, &path, &mode).await
+}
+
+#[tauri::command]
+async fn remote_download(
+    state: tauri::State<'_, Arc<SessionManager>>,
+    session_id: String,
+    remote_path: String,
+    local_path: String,
+) -> AppResult<()> {
+    state
+        .download_path(&session_id, &remote_path, &local_path)
+        .await
+}
+
+#[tauri::command]
+async fn remote_upload(
+    state: tauri::State<'_, Arc<SessionManager>>,
+    session_id: String,
+    local_path: String,
+    remote_path: String,
+) -> AppResult<()> {
+    state
+        .upload_file(&session_id, &local_path, &remote_path)
+        .await
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let sessions = Arc::new(SessionManager::new());
@@ -164,7 +235,14 @@ pub fn run() {
             pty_resize,
             fetch_host_metrics,
             list_remote_dir,
-            read_remote_file
+            read_remote_file,
+            remote_mkdir,
+            remote_create_file,
+            remote_rename,
+            remote_delete,
+            remote_chmod,
+            remote_download,
+            remote_upload
         ])
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {

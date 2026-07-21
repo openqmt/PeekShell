@@ -4,7 +4,8 @@
  * 靠近 explorer 顶边可拖高度；靠近 entries 右边可拖宽度。
  */
 import { storeToRefs } from "pinia";
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import * as api from "../api/tauri";
 import { useI18n } from "../i18n";
 import { useSessionsStore } from "../stores/sessions";
@@ -73,6 +74,17 @@ const preview = ref<RemoteFileContent | null>(null);
 const treeLoading = ref(false);
 const previewLoading = ref(false);
 const error = ref("");
+const statusMsg = ref("");
+const actionBusy = ref(false);
+
+type CtxMenu = { x: number; y: number; entry: RemoteEntry };
+type PromptKind = "rename" | "mkdir" | "mkfile" | "chmod" | "delete";
+
+const ctxMenu = ref<CtxMenu | null>(null);
+const promptKind = ref<PromptKind | null>(null);
+const promptTarget = ref<RemoteEntry | null>(null);
+const promptInput = ref("");
+const promptInputEl = ref<HTMLInputElement | null>(null);
 
 const resizing = computed(() => draggingHeight.value || draggingWidth.value);
 const canGoUp = computed(() => {
@@ -387,6 +399,244 @@ async function refresh() {
   }
 }
 
+function basenameOf(path: string) {
+  if (path === ROOT_PATH) return "root";
+  return path.split("/").filter(Boolean).pop() || path;
+}
+
+function closeCtxMenu() {
+  ctxMenu.value = null;
+}
+
+function closePrompt() {
+  if (actionBusy.value) return;
+  promptKind.value = null;
+  promptTarget.value = null;
+  promptInput.value = "";
+}
+
+const promptTitle = computed(() => {
+  switch (promptKind.value) {
+    case "rename":
+      return t("explorer.rename");
+    case "mkdir":
+      return t("explorer.newFolder");
+    case "mkfile":
+      return t("explorer.newFile");
+    case "chmod":
+      return t("explorer.permissions");
+    case "delete":
+      return t("explorer.delete");
+    default:
+      return "";
+  }
+});
+
+const promptLabel = computed(() => {
+  switch (promptKind.value) {
+    case "rename":
+      return t("explorer.renamePrompt");
+    case "mkdir":
+      return t("explorer.newFolderPrompt");
+    case "mkfile":
+      return t("explorer.newFilePrompt");
+    case "chmod":
+      return t("explorer.chmodPrompt");
+    case "delete":
+      return promptTarget.value
+        ? t("explorer.deleteConfirm", { name: promptTarget.value.name })
+        : "";
+    default:
+      return "";
+  }
+});
+
+function openPrompt(kind: PromptKind, entry: RemoteEntry) {
+  closeCtxMenu();
+  promptKind.value = kind;
+  promptTarget.value = entry;
+  if (kind === "rename") promptInput.value = entry.name;
+  else if (kind === "chmod") promptInput.value = "755";
+  else promptInput.value = "";
+  void nextTick(() => {
+    promptInputEl.value?.focus();
+    promptInputEl.value?.select();
+  });
+}
+
+async function invalidateDir(path: string) {
+  const next = { ...childrenMap.value };
+  delete next[path];
+  // drop cached descendants so tree stays consistent after rename/delete
+  for (const key of Object.keys(next)) {
+    if (key === path || key.startsWith(path.endsWith("/") ? path : `${path}/`)) {
+      delete next[key];
+    }
+  }
+  childrenMap.value = next;
+}
+
+async function refreshAfterMutation(dirPath: string) {
+  await invalidateDir(dirPath);
+  expanded.value = { ...expanded.value, [dirPath]: true };
+  await fetchDir(dirPath, true);
+  if (selectedIsDir.value && selectedPath.value === dirPath) {
+    await selectFolder(dirPath, true);
+  }
+}
+
+async function onDirContextMenu(entry: RemoteEntry, event: MouseEvent) {
+  if (!entry.isDir || !activeSessionId.value) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const pad = 8;
+  const menuW = 180;
+  const menuH = 280;
+  const x = Math.min(event.clientX, window.innerWidth - menuW - pad);
+  const y = Math.min(event.clientY, window.innerHeight - menuH - pad);
+  ctxMenu.value = { x: Math.max(pad, x), y: Math.max(pad, y), entry };
+}
+
+async function copyPath(entry: RemoteEntry) {
+  closeCtxMenu();
+  try {
+    await navigator.clipboard.writeText(entry.path);
+    statusMsg.value = t("explorer.copied");
+    error.value = "";
+  } catch (e) {
+    error.value = String(e);
+  }
+}
+
+async function downloadEntry(entry: RemoteEntry) {
+  closeCtxMenu();
+  if (!activeSessionId.value || actionBusy.value) return;
+  const defaultName = entry.isDir ? `${basenameOf(entry.path)}.tar.gz` : basenameOf(entry.path);
+  const localPath = await save({
+    title: t("explorer.downloadTitle"),
+    defaultPath: defaultName,
+  });
+  if (typeof localPath !== "string" || !localPath) return;
+
+  actionBusy.value = true;
+  statusMsg.value = t("explorer.working");
+  error.value = "";
+  try {
+    await api.remoteDownload(activeSessionId.value, entry.path, localPath);
+    statusMsg.value = t("explorer.downloadDone");
+  } catch (e) {
+    statusMsg.value = "";
+    error.value = String(e);
+  } finally {
+    actionBusy.value = false;
+  }
+}
+
+async function uploadInto(entry: RemoteEntry) {
+  closeCtxMenu();
+  if (!activeSessionId.value || actionBusy.value) return;
+  const selected = await open({
+    title: t("explorer.uploadTitle"),
+    multiple: true,
+    directory: false,
+  });
+  if (!selected) return;
+  const files = Array.isArray(selected) ? selected : [selected];
+  if (!files.length) return;
+
+  actionBusy.value = true;
+  statusMsg.value = t("explorer.working");
+  error.value = "";
+  try {
+    for (const localPath of files) {
+      const name = localPath.split(/[/\\]/).pop() || "upload.bin";
+      const remotePath = joinPath(entry.path, name);
+      await api.remoteUpload(activeSessionId.value, localPath, remotePath);
+    }
+    await refreshAfterMutation(entry.path);
+    statusMsg.value = t("explorer.uploadDone");
+  } catch (e) {
+    statusMsg.value = "";
+    error.value = String(e);
+  } finally {
+    actionBusy.value = false;
+  }
+}
+
+async function submitPrompt() {
+  const kind = promptKind.value;
+  const entry = promptTarget.value;
+  const sessionId = activeSessionId.value;
+  if (!kind || !entry || !sessionId || actionBusy.value) return;
+
+  const value = promptInput.value.trim();
+  if (kind !== "delete" && !value) return;
+  if (kind === "rename" && value === entry.name) {
+    promptKind.value = null;
+    promptTarget.value = null;
+    promptInput.value = "";
+    return;
+  }
+
+  actionBusy.value = true;
+  error.value = "";
+  statusMsg.value = t("explorer.working");
+  try {
+    if (kind === "rename") {
+      const to = joinPath(parentPath(entry.path), value);
+      await api.remoteRename(sessionId, entry.path, to);
+      await invalidateDir(parentPath(entry.path));
+      await invalidateDir(entry.path);
+      const nextExpanded = { ...expanded.value };
+      if (nextExpanded[entry.path]) {
+        delete nextExpanded[entry.path];
+        nextExpanded[to] = true;
+      }
+      expanded.value = nextExpanded;
+      await fetchDir(parentPath(entry.path), true);
+      await selectFolder(to, true);
+    } else if (kind === "mkdir") {
+      const path = joinPath(entry.path, value);
+      await api.remoteMkdir(sessionId, path);
+      await refreshAfterMutation(entry.path);
+    } else if (kind === "mkfile") {
+      const path = joinPath(entry.path, value);
+      await api.remoteCreateFile(sessionId, path);
+      await refreshAfterMutation(entry.path);
+    } else if (kind === "chmod") {
+      await api.remoteChmod(sessionId, entry.path, value);
+      await refreshAfterMutation(parentPath(entry.path));
+      await selectFolder(entry.path, false);
+    } else if (kind === "delete") {
+      const parent = parentPath(entry.path);
+      await api.remoteDelete(sessionId, entry.path);
+      await invalidateDir(entry.path);
+      await invalidateDir(parent);
+      const nextExpanded = { ...expanded.value };
+      delete nextExpanded[entry.path];
+      expanded.value = nextExpanded;
+      await fetchDir(parent, true);
+      await selectFolder(parent, true);
+    }
+    promptKind.value = null;
+    promptTarget.value = null;
+    promptInput.value = "";
+    statusMsg.value = "";
+  } catch (e) {
+    statusMsg.value = "";
+    error.value = String(e);
+  } finally {
+    actionBusy.value = false;
+  }
+}
+
+function onGlobalPointerDown(event: PointerEvent) {
+  if (!ctxMenu.value) return;
+  const target = event.target as HTMLElement | null;
+  if (target?.closest?.(".ctx-menu")) return;
+  closeCtxMenu();
+}
+
 watch(
   activeSessionId,
   () => {
@@ -395,9 +645,14 @@ watch(
   { immediate: true }
 );
 
+onMounted(() => {
+  window.addEventListener("pointerdown", onGlobalPointerDown, true);
+});
+
 onBeforeUnmount(() => {
   draggingHeight.value = false;
   draggingWidth.value = false;
+  window.removeEventListener("pointerdown", onGlobalPointerDown, true);
 });
 </script>
 
@@ -453,6 +708,7 @@ onBeforeUnmount(() => {
     </div>
 
     <div v-if="error" class="error-line">{{ error }}</div>
+    <div v-else-if="statusMsg" class="status-line">{{ statusMsg }}</div>
 
     <div class="panes" :style="{ gridTemplateColumns: `${entriesWidth}px 1fr` }">
       <div ref="entriesEl" class="entries">
@@ -470,16 +726,34 @@ onBeforeUnmount(() => {
           }"
           :style="{ paddingLeft: 8 + row.depth * 14 + 'px' }"
           @click="onTreeClick(row.entry)"
+          @contextmenu.prevent="row.entry.isDir && onDirContextMenu(row.entry, $event)"
         >
           <span
             class="twist"
             :class="{
               open: row.entry.isDir && expanded[row.entry.path],
               file: !row.entry.isDir,
+              loading: !!loadingDirs[row.entry.path],
             }"
             @click="toggleExpand(row.entry, $event)"
           >
-            {{ row.entry.isDir ? (loadingDirs[row.entry.path] ? "…" : "▸") : "" }}
+            <svg
+              v-if="row.entry.isDir && !loadingDirs[row.entry.path]"
+              viewBox="0 0 16 16"
+              width="12"
+              height="12"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M6 3.5 10.5 8 6 12.5"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span v-else-if="row.entry.isDir" class="twist-loading" aria-hidden="true" />
           </span>
           <span class="kind">{{ row.entry.isDir ? "DIR" : "FILE" }}</span>
           <span class="name">{{ row.entry.name }}</span>
@@ -510,6 +784,7 @@ onBeforeUnmount(() => {
             class="attr-row"
             :class="{ dir: entry.isDir }"
             @click="onRightEntryClick(entry)"
+            @contextmenu.prevent="entry.isDir && onDirContextMenu(entry, $event)"
           >
             <span class="name" :title="entry.name">{{ entry.name }}</span>
             <span>{{ entry.isDir ? "—" : formatSize(entry.size) }}</span>
@@ -541,6 +816,80 @@ onBeforeUnmount(() => {
           <pre v-if="preview.binary" class="preview-body muted">{{ t("explorer.binary") }}</pre>
           <pre v-else class="preview-body">{{ preview.content || t("explorer.emptyFile") }}</pre>
         </template>
+      </div>
+    </div>
+
+    <Teleport to="body">
+      <div
+        v-if="ctxMenu"
+        class="ctx-menu"
+        :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
+        @contextmenu.prevent
+      >
+        <button type="button" class="ctx-item" :disabled="actionBusy" @click="copyPath(ctxMenu.entry)">
+          {{ t("explorer.copyPath") }}
+        </button>
+        <button type="button" class="ctx-item" :disabled="actionBusy" @click="downloadEntry(ctxMenu.entry)">
+          {{ t("explorer.download") }}
+        </button>
+        <button type="button" class="ctx-item" :disabled="actionBusy" @click="uploadInto(ctxMenu.entry)">
+          {{ t("explorer.upload") }}
+        </button>
+        <div class="ctx-sep" />
+        <button type="button" class="ctx-item" :disabled="actionBusy" @click="openPrompt('rename', ctxMenu.entry)">
+          {{ t("explorer.rename") }}
+        </button>
+        <button type="button" class="ctx-item danger" :disabled="actionBusy" @click="openPrompt('delete', ctxMenu.entry)">
+          {{ t("explorer.delete") }}
+        </button>
+        <button type="button" class="ctx-item" :disabled="actionBusy" @click="openPrompt('chmod', ctxMenu.entry)">
+          {{ t("explorer.permissions") }}
+        </button>
+        <div class="ctx-sep" />
+        <button type="button" class="ctx-item" :disabled="actionBusy" @click="openPrompt('mkdir', ctxMenu.entry)">
+          {{ t("explorer.newFolder") }}
+        </button>
+        <button type="button" class="ctx-item" :disabled="actionBusy" @click="openPrompt('mkfile', ctxMenu.entry)">
+          {{ t("explorer.newFile") }}
+        </button>
+      </div>
+    </Teleport>
+
+    <div
+      v-if="promptKind"
+      class="prompt-overlay"
+      @click.self="closePrompt"
+      @keydown.esc.prevent="closePrompt"
+    >
+      <div class="prompt-box" role="dialog" :aria-label="promptTitle">
+        <h3>{{ promptTitle }}</h3>
+        <p v-if="promptKind === 'delete'" class="prompt-message">{{ promptLabel }}</p>
+        <div v-else class="field">
+          <label for="explorerPromptInput">{{ promptLabel }}</label>
+          <input
+            id="explorerPromptInput"
+            ref="promptInputEl"
+            v-model="promptInput"
+            type="text"
+            autocomplete="off"
+            :disabled="actionBusy"
+            @keydown.enter.prevent="submitPrompt"
+          />
+        </div>
+        <div class="prompt-actions">
+          <button type="button" class="btn ghost md" :disabled="actionBusy" @click="closePrompt">
+            {{ t("common.cancel") }}
+          </button>
+          <button
+            type="button"
+            class="btn md"
+            :class="promptKind === 'delete' ? 'danger' : 'primary'"
+            :disabled="actionBusy || (promptKind !== 'delete' && !promptInput.trim())"
+            @click="submitPrompt"
+          >
+            {{ actionBusy ? t("explorer.working") : promptKind === "delete" ? t("explorer.delete") : t("common.confirm") }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -656,11 +1005,10 @@ onBeforeUnmount(() => {
   height: 14px;
   flex-shrink: 0;
   color: var(--text-dim);
-  font-size: 10px;
-  line-height: 14px;
-  text-align: center;
+  display: grid;
+  place-items: center;
   border-radius: 3px;
-  transition: transform 0.12s ease;
+  transition: transform 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
 
 .twist:not(.file):hover {
@@ -673,6 +1021,25 @@ onBeforeUnmount(() => {
   color: var(--accent);
 }
 
+.twist.loading {
+  transform: none;
+}
+
+.twist-loading {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  border-top-color: var(--accent);
+  animation: twist-spin 0.7s linear infinite;
+}
+
+@keyframes twist-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .kind {
   flex-shrink: 0;
   margin-right: 2px;
@@ -683,10 +1050,17 @@ onBeforeUnmount(() => {
   font-family: var(--font-mono);
 }
 
+.tree-row.dir {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .tree-row.dir .kind,
 .tree-row.dir .name {
   color: var(--accent);
   font-weight: 600;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .tree-row.selected.dir .kind,
@@ -743,9 +1117,16 @@ onBeforeUnmount(() => {
   background: var(--bg-hover);
 }
 
+.attr-row.dir {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .attr-row.dir .name {
   color: var(--accent);
   font-weight: 600;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .attr-row.file-meta {
@@ -779,5 +1160,100 @@ onBeforeUnmount(() => {
 
 .preview-body.muted {
   color: var(--text-dim);
+}
+
+.status-line {
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.ctx-menu {
+  position: fixed;
+  z-index: 100;
+  min-width: 168px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ctx-item {
+  height: 28px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+}
+
+.ctx-item:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.ctx-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ctx-item.danger {
+  color: var(--danger);
+}
+
+.ctx-item.danger:hover:not(:disabled) {
+  background: var(--danger-dim);
+}
+
+.ctx-sep {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--border-soft);
+}
+
+.prompt-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--overlay);
+}
+
+.prompt-box {
+  width: min(360px, 100%);
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+}
+
+.prompt-box h3 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.prompt-message {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.prompt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
 }
 </style>

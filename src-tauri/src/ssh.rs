@@ -249,6 +249,51 @@ impl SessionManager {
         read_remote_file(&host, path).await
     }
 
+    pub async fn mkdir(&self, session_id: &str, path: &str) -> AppResult<()> {
+        let host = self.host_for_session(session_id).await?;
+        remote_mkdir(&host, path).await
+    }
+
+    pub async fn create_file(&self, session_id: &str, path: &str) -> AppResult<()> {
+        let host = self.host_for_session(session_id).await?;
+        remote_create_file(&host, path).await
+    }
+
+    pub async fn rename_path(&self, session_id: &str, from: &str, to: &str) -> AppResult<()> {
+        let host = self.host_for_session(session_id).await?;
+        remote_rename(&host, from, to).await
+    }
+
+    pub async fn delete_path(&self, session_id: &str, path: &str) -> AppResult<()> {
+        let host = self.host_for_session(session_id).await?;
+        remote_delete(&host, path).await
+    }
+
+    pub async fn chmod_path(&self, session_id: &str, path: &str, mode: &str) -> AppResult<()> {
+        let host = self.host_for_session(session_id).await?;
+        remote_chmod(&host, path, mode).await
+    }
+
+    pub async fn download_path(
+        &self,
+        session_id: &str,
+        remote_path: &str,
+        local_path: &str,
+    ) -> AppResult<()> {
+        let host = self.host_for_session(session_id).await?;
+        remote_download(&host, remote_path, local_path).await
+    }
+
+    pub async fn upload_file(
+        &self,
+        session_id: &str,
+        local_path: &str,
+        remote_path: &str,
+    ) -> AppResult<()> {
+        let host = self.host_for_session(session_id).await?;
+        remote_upload(&host, local_path, remote_path).await
+    }
+
     async fn host_for_session(&self, session_id: &str) -> AppResult<HostRecord> {
         let host_id = {
             let map = self.inner.lock().await;
@@ -722,6 +767,293 @@ head -c "$max" "$path"
         content,
         binary,
     })
+}
+
+fn parent_remote(path: &str) -> String {
+    if path == "/" {
+        return "/".into();
+    }
+    match path.rfind('/') {
+        Some(0) | None => "/".into(),
+        Some(i) => path[..i].to_string(),
+    }
+}
+
+fn basename_remote(path: &str) -> String {
+    if path == "/" {
+        return "/".into();
+    }
+    path.rsplit('/')
+        .next()
+        .filter(|s| !s.is_empty())
+        .unwrap_or(path)
+        .to_string()
+}
+
+fn assert_ok_output(output: &str, fallback: &str) -> AppResult<()> {
+    let line = output
+        .lines()
+        .map(str::trim)
+        .find(|l| !l.is_empty())
+        .unwrap_or("");
+    if line == "OK" || line.starts_with("OK|") {
+        return Ok(());
+    }
+    if let Some(msg) = line.strip_prefix("ERR|") {
+        return Err(AppError::Message(msg.into()));
+    }
+    if line.is_empty() {
+        return Err(AppError::Message(fallback.into()));
+    }
+    Err(AppError::Message(format!("{fallback}: {line}")))
+}
+
+fn validate_chmod_mode(mode: &str) -> AppResult<&str> {
+    let mode = mode.trim();
+    if mode.is_empty() || mode.len() > 32 {
+        return Err(AppError::Message("权限模式无效".into()));
+    }
+    let ok = mode.chars().all(|c| {
+        c.is_ascii_digit()
+            || matches!(
+                c,
+                'u' | 'g' | 'o' | 'a' | 'r' | 'w' | 'x' | 'X' | 's' | 't' | '+' | '-' | '=' | ','
+            )
+    });
+    if !ok {
+        return Err(AppError::Message("权限模式无效".into()));
+    }
+    Ok(mode)
+}
+
+async fn remote_mkdir(host: &HostRecord, path: &str) -> AppResult<()> {
+    let path = normalize_remote_path(path)?;
+    if path == "/" {
+        return Err(AppError::Message("不能创建根目录".into()));
+    }
+    let quoted = shell_quote(&path);
+    let script = format!(
+        r#"
+path={quoted}
+if mkdir -p -- "$path"; then echo OK; else echo ERR|创建目录失败; fi
+"#
+    );
+    assert_ok_output(&run_exec(host, &script).await?, "创建目录失败")
+}
+
+async fn remote_create_file(host: &HostRecord, path: &str) -> AppResult<()> {
+    let path = normalize_remote_path(path)?;
+    if path == "/" {
+        return Err(AppError::Message("路径无效".into()));
+    }
+    let quoted = shell_quote(&path);
+    let script = format!(
+        r#"
+path={quoted}
+if [ -e "$path" ]; then
+  echo ERR|文件已存在
+  exit 0
+fi
+parent=$(dirname -- "$path")
+mkdir -p -- "$parent" || {{ echo ERR|创建父目录失败; exit 0; }}
+if : > "$path"; then echo OK; else echo ERR|创建文件失败; fi
+"#
+    );
+    assert_ok_output(&run_exec(host, &script).await?, "创建文件失败")
+}
+
+async fn remote_rename(host: &HostRecord, from: &str, to: &str) -> AppResult<()> {
+    let from = normalize_remote_path(from)?;
+    let to = normalize_remote_path(to)?;
+    if from == "/" || to == "/" {
+        return Err(AppError::Message("不能重命名根目录".into()));
+    }
+    if from == to {
+        return Ok(());
+    }
+    let from_q = shell_quote(&from);
+    let to_q = shell_quote(&to);
+    let script = format!(
+        r#"
+from={from_q}
+to={to_q}
+if [ ! -e "$from" ]; then echo ERR|源路径不存在; exit 0; fi
+if [ -e "$to" ]; then echo ERR|目标已存在; exit 0; fi
+parent=$(dirname -- "$to")
+mkdir -p -- "$parent" || {{ echo ERR|创建目标目录失败; exit 0; }}
+if mv -- "$from" "$to"; then echo OK; else echo ERR|重命名失败; fi
+"#
+    );
+    assert_ok_output(&run_exec(host, &script).await?, "重命名失败")
+}
+
+async fn remote_delete(host: &HostRecord, path: &str) -> AppResult<()> {
+    let path = normalize_remote_path(path)?;
+    if path == "/" {
+        return Err(AppError::Message("不能删除根目录".into()));
+    }
+    let quoted = shell_quote(&path);
+    let script = format!(
+        r#"
+path={quoted}
+if [ ! -e "$path" ]; then echo ERR|路径不存在; exit 0; fi
+if rm -rf -- "$path"; then echo OK; else echo ERR|删除失败; fi
+"#
+    );
+    assert_ok_output(&run_exec(host, &script).await?, "删除失败")
+}
+
+async fn remote_chmod(host: &HostRecord, path: &str, mode: &str) -> AppResult<()> {
+    let path = normalize_remote_path(path)?;
+    let mode = validate_chmod_mode(mode)?;
+    let path_q = shell_quote(&path);
+    let mode_q = shell_quote(mode);
+    let script = format!(
+        r#"
+path={path_q}
+mode={mode_q}
+if [ ! -e "$path" ]; then echo ERR|路径不存在; exit 0; fi
+if chmod -- "$mode" "$path"; then echo OK; else echo ERR|修改权限失败; fi
+"#
+    );
+    assert_ok_output(&run_exec(host, &script).await?, "修改权限失败")
+}
+
+async fn remote_download(host: &HostRecord, remote_path: &str, local_path: &str) -> AppResult<()> {
+    let remote_path = normalize_remote_path(remote_path)?;
+    if local_path.trim().is_empty() {
+        return Err(AppError::Message("本地路径无效".into()));
+    }
+    let quoted = shell_quote(&remote_path);
+    let probe = format!(
+        r#"
+path={quoted}
+if [ ! -e "$path" ]; then echo ERR|路径不存在; exit 0; fi
+if [ -d "$path" ]; then echo DIR; else echo FILE; fi
+"#
+    );
+    let kind = run_exec(host, &probe).await?;
+    let kind = kind.lines().map(str::trim).find(|l| !l.is_empty()).unwrap_or("");
+    if let Some(msg) = kind.strip_prefix("ERR|") {
+        return Err(AppError::Message(msg.into()));
+    }
+
+    let bytes = if kind == "DIR" {
+        let parent = parent_remote(&remote_path);
+        let name = basename_remote(&remote_path);
+        let parent_q = shell_quote(&parent);
+        let name_q = shell_quote(&name);
+        let cmd = format!("tar czf - -C {parent_q} {name_q}");
+        run_exec_bytes(host, &cmd).await?
+    } else if kind == "FILE" {
+        let cmd = format!("cat -- {quoted}");
+        run_exec_bytes(host, &cmd).await?
+    } else {
+        return Err(AppError::Message("下载失败：无法识别路径类型".into()));
+    };
+
+    if let Some(parent) = Path::new(local_path).parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| AppError::Message(format!("创建本地目录失败: {e}")))?;
+    }
+    std::fs::write(local_path, bytes)
+        .map_err(|e| AppError::Message(format!("写入本地文件失败: {e}")))?;
+    Ok(())
+}
+
+async fn open_authenticated_handle(host: &HostRecord) -> AppResult<Handle<ClientHandler>> {
+    let config = Arc::new(client::Config::default());
+    let mut handle =
+        client::connect(config, (host.host.as_str(), host.port), ClientHandler).await?;
+
+    let ok = match host.auth_type {
+        AuthType::Password => {
+            let password = credentials::get_secret(&host.id, "password")?.ok_or_else(|| {
+                AppError::Message("未找到已保存的密码，请编辑连接并重新输入密码".into())
+            })?;
+            handle
+                .authenticate_password(&host.username, password)
+                .await?
+        }
+        AuthType::PrivateKey => {
+            let path = host
+                .private_key_path
+                .as_ref()
+                .ok_or_else(|| AppError::Message("未配置私钥路径".into()))?;
+            let passphrase = credentials::get_secret(&host.id, "passphrase")?;
+            let key = load_key(path, passphrase.as_deref())?;
+            handle
+                .authenticate_publickey(&host.username, Arc::new(key))
+                .await?
+        }
+    };
+    if !ok {
+        return Err(AppError::Message("SSH 认证失败".into()));
+    }
+    Ok(handle)
+}
+
+async fn remote_upload(host: &HostRecord, local_path: &str, remote_path: &str) -> AppResult<()> {
+    let remote_path = normalize_remote_path(remote_path)?;
+    if remote_path == "/" {
+        return Err(AppError::Message("远端路径无效".into()));
+    }
+    let data = std::fs::read(local_path)
+        .map_err(|e| AppError::Message(format!("读取本地文件失败: {e}")))?;
+
+    let parent = parent_remote(&remote_path);
+    let parent_q = shell_quote(&parent);
+    let ensure = format!(
+        r#"
+parent={parent_q}
+mkdir -p -- "$parent" && echo OK || echo ERR|创建远端目录失败
+"#
+    );
+    assert_ok_output(&run_exec(host, &ensure).await?, "创建远端目录失败")?;
+
+    let handle = open_authenticated_handle(host).await?;
+    let mut channel = handle.channel_open_session().await?;
+    let cmd = format!("cat > {}", shell_quote(&remote_path));
+    channel.exec(true, cmd.as_str()).await?;
+
+    const CHUNK: usize = 32 * 1024;
+    for chunk in data.chunks(CHUNK) {
+        channel
+            .data(chunk)
+            .await
+            .map_err(|e| AppError::Message(format!("上传失败: {e}")))?;
+    }
+    channel
+        .eof()
+        .await
+        .map_err(|e| AppError::Message(format!("上传结束失败: {e}")))?;
+
+    let mut stderr = String::new();
+    let mut code: Option<u32> = None;
+    while let Some(msg) = channel.wait().await {
+        match msg {
+            ChannelMsg::ExtendedData { ref data, .. } => {
+                stderr.push_str(&String::from_utf8_lossy(data));
+            }
+            ChannelMsg::ExitStatus { exit_status } => {
+                code = Some(exit_status);
+            }
+            _ => {}
+        }
+    }
+
+    let _ = handle
+        .disconnect(russh::Disconnect::ByApplication, "", "")
+        .await;
+
+    if code.unwrap_or(1) != 0 {
+        let msg = stderr.trim();
+        if msg.is_empty() {
+            return Err(AppError::Message("上传失败".into()));
+        }
+        return Err(AppError::Message(format!("上传失败: {msg}")));
+    }
+    Ok(())
 }
 
 fn parse_metrics(host: &HostRecord, raw: &str) -> HostMetrics {

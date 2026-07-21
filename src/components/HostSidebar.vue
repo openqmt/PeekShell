@@ -128,7 +128,17 @@ function hostMeta() {
           <strong>{{ activeSession?.title ?? t("sidebar.disconnected") }}</strong>
           <span>{{ hostMeta() ? groupLabel(hostMeta()!.group) : t("sidebar.selectHost") }}</span>
         </div>
-        <span class="chev">▾</span>
+        <span class="chev" aria-hidden="true">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none">
+            <path
+              d="M6 3.5 10.5 8 6 12.5"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
       </div>
 
       <div class="info-scroll">
@@ -311,7 +321,18 @@ function hostMeta() {
 .names { flex: 1; min-width: 0; }
 .names strong { display: block; font-size: 13px; }
 .names span { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
-.chev { color: var(--text-dim); font-size: 11px; }
+.chev {
+  color: var(--text-dim);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.host-switcher:hover .chev {
+  color: var(--accent);
+  transform: translateX(1px);
+}
 
 .info-scroll {
   flex: 1;
