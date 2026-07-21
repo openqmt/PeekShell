@@ -1,8 +1,10 @@
 <script setup lang="ts">
 /**
  * 左侧：当前会话主机概览，可折叠为窄条。
+ * 有活动会话时每秒刷新一次主机指标。
  */
 import { storeToRefs } from "pinia";
+import { onBeforeUnmount, ref, watch } from "vue";
 import { useSessionsStore } from "../stores/sessions";
 import { useUiStore } from "../stores/ui";
 import { useHostsStore } from "../stores/hosts";
@@ -12,6 +14,46 @@ const hosts = useHostsStore();
 const ui = useUiStore();
 const { metrics, activeSession, connecting } = storeToRefs(sessions);
 const { sidebarCollapsed, theme } = storeToRefs(ui);
+
+const METRICS_INTERVAL_MS = 1000;
+let metricsTimer: ReturnType<typeof setInterval> | null = null;
+const metricsRefreshing = ref(false);
+
+async function pollMetrics() {
+  if (!activeSession.value || metricsRefreshing.value) return;
+  metricsRefreshing.value = true;
+  try {
+    await sessions.refreshMetrics();
+  } finally {
+    metricsRefreshing.value = false;
+  }
+}
+
+function stopMetricsPolling() {
+  if (metricsTimer) {
+    clearInterval(metricsTimer);
+    metricsTimer = null;
+  }
+}
+
+function startMetricsPolling() {
+  stopMetricsPolling();
+  void pollMetrics();
+  metricsTimer = setInterval(() => {
+    void pollMetrics();
+  }, METRICS_INTERVAL_MS);
+}
+
+watch(
+  activeSession,
+  (session) => {
+    if (session) startMetricsPolling();
+    else stopMetricsPolling();
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(stopMetricsPolling);
 
 function barClass(pct: number) {
   if (pct >= 85) return "bar danger";
@@ -126,7 +168,7 @@ function hostMeta() {
           </div>
 
           <div class="info-card">
-            <h3>进程概览 · 内存占用前 5</h3>
+            <h3>进程概览</h3>
             <div v-if="metrics.topProcesses.length" class="process-table">
               <div class="process-head">
                 <span>进程</span>
@@ -160,11 +202,6 @@ function hostMeta() {
             </div>
           </div>
         </template>
-      </div>
-
-      <div class="side-foot">
-        <button class="btn-ghost-block" type="button" :disabled="!activeSession" @click="sessions.refreshMetrics()">刷新</button>
-        <button class="btn-ghost-block" type="button" @click="ui.openHostsModal()">主机列表</button>
       </div>
     </div>
   </aside>
@@ -362,11 +399,4 @@ function hostMeta() {
 .net-row .dir { color: var(--text-dim); width: 28px; }
 .net-row .rate { color: var(--term-cyan); }
 .net-row .total { color: var(--text-muted); font-size: 10.5px; }
-
-.side-foot {
-  border-top: 1px solid var(--border-soft);
-  padding: 10px 12px;
-  display: flex;
-  gap: 6px;
-}
 </style>
