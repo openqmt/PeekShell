@@ -83,16 +83,8 @@ function hostMeta() {
               <dt>系统</dt><dd>{{ metrics.os || "—" }}</dd>
               <dt>内核</dt><dd>{{ metrics.kernel || "—" }}</dd>
               <dt>架构</dt><dd>{{ metrics.arch || "—" }}</dd>
-              <dt>主机名</dt><dd>{{ metrics.hostname || "—" }}</dd>
+              <dt>运行时间</dt><dd>{{ metrics.uptimeDays }} 天</dd>
             </dl>
-          </div>
-
-          <div class="info-card">
-            <h3>运行时间</h3>
-            <div class="uptime-big">
-              <span class="num">{{ metrics.uptimeDays }}</span>
-              <span class="unit">天</span>
-            </div>
           </div>
 
           <div class="info-card">
@@ -306,15 +298,6 @@ function hostMeta() {
 
 .kv dt { color: var(--text-dim); font-size: 11px; }
 .kv dd { font-family: var(--font-mono); font-size: 11.5px; word-break: break-all; }
-
-.uptime-big { display: flex; align-items: baseline; gap: 6px; }
-.uptime-big .num {
-  font-family: var(--font-mono);
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--accent);
-}
-.uptime-big .unit { font-size: 12px; color: var(--text-muted); }
 
 .metric + .metric { margin-top: 10px; }
 .metric-top { display: flex; justify-content: space-between; margin-bottom: 6px; gap: 8px; }
