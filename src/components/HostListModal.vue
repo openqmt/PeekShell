@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** 主机列表：分组、连接、编辑、删除。 */
 import { storeToRefs } from 'pinia'
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from '../i18n'
 import { useHostsStore } from '../stores/hosts'
 import { useSessionsStore } from '../stores/sessions'
@@ -72,14 +72,36 @@ onMounted(() => {
     void hosts.refresh()
 })
 
-function isGroupCollapsed(group: string) {
-    return collapsedGroups.value.has(group)
+/** 最多保持一个分组展开（手风琴）。 */
+watch(
+    groups,
+    (list) => {
+        const open = list
+            .map(([g]) => g)
+            .filter((g) => !collapsedGroups.value.has(g))
+        if (open.length <= 1) return
+        const keep = open[0]
+        collapsedGroups.value = new Set(
+            list.map(([g]) => g).filter((g) => g !== keep)
+        )
+        persistCollapsed()
+    },
+    { immediate: true }
+)
+
+function isGroupOpen(group: string) {
+    return !collapsedGroups.value.has(group)
 }
 
+/** 手风琴：展开当前分组时收起其他分组。 */
 function toggleGroup(group: string) {
     const next = new Set(collapsedGroups.value)
-    if (next.has(group)) next.delete(group)
-    else next.add(group)
+    if (!next.has(group)) {
+        next.add(group)
+    } else {
+        for (const [g] of groups.value) next.add(g)
+        next.delete(group)
+    }
     collapsedGroups.value = next
     persistCollapsed()
 }
@@ -242,99 +264,147 @@ function onBackdrop(e: MouseEvent) {
                 </div>
 
                 <div
-                    v-for="[group, list] in groups"
+                    v-for="([group, list], index) in groups"
                     :key="group"
                     class="mgr-group"
-                    :class="{ collapsed: isGroupCollapsed(group) }"
+                    :class="{ open: isGroupOpen(group) }"
                 >
                     <div
                         class="mgr-group-head"
                         role="button"
                         tabindex="0"
-                        :aria-expanded="!isGroupCollapsed(group)"
+                        :aria-expanded="isGroupOpen(group)"
+                        :aria-controls="`group-panel-${index}`"
                         :title="
-                            isGroupCollapsed(group)
-                                ? t('hosts.expandGroup')
-                                : t('hosts.collapseGroup')
+                            isGroupOpen(group)
+                                ? t('hosts.collapseGroup')
+                                : t('hosts.expandGroup')
                         "
                         @click="toggleGroup(group)"
                         @keydown.enter.prevent="toggleGroup(group)"
                         @keydown.space.prevent="toggleGroup(group)"
                     >
-                        <span class="chev" aria-hidden="true">▾</span>
-                        <span>{{ groupLabel(group) }}</span>
+                        <span class="chev" aria-hidden="true">
+                            <svg
+                                viewBox="0 0 16 16"
+                                width="12"
+                                height="12"
+                                fill="none"
+                            >
+                                <path
+                                    d="M4.2 6.2 8 10l3.8-3.8"
+                                    stroke="currentColor"
+                                    stroke-width="1.7"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                        </span>
+                        <span class="group-name">{{ groupLabel(group) }}</span>
                         <span class="count">{{ list.length }}</span>
-                        <button
-                            type="button"
-                            class="btn ghost mini"
-                            @click.stop="openRenameGroup(group)"
-                        >
-                            {{ t('hosts.rename') }}
-                        </button>
-                        <button
-                            type="button"
-                            class="btn danger mini"
-                            @click.stop="openRemoveGroup(group)"
-                        >
-                            {{ t('hosts.deleteGroup') }}
-                        </button>
-                    </div>
-                    <template v-if="!isGroupCollapsed(group)">
-                        <div
-                            v-for="host in list"
-                            :key="host.id"
-                            class="mgr-row"
-                        >
-                            <span class="status" :class="{ on: false }" />
-                            <div class="meta">
-                                <strong>{{ host.name }}</strong>
-                                <span>
-                                    {{ host.username }}@{{ host.host }}:{{
-                                        host.port
-                                    }}
-                                    ·
-                                    {{
-                                        host.authType === 'password'
-                                            ? t('hosts.authPassword')
-                                            : t('hosts.authKey')
-                                    }}
-                                </span>
-                                <span v-if="host.note" class="note">{{
-                                    host.note
-                                }}</span>
-                            </div>
-                            <div class="row-actions">
-                                <button
-                                    type="button"
-                                    class="btn primary mini"
-                                    :disabled="!!connectingHostId"
-                                    @click="ui.openConnectModal(host)"
-                                >
-                                    {{ t('common.edit') }}
-                                </button>
-                                <button
-                                    type="button"
-                                    class="btn ghost mini"
-                                    :disabled="!!connectingHostId"
-                                    @click="connect(host.id)"
-                                >
-                                    {{
-                                        connectingHostId === host.id
-                                            ? t('common.connecting')
-                                            : t('common.connect')
-                                    }}
-                                </button>
-                                <button
-                                    type="button"
-                                    class="btn danger mini"
-                                    :disabled="!!connectingHostId"
-                                    @click="openRemoveHost(host.id, host.name)"
-                                >
-                                    {{ t('common.delete') }}
-                                </button>
-                            </div>
+                        <div class="group-actions">
+                            <button
+                                type="button"
+                                class="btn ghost mini"
+                                @click.stop="openRenameGroup(group)"
+                            >
+                                {{ t('hosts.rename') }}
+                            </button>
+                            <button
+                                type="button"
+                                class="btn danger mini"
+                                @click.stop="openRemoveGroup(group)"
+                            >
+                                {{ t('hosts.deleteGroup') }}
+                            </button>
                         </div>
-                    </template>
+                    </div>
+
+                    <div
+                        :id="`group-panel-${index}`"
+                        class="mgr-panel"
+                        role="region"
+                        :aria-hidden="!isGroupOpen(group)"
+                    >
+                        <div class="mgr-panel-inner">
+                            <div v-if="list.length" class="mgr-list">
+                                <div
+                                    v-for="host in list"
+                                    :key="host.id"
+                                    class="mgr-row"
+                                    :class="{
+                                        busy: connectingHostId === host.id,
+                                    }"
+                                    role="button"
+                                    tabindex="0"
+                                    :aria-disabled="!!connectingHostId"
+                                    @click="connect(host.id)"
+                                    @keydown.enter.prevent="connect(host.id)"
+                                    @keydown.space.prevent="connect(host.id)"
+                                >
+                                    <span
+                                        class="status"
+                                        :class="{ on: false }"
+                                    />
+                                    <div class="meta">
+                                        <strong>{{ host.name }}</strong>
+                                        <span>
+                                            {{ host.username }}@{{ host.host }}:{{
+                                                host.port
+                                            }}
+                                            ·
+                                            {{
+                                                host.authType === 'password'
+                                                    ? t('hosts.authPassword')
+                                                    : t('hosts.authKey')
+                                            }}
+                                        </span>
+                                        <span
+                                            v-if="host.note"
+                                            class="note"
+                                            >{{ host.note }}</span
+                                        >
+                                    </div>
+                                    <div class="row-actions" @click.stop>
+                                        <button
+                                            type="button"
+                                            class="btn ghost mini"
+                                            :disabled="!!connectingHostId"
+                                            @click="ui.openConnectModal(host)"
+                                        >
+                                            {{ t('common.edit') }}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="btn primary mini"
+                                            :disabled="!!connectingHostId"
+                                            @click="connect(host.id)"
+                                        >
+                                            {{
+                                                connectingHostId === host.id
+                                                    ? t('common.connecting')
+                                                    : t('common.connect')
+                                            }}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="btn danger mini"
+                                            :disabled="!!connectingHostId"
+                                            @click="
+                                                openRemoveHost(
+                                                    host.id,
+                                                    host.name
+                                                )
+                                            "
+                                        >
+                                            {{ t('common.delete') }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-else class="mgr-empty">—</div>
+                        </div>
+                    </div>
                 </div>
 
                 <div v-if="!groups.length" class="empty">
@@ -444,47 +514,117 @@ function onBackdrop(e: MouseEvent) {
 }
 
 .mgr-group {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     border: 1px solid var(--border-soft);
-    border-radius: 8px;
+    border-radius: 10px;
     overflow: hidden;
     background: var(--bg-elevated);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.mgr-group.open {
+    border-color: var(--border);
+    box-shadow: 0 1px 0 rgba(62, 207, 142, 0.08);
 }
 
 .mgr-group-head {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 10px;
+    padding: 10px 12px;
     background: var(--bg-hover);
-    border-bottom: 1px solid var(--border-soft);
-    font-size: 12px;
+    border-bottom: 1px solid transparent;
+    font-size: 12.5px;
     font-weight: 600;
     cursor: pointer;
     user-select: none;
+    transition: background 0.15s ease, border-color 0.2s ease;
 }
 
-.mgr-group.collapsed .mgr-group-head {
-    border-bottom: none;
+.mgr-group.open .mgr-group-head {
+    border-bottom-color: var(--border-soft);
 }
 
-.mgr-group-head .chev {
-    display: inline-flex;
-    width: 12px;
+.mgr-group-head:hover {
+    background: var(--bg-active);
+}
+
+.chev {
+    display: inline-grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
     color: var(--text-dim);
-    transition: transform 0.15s ease;
+    background: var(--bg-root);
+    border: 1px solid var(--border-soft);
+    transition: transform 0.22s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
-.mgr-group.collapsed .mgr-group-head .chev {
+.mgr-group:not(.open) .chev {
     transform: rotate(-90deg);
 }
 
+.mgr-group.open .chev,
+.mgr-group-head:hover .chev {
+    color: var(--accent);
+    border-color: var(--accent-border);
+}
+
+.group-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .count {
-    margin-left: auto;
-    font-weight: 400;
+    min-width: 22px;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
     font-size: 11px;
-    color: var(--text-dim);
+    color: var(--text-muted);
     font-family: var(--font-mono);
+    background: var(--bg-root);
+    border: 1px solid var(--border-soft);
+}
+
+.group-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+}
+
+.mgr-panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.28s ease;
+}
+
+.mgr-group.open .mgr-panel {
+    grid-template-rows: 1fr;
+}
+
+.mgr-panel-inner {
+    overflow: hidden;
+    min-height: 0;
+}
+
+.mgr-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.mgr-empty {
+    padding: 12px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 12px;
 }
 
 .mgr-row {
@@ -495,12 +635,18 @@ function onBackdrop(e: MouseEvent) {
     padding: 10px 12px;
     border-top: 1px solid var(--border-soft);
     font-size: 12.5px;
+    cursor: pointer;
+    outline: none;
+    transition: background 0.15s ease;
 }
 
-.mgr-row:first-of-type {
+.mgr-row:first-child {
     border-top: none;
 }
-.mgr-row:hover {
+
+.mgr-row:hover,
+.mgr-row:focus-visible,
+.mgr-row.busy {
     background: var(--bg-hover);
 }
 
