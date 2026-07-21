@@ -48,8 +48,6 @@ async function ensureTerm(sessionId: string) {
     fontFamily: "IBM Plex Mono, ui-monospace, monospace",
     fontSize: 13,
     theme: readTermTheme(),
-    // 控制自定义滚动条宽度（默认 14px）
-    overviewRuler: { width: 6 },
   });
   const fit = new FitAddon();
   term.loadAddon(fit);
