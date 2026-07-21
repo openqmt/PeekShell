@@ -150,37 +150,31 @@ function hostMeta() {
           <div class="info-card">
             <h3>{{ t("sidebar.resources") }}</h3>
             <div class="metric">
-              <div class="metric-top">
-                <span class="label">CPU</span>
+              <span class="label">CPU</span>
+              <div :class="barClass(metrics.cpuPercent)">
+                <i :style="{ width: metrics.cpuPercent + '%' }" />
                 <span class="value">{{ Math.round(metrics.cpuPercent) }}%</span>
               </div>
-              <div :class="barClass(metrics.cpuPercent)"><i :style="{ width: metrics.cpuPercent + '%' }" /></div>
             </div>
             <div class="metric">
-              <div class="metric-top">
-                <span class="label">{{ t("sidebar.memory") }}</span>
-                <span class="value">{{ metrics.memUsedGiB.toFixed(1) }} / {{ metrics.memTotalGiB.toFixed(1) }} GiB</span>
-              </div>
+              <span class="label">{{ t("sidebar.memory") }}</span>
               <div :class="barClass(pct(metrics.memUsedGiB, metrics.memTotalGiB))">
                 <i :style="{ width: pct(metrics.memUsedGiB, metrics.memTotalGiB) + '%' }" />
+                <span class="value">{{ metrics.memUsedGiB.toFixed(1) }} / {{ metrics.memTotalGiB.toFixed(1) }} GiB</span>
               </div>
             </div>
             <div class="metric">
-              <div class="metric-top">
-                <span class="label">{{ t("sidebar.swap") }}</span>
-                <span class="value">{{ Math.round(metrics.swapUsedMiB) }} / {{ Math.round(metrics.swapTotalMiB) }} MiB</span>
-              </div>
+              <span class="label">{{ t("sidebar.swap") }}</span>
               <div :class="barClass(pct(metrics.swapUsedMiB, metrics.swapTotalMiB))">
                 <i :style="{ width: pct(metrics.swapUsedMiB, metrics.swapTotalMiB) + '%' }" />
+                <span class="value">{{ Math.round(metrics.swapUsedMiB) }} / {{ Math.round(metrics.swapTotalMiB) }} MiB</span>
               </div>
             </div>
             <div class="metric">
-              <div class="metric-top">
-                <span class="label">{{ t("sidebar.disk") }}</span>
-                <span class="value">{{ metrics.diskUsedGiB.toFixed(1) }} / {{ metrics.diskTotalGiB.toFixed(1) }} GiB</span>
-              </div>
+              <span class="label">{{ t("sidebar.disk") }}</span>
               <div :class="barClass(pct(metrics.diskUsedGiB, metrics.diskTotalGiB))">
                 <i :style="{ width: pct(metrics.diskUsedGiB, metrics.diskTotalGiB) + '%' }" />
+                <span class="value">{{ metrics.diskUsedGiB.toFixed(1) }} / {{ metrics.diskTotalGiB.toFixed(1) }} GiB</span>
               </div>
             </div>
           </div>
@@ -360,21 +354,48 @@ function hostMeta() {
 .kv dt { color: var(--text-dim); font-size: 11px; }
 .kv dd { font-family: var(--font-mono); font-size: 11.5px; word-break: break-all; }
 
-.metric + .metric { margin-top: 10px; }
-.metric-top { display: flex; justify-content: space-between; margin-bottom: 6px; gap: 8px; }
-.metric-top .label { font-size: 12px; color: var(--text-muted); }
-.metric-top .value { font-family: var(--font-mono); font-size: 11.5px; }
+.metric {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+.metric + .metric { margin-top: 8px; }
+.metric .label {
+  font-size: 11px;
+  color: var(--text-dim);
+}
 
 .bar {
-  height: 6px;
+  position: relative;
+  height: 18px;
   border-radius: 999px;
   background: var(--bg-root);
   overflow: hidden;
   border: 1px solid var(--border-soft);
+  min-width: 0;
 }
-.bar > i { display: block; height: 100%; background: var(--accent); }
+.bar > i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
 .bar.warn > i { background: var(--warn); }
 .bar.danger > i { background: var(--danger); }
+.bar .value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text);
+  text-shadow: 0 0 3px var(--bg-root);
+  pointer-events: none;
+  white-space: nowrap;
+  padding: 0 8px;
+}
 
 .process-table {
   font-family: var(--font-mono);
