@@ -212,8 +212,9 @@ async fn open_shell(
 
     let ok = match host.auth_type {
         AuthType::Password => {
-            let password = credentials::get_secret(&host.id, "password")?
-                .ok_or_else(|| AppError::Message("未找到已保存的密码".into()))?;
+            let password = credentials::get_secret(&host.id, "password")?.ok_or_else(|| {
+                AppError::Message("未找到已保存的密码，请编辑连接并重新输入密码".into())
+            })?;
             handle
                 .authenticate_password(&host.username, password)
                 .await?
@@ -274,8 +275,9 @@ async fn run_exec(host: &HostRecord, command: &str) -> AppResult<String> {
 
     let ok = match host.auth_type {
         AuthType::Password => {
-            let password = credentials::get_secret(&host.id, "password")?
-                .ok_or_else(|| AppError::Message("未找到已保存的密码".into()))?;
+            let password = credentials::get_secret(&host.id, "password")?.ok_or_else(|| {
+                AppError::Message("未找到已保存的密码，请编辑连接并重新输入密码".into())
+            })?;
             handle
                 .authenticate_password(&host.username, password)
                 .await?

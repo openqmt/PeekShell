@@ -23,7 +23,12 @@ thiserror = "2"
 anyhow = "1"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "io-util", "net"] }
 dirs = "6"
-keyring = "3"
+keyring = { version = "3", features = [
+    "apple-native",
+    "windows-native",
+    "linux-native-sync-persistent",
+    "crypto-rust",
+] }
 chrono = { version = "0.4", features = ["serde"] }
 russh = "0.45"
 russh-keys = "0.45"

@@ -31,6 +31,17 @@ async function removeHost(id: string, name: string) {
   await hosts.remove(id);
 }
 
+async function createGroup() {
+  const name = prompt("新分组名称");
+  if (!name?.trim()) return;
+  localError.value = "";
+  try {
+    await hosts.createGroup(name.trim());
+  } catch (e) {
+    localError.value = String(e);
+  }
+}
+
 async function renameGroup(from: string) {
   const to = prompt("新的分组名称", from);
   if (!to || to.trim() === from) return;
@@ -57,6 +68,7 @@ function onBackdrop(e: MouseEvent) {
         </div>
         <div class="modal-tools">
           <button type="button" class="btn primary md" @click="ui.openConnectModal(null)">＋ 新增连接</button>
+          <button type="button" class="btn ghost md" @click="createGroup">＋ 新建分组</button>
           <button type="button" class="icon-btn" aria-label="关闭" @click="ui.closeHostsModal()">✕</button>
         </div>
       </div>
@@ -89,7 +101,7 @@ function onBackdrop(e: MouseEvent) {
           </div>
         </div>
 
-        <div v-if="!groups.length" class="empty">暂无主机，点击右上角新增连接。</div>
+        <div v-if="!groups.length" class="empty">暂无主机或分组，可从右上角开始创建。</div>
       </div>
     </div>
   </div>

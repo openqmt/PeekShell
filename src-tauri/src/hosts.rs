@@ -49,7 +49,10 @@ pub struct HostUpsert {
 
 #[derive(Default, Serialize, Deserialize)]
 struct HostStoreFile {
+    #[serde(default)]
     hosts: Vec<HostRecord>,
+    #[serde(default)]
+    groups: Vec<String>,
 }
 
 fn data_dir() -> AppResult<PathBuf> {
@@ -83,6 +86,34 @@ pub fn list_hosts() -> AppResult<Vec<HostRecord>> {
     let mut hosts = load_file()?.hosts;
     hosts.sort_by(|a, b| a.group.cmp(&b.group).then(a.name.cmp(&b.name)));
     Ok(hosts)
+}
+
+pub fn list_groups() -> AppResult<Vec<String>> {
+    let file = load_file()?;
+    let mut groups = file.groups;
+    for host in file.hosts {
+        if !groups.contains(&host.group) {
+            groups.push(host.group);
+        }
+    }
+    groups.sort();
+    groups.dedup();
+    Ok(groups)
+}
+
+pub fn create_group(name: &str) -> AppResult<()> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(AppError::Message("分组名不能为空".into()));
+    }
+    let mut file = load_file()?;
+    if file.groups.iter().any(|group| group == name)
+        || file.hosts.iter().any(|host| host.group == name)
+    {
+        return Err(AppError::Message(format!("分组已存在: {name}")));
+    }
+    file.groups.push(name.to_string());
+    save_file(&file)
 }
 
 pub fn get_host(id: &str) -> AppResult<HostRecord> {
@@ -141,15 +172,25 @@ pub fn upsert_host(payload: HostUpsert) -> AppResult<HostRecord> {
         AuthType::Password => credentials::get_secret(&id, "password")?.is_some(),
         AuthType::PrivateKey => true,
     };
+    if payload.auth_type == AuthType::Password && !has_secret {
+        return Err(AppError::Message(
+            "密码未保存，请填写密码后重新保存连接".into(),
+        ));
+    }
+
+    let group = if payload.group.trim().is_empty() {
+        "未分组".to_string()
+    } else {
+        payload.group.trim().to_string()
+    };
+    if !file.groups.contains(&group) {
+        file.groups.push(group.clone());
+    }
 
     let record = HostRecord {
         id: id.clone(),
         name: payload.name.trim().to_string(),
-        group: if payload.group.trim().is_empty() {
-            "未分组".into()
-        } else {
-            payload.group.trim().to_string()
-        },
+        group,
         host: payload.host.trim().to_string(),
         port: payload.port,
         note: payload.note,
@@ -186,11 +227,33 @@ pub fn rename_group(from: &str, to: &str) -> AppResult<()> {
         return Err(AppError::Message("分组名不能为空".into()));
     }
     let mut file = load_file()?;
+    if from != to
+        && (file.groups.iter().any(|group| group == to)
+            || file.hosts.iter().any(|host| host.group == to))
+    {
+        return Err(AppError::Message(format!("分组已存在: {to}")));
+    }
+    let mut found = false;
+    for group in &mut file.groups {
+        if group == from {
+            *group = to.to_string();
+            found = true;
+        }
+    }
     for host in &mut file.hosts {
         if host.group == from {
             host.group = to.to_string();
+            found = true;
         }
     }
+    if !found {
+        return Err(AppError::Message(format!("分组不存在: {from}")));
+    }
+    if !file.groups.iter().any(|group| group == to) {
+        file.groups.push(to.to_string());
+    }
+    file.groups.sort();
+    file.groups.dedup();
     save_file(&file)?;
     Ok(())
 }
@@ -198,10 +261,22 @@ pub fn rename_group(from: &str, to: &str) -> AppResult<()> {
 /// 删除分组：组内主机移到「未分组」，不删除主机本身。
 pub fn delete_group(group: &str) -> AppResult<()> {
     let mut file = load_file()?;
+    let before = file.groups.len();
+    file.groups.retain(|item| item != group);
+    let mut found = file.groups.len() != before;
     for host in &mut file.hosts {
         if host.group == group {
             host.group = "未分组".into();
+            found = true;
         }
+    }
+    if !found {
+        return Err(AppError::Message(format!("分组不存在: {group}")));
+    }
+    if file.hosts.iter().any(|host| host.group == "未分组")
+        && !file.groups.iter().any(|item| item == "未分组")
+    {
+        file.groups.push("未分组".into());
     }
     save_file(&file)?;
     Ok(())

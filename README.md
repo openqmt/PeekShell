@@ -5,7 +5,7 @@ A lightweight, cross-platform SSH client built with Tauri 2, Rust, and Vue 3, fe
 ## Documentation
 
 - [Plan.md](./Plan.md) — Architecture and roadmap
-- [开发规范.md](./开发规范.md) — Coding standards
+- [AGENT.md](./AGENT.md) — Coding standards
 - [Preview.html](./Preview.html) — UI design preview
 
 ## Development

@@ -31,8 +31,15 @@ const form = reactive({
 });
 
 const title = computed(() => (editingHost.value ? "编辑连接" : "新增连接"));
+const passwordRequired = computed(
+  () =>
+    !editingHost.value ||
+    editingHost.value.authType !== "password" ||
+    !editingHost.value.hasSecret
+);
 const groupOptions = computed(() => {
-  const set = new Set(hosts.hosts.map((h) => h.group));
+  const set = new Set(hosts.groupNames);
+  for (const host of hosts.hosts) set.add(host.group);
   set.add("未分组");
   if (form.group) set.add(form.group);
   return [...set].sort();
@@ -83,6 +90,10 @@ async function pickPrivateKey() {
 
 async function save() {
   error.value = "";
+  if (form.authType === "password" && passwordRequired.value && !form.password) {
+    error.value = "请输入密码；当前连接没有已保存的密码。";
+    return;
+  }
   saving.value = true;
   try {
     const payload: HostUpsert = {
@@ -136,10 +147,9 @@ function onBackdrop(e: MouseEvent) {
           </div>
           <div class="field">
             <label>分组</label>
-            <input v-model="form.group" type="text" list="group-list" placeholder="未分组" />
-            <datalist id="group-list">
-              <option v-for="g in groupOptions" :key="g" :value="g" />
-            </datalist>
+            <select v-model="form.group">
+              <option v-for="g in groupOptions" :key="g" :value="g">{{ g }}</option>
+            </select>
           </div>
           <div class="field">
             <label>主机 IP<span class="req">*</span></label>
@@ -184,11 +194,11 @@ function onBackdrop(e: MouseEvent) {
 
         <div v-if="form.authType === 'password'" class="form-grid" style="margin-top: 12px">
           <div class="field full">
-            <label>密码<span class="req">*</span></label>
+            <label>密码<span v-if="passwordRequired" class="req">*</span></label>
             <input
               v-model="form.password"
               type="password"
-              :placeholder="editingHost ? '留空则保持原密码' : '登录密码'"
+              :placeholder="passwordRequired ? '登录密码' : '留空则保持原密码'"
             />
           </div>
         </div>

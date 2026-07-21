@@ -36,6 +36,7 @@ export const useUiStore = defineStore("ui", () => {
   const aiCollapsed = ref(false);
   const hostsModalOpen = ref(false);
   const connectModalOpen = ref(false);
+  const aiSettingsModalOpen = ref(false);
   /** 编辑时带入；新增时为 null */
   const editingHost = ref<HostRecord | null>(null);
 
@@ -74,12 +75,21 @@ export const useUiStore = defineStore("ui", () => {
     editingHost.value = null;
   }
 
+  function openAiSettingsModal() {
+    aiSettingsModalOpen.value = true;
+  }
+
+  function closeAiSettingsModal() {
+    aiSettingsModalOpen.value = false;
+  }
+
   return {
     theme,
     sidebarCollapsed,
     aiCollapsed,
     hostsModalOpen,
     connectModalOpen,
+    aiSettingsModalOpen,
     editingHost,
     setTheme,
     toggleTheme,
@@ -87,5 +97,7 @@ export const useUiStore = defineStore("ui", () => {
     closeHostsModal,
     openConnectModal,
     closeConnectModal,
+    openAiSettingsModal,
+    closeAiSettingsModal,
   };
 });

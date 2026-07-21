@@ -3,12 +3,16 @@
  * AI 助手面板（MVP 占位）：交互壳已就绪，Agent 闭环在 Phase 2 接入。
  */
 import { storeToRefs } from "pinia";
-import { ref } from "vue";
+import { computed, ref } from "vue";
+import { useAiStore } from "../stores/ai";
 import { useUiStore } from "../stores/ui";
 
+const ai = useAiStore();
 const ui = useUiStore();
 const { aiCollapsed } = storeToRefs(ui);
+const { activeProvider } = storeToRefs(ai);
 const draft = ref("");
+const modelLabel = computed(() => activeProvider.value?.model ?? "未配置");
 </script>
 
 <template>
@@ -18,7 +22,8 @@ const draft = ref("");
         <h2>AI Assist</h2>
       </div>
       <div class="ai-head-right">
-        <span class="model-tag">soon</span>
+        <span class="model-tag" :title="activeProvider?.name">{{ modelLabel }}</span>
+        <button class="icon-btn" type="button" title="配置 AI 提供商" @click="ui.openAiSettingsModal()">⚙</button>
         <button class="icon-btn" type="button" title="折叠 AI 助手" @click="aiCollapsed = true">»</button>
       </div>
     </div>
@@ -34,8 +39,12 @@ const draft = ref("");
         <div class="msg assistant">
           <div class="role">PeekShell Agent</div>
           <div>
-            AI Agent 将在 Phase 2 接入：根据终端上下文提议命令，经你确认后再执行。
-            当前可先完成 SSH 连接与主机管理。
+            <template v-if="activeProvider">
+              已选择 {{ activeProvider.name }} / {{ activeProvider.model }}。AI 对话与命令确认将在 Phase 2 接入。
+            </template>
+            <template v-else>
+              请先点击右上角设置按钮配置模型提供商。API Key 将安全保存在系统钥匙串中。
+            </template>
           </div>
         </div>
       </div>
@@ -89,6 +98,10 @@ const draft = ref("");
 }
 
 .model-tag {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 10px;
   font-family: var(--font-mono);
   color: var(--text-dim);

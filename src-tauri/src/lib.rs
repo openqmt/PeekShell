@@ -1,8 +1,10 @@
+mod ai_config;
 mod credentials;
 mod error;
 mod hosts;
 mod ssh;
 
+use ai_config::{AiProviderRecord, AiProviderUpsert, AiSettings};
 use error::AppResult;
 use hosts::{HostRecord, HostUpsert};
 use ssh::{HostMetrics, SessionInfo, SessionManager};
@@ -12,6 +14,16 @@ use tauri::Manager;
 #[tauri::command]
 fn list_hosts() -> AppResult<Vec<HostRecord>> {
     hosts::list_hosts()
+}
+
+#[tauri::command]
+fn list_groups() -> AppResult<Vec<String>> {
+    hosts::list_groups()
+}
+
+#[tauri::command]
+fn create_group(name: String) -> AppResult<()> {
+    hosts::create_group(&name)
 }
 
 #[tauri::command]
@@ -32,6 +44,26 @@ fn rename_group(from: String, to: String) -> AppResult<()> {
 #[tauri::command]
 fn delete_group(group: String) -> AppResult<()> {
     hosts::delete_group(&group)
+}
+
+#[tauri::command]
+fn get_ai_settings() -> AppResult<AiSettings> {
+    ai_config::get_settings()
+}
+
+#[tauri::command]
+fn upsert_ai_provider(payload: AiProviderUpsert) -> AppResult<AiProviderRecord> {
+    ai_config::upsert_provider(payload)
+}
+
+#[tauri::command]
+fn delete_ai_provider(id: String) -> AppResult<()> {
+    ai_config::delete_provider(&id)
+}
+
+#[tauri::command]
+fn set_active_ai_provider(id: String) -> AppResult<()> {
+    ai_config::set_active_provider(&id)
 }
 
 #[tauri::command]
@@ -88,10 +120,16 @@ pub fn run() {
         .manage(sessions)
         .invoke_handler(tauri::generate_handler![
             list_hosts,
+            list_groups,
+            create_group,
             upsert_host,
             delete_host,
             rename_group,
             delete_group,
+            get_ai_settings,
+            upsert_ai_provider,
+            delete_ai_provider,
+            set_active_ai_provider,
             connect_host,
             disconnect_session,
             pty_write,

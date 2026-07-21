@@ -1,0 +1,275 @@
+<script setup lang="ts">
+import { storeToRefs } from "pinia";
+import { reactive, ref } from "vue";
+import { useAiStore } from "../stores/ai";
+import { useUiStore } from "../stores/ui";
+import type { AiProviderKind, AiProviderRecord, AiProviderUpsert } from "../types/ai";
+
+const ai = useAiStore();
+const ui = useUiStore();
+const { providers, activeProviderId } = storeToRefs(ai);
+const saving = ref(false);
+const error = ref("");
+const selectedId = ref<string | null>(null);
+
+const defaults: Record<AiProviderKind, { name: string; baseUrl: string; model: string }> = {
+  openAiCompatible: {
+    name: "OpenAI",
+    baseUrl: "https://api.openai.com/v1",
+    model: "gpt-4.1-mini",
+  },
+  anthropic: {
+    name: "Anthropic",
+    baseUrl: "https://api.anthropic.com",
+    model: "claude-sonnet-4-20250514",
+  },
+  ollama: {
+    name: "Ollama",
+    baseUrl: "http://localhost:11434/v1",
+    model: "qwen3",
+  },
+};
+
+const form = reactive({
+  name: "",
+  kind: "openAiCompatible" as AiProviderKind,
+  baseUrl: "",
+  model: "",
+  apiKey: "",
+  clearApiKey: false,
+  hasApiKey: false,
+});
+
+function newProvider(kind: AiProviderKind = "openAiCompatible") {
+  selectedId.value = null;
+  const preset = defaults[kind];
+  form.name = preset.name;
+  form.kind = kind;
+  form.baseUrl = preset.baseUrl;
+  form.model = preset.model;
+  form.apiKey = "";
+  form.clearApiKey = false;
+  form.hasApiKey = false;
+  error.value = "";
+}
+
+function editProvider(provider: AiProviderRecord) {
+  selectedId.value = provider.id;
+  form.name = provider.name;
+  form.kind = provider.kind;
+  form.baseUrl = provider.baseUrl;
+  form.model = provider.model;
+  form.apiKey = "";
+  form.clearApiKey = false;
+  form.hasApiKey = provider.hasApiKey;
+  error.value = "";
+}
+
+function onKindChange() {
+  const preset = defaults[form.kind];
+  form.baseUrl = preset.baseUrl;
+  form.model = preset.model;
+  if (!selectedId.value) form.name = preset.name;
+}
+
+async function save() {
+  error.value = "";
+  saving.value = true;
+  try {
+    const payload: AiProviderUpsert = {
+      id: selectedId.value ?? undefined,
+      name: form.name,
+      kind: form.kind,
+      baseUrl: form.baseUrl,
+      model: form.model,
+      clearApiKey: form.clearApiKey,
+    };
+    if (form.apiKey) payload.apiKey = form.apiKey;
+    const saved = await ai.upsert(payload);
+    editProvider(saved);
+  } catch (e) {
+    error.value = String(e);
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function activate() {
+  if (!selectedId.value) return;
+  error.value = "";
+  try {
+    await ai.activate(selectedId.value);
+  } catch (e) {
+    error.value = String(e);
+  }
+}
+
+async function remove() {
+  if (!selectedId.value || !window.confirm(`确定删除提供商“${form.name}”吗？`)) return;
+  error.value = "";
+  try {
+    await ai.remove(selectedId.value);
+    const next = ai.activeProvider ?? providers.value[0];
+    if (next) editProvider(next);
+    else newProvider();
+  } catch (e) {
+    error.value = String(e);
+  }
+}
+
+function onBackdrop(event: MouseEvent) {
+  if (event.target === event.currentTarget) ui.closeAiSettingsModal();
+}
+
+const initial = ai.activeProvider ?? providers.value[0];
+if (initial) editProvider(initial);
+else newProvider();
+</script>
+
+<template>
+  <div class="overlay" @click="onBackdrop">
+    <div class="modal ai-settings" role="dialog" aria-label="AI 提供商设置">
+      <div class="modal-head">
+        <div>
+          <h2>AI Assist 设置</h2>
+          <div class="sub">配置模型提供商；API Key 仅保存在系统钥匙串中</div>
+        </div>
+        <button type="button" class="icon-btn" aria-label="关闭" @click="ui.closeAiSettingsModal()">✕</button>
+      </div>
+
+      <div class="settings-body">
+        <aside class="provider-list">
+          <button type="button" class="btn primary md add-provider" @click="newProvider()">＋ 添加提供商</button>
+          <button
+            v-for="provider in providers"
+            :key="provider.id"
+            type="button"
+            class="provider-item"
+            :class="{ selected: selectedId === provider.id }"
+            @click="editProvider(provider)"
+          >
+            <span class="provider-name">{{ provider.name }}</span>
+            <span class="provider-model">{{ provider.model }}</span>
+            <span v-if="activeProviderId === provider.id" class="active-mark">当前</span>
+          </button>
+          <div v-if="!providers.length" class="empty">尚未配置提供商</div>
+        </aside>
+
+        <div class="provider-form">
+          <div v-if="error" class="error-banner">{{ error }}</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>显示名称<span class="req">*</span></label>
+              <input v-model="form.name" type="text" placeholder="例如 OpenAI 工作账号" />
+            </div>
+            <div class="field">
+              <label>提供商类型<span class="req">*</span></label>
+              <select v-model="form.kind" @change="onKindChange">
+                <option value="openAiCompatible">OpenAI 兼容</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="ollama">Ollama（本地）</option>
+              </select>
+            </div>
+            <div class="field full">
+              <label>Base URL<span class="req">*</span></label>
+              <input v-model="form.baseUrl" type="url" placeholder="https://api.example.com/v1" />
+            </div>
+            <div class="field full">
+              <label>模型<span class="req">*</span></label>
+              <input v-model="form.model" type="text" placeholder="模型 ID" />
+            </div>
+            <div class="field full">
+              <label>API Key{{ form.kind === "ollama" ? "（可选）" : "" }}</label>
+              <input
+                v-model="form.apiKey"
+                type="password"
+                autocomplete="off"
+                :placeholder="form.hasApiKey ? '已安全保存；留空则保持不变' : '输入 API Key'"
+                :disabled="form.clearApiKey"
+              />
+            </div>
+            <label v-if="form.hasApiKey" class="clear-key full">
+              <input v-model="form.clearApiKey" type="checkbox" />
+              删除已保存的 API Key
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button v-if="selectedId" type="button" class="btn danger md delete-btn" @click="remove">删除</button>
+        <button
+          v-if="selectedId && activeProviderId !== selectedId"
+          type="button"
+          class="btn ghost md"
+          @click="activate"
+        >
+          设为当前
+        </button>
+        <button type="button" class="btn ghost md" @click="ui.closeAiSettingsModal()">关闭</button>
+        <button type="button" class="btn primary md" :disabled="saving" @click="save">
+          {{ saving ? "保存中…" : "保存配置" }}
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.ai-settings { width: min(760px, 100%); }
+.settings-body {
+  flex: 1;
+  min-height: 390px;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  overflow: hidden;
+}
+.provider-list {
+  padding: 12px;
+  border-right: 1px solid var(--border-soft);
+  background: var(--bg-root);
+  overflow: auto;
+}
+.add-provider { width: 100%; margin-bottom: 10px; }
+.provider-item {
+  position: relative;
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 6px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+.provider-item:hover { background: var(--bg-hover); }
+.provider-item.selected {
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+}
+.provider-name, .provider-model { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.provider-name { padding-right: 34px; font-size: 12px; font-weight: 600; }
+.provider-model { margin-top: 4px; color: var(--text-dim); font: 10px var(--font-mono); }
+.active-mark {
+  position: absolute;
+  top: 9px;
+  right: 8px;
+  color: var(--accent);
+  font-size: 10px;
+}
+.empty { padding: 18px 4px; color: var(--text-dim); font-size: 11px; text-align: center; }
+.provider-form { padding: 18px; overflow: auto; }
+.clear-key {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.clear-key input { accent-color: var(--danger); }
+.delete-btn { margin-right: auto; }
+@media (max-width: 640px) {
+  .settings-body { grid-template-columns: 150px 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+}
+</style>

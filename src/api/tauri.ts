@@ -3,10 +3,35 @@
  * 业务逻辑留在 store / 组件，这里只做 invoke 与类型对齐。
  */
 import { invoke } from "@tauri-apps/api/core";
+import type { AiProviderRecord, AiProviderUpsert, AiSettings } from "../types/ai";
 import type { HostMetrics, HostRecord, HostUpsert, SessionInfo } from "../types/host";
+
+export function getAiSettings(): Promise<AiSettings> {
+  return invoke("get_ai_settings");
+}
+
+export function upsertAiProvider(payload: AiProviderUpsert): Promise<AiProviderRecord> {
+  return invoke("upsert_ai_provider", { payload });
+}
+
+export function deleteAiProvider(id: string): Promise<void> {
+  return invoke("delete_ai_provider", { id });
+}
+
+export function setActiveAiProvider(id: string): Promise<void> {
+  return invoke("set_active_ai_provider", { id });
+}
 
 export function listHosts(): Promise<HostRecord[]> {
   return invoke("list_hosts");
+}
+
+export function listGroups(): Promise<string[]> {
+  return invoke("list_groups");
+}
+
+export function createGroup(name: string): Promise<void> {
+  return invoke("create_group", { name });
 }
 
 export function upsertHost(payload: HostUpsert): Promise<HostRecord> {

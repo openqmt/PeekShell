@@ -9,11 +9,15 @@ import type { HostRecord, HostUpsert } from "../types/host";
 
 export const useHostsStore = defineStore("hosts", () => {
   const hosts = ref<HostRecord[]>([]);
+  const groupNames = ref<string[]>([]);
   const loading = ref(false);
   const error = ref("");
 
   const groups = computed(() => {
     const map = new Map<string, HostRecord[]>();
+    for (const group of groupNames.value) {
+      map.set(group, []);
+    }
     for (const host of hosts.value) {
       const list = map.get(host.group) ?? [];
       list.push(host);
@@ -26,7 +30,9 @@ export const useHostsStore = defineStore("hosts", () => {
     loading.value = true;
     error.value = "";
     try {
-      hosts.value = await api.listHosts();
+      const [hostList, groupsList] = await Promise.all([api.listHosts(), api.listGroups()]);
+      hosts.value = hostList;
+      groupNames.value = groupsList;
     } catch (e) {
       error.value = String(e);
     } finally {
@@ -42,6 +48,11 @@ export const useHostsStore = defineStore("hosts", () => {
 
   async function remove(id: string) {
     await api.deleteHost(id);
+    await refresh();
+  }
+
+  async function createGroup(name: string) {
+    await api.createGroup(name);
     await refresh();
   }
 
@@ -61,12 +72,14 @@ export const useHostsStore = defineStore("hosts", () => {
 
   return {
     hosts,
+    groupNames,
     loading,
     error,
     groups,
     refresh,
     upsert,
     remove,
+    createGroup,
     renameGroup,
     removeGroup,
     findById,
