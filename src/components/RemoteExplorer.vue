@@ -1,15 +1,17 @@
 <script setup lang="ts">
 /**
- * 远端目录浏览：左侧列出路径下条目，右侧预览选中文件内容。
+ * 远端文件树：左侧树形目录，右侧展示选中文件夹内容或文件预览。
  * 靠近 explorer 顶边可拖高度；靠近 entries 右边可拖宽度。
  */
 import { storeToRefs } from "pinia";
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import * as api from "../api/tauri";
+import { useI18n } from "../i18n";
 import { useSessionsStore } from "../stores/sessions";
 import type { RemoteEntry, RemoteFileContent } from "../types/host";
 
 const emit = defineEmits<{ resized: [] }>();
+const { t } = useI18n();
 
 const HEIGHT_KEY = "peekshell.explorerHeight";
 const WIDTH_KEY = "peekshell.explorerEntriesWidth";
@@ -20,6 +22,12 @@ const MIN_ENTRIES_WIDTH = 140;
 const MAX_ENTRIES_WIDTH = 560;
 const DEFAULT_ENTRIES_WIDTH = 220;
 const EDGE_PX = 6;
+const ROOT_PATH = "/";
+
+interface TreeRow {
+  entry: RemoteEntry;
+  depth: number;
+}
 
 function readStoredHeight() {
   const raw = Number(localStorage.getItem(HEIGHT_KEY));
@@ -33,6 +41,16 @@ function readStoredEntriesWidth() {
   return Math.min(MAX_ENTRIES_WIDTH, Math.max(MIN_ENTRIES_WIDTH, Math.round(raw)));
 }
 
+function parentPath(path: string) {
+  if (path === ROOT_PATH) return ROOT_PATH;
+  const idx = path.lastIndexOf("/");
+  return idx <= 0 ? ROOT_PATH : path.slice(0, idx);
+}
+
+function joinPath(dir: string, name: string) {
+  return dir === ROOT_PATH ? `/${name}` : `${dir}/${name}`;
+}
+
 const sessions = useSessionsStore();
 const { activeSessionId } = storeToRefs(sessions);
 
@@ -44,20 +62,43 @@ const draggingHeight = ref(false);
 const draggingWidth = ref(false);
 const nearTopEdge = ref(false);
 const nearEntriesEdge = ref(false);
-const pathInput = ref("/");
-const currentPath = ref("/");
-const entries = ref<RemoteEntry[]>([]);
+
+const pathInput = ref(ROOT_PATH);
+const childrenMap = ref<Record<string, RemoteEntry[]>>({});
+const expanded = ref<Record<string, boolean>>({ [ROOT_PATH]: true });
+const loadingDirs = ref<Record<string, boolean>>({});
 const selectedPath = ref<string | null>(null);
+const selectedIsDir = ref(false);
 const preview = ref<RemoteFileContent | null>(null);
-const loading = ref(false);
+const treeLoading = ref(false);
 const previewLoading = ref(false);
 const error = ref("");
 
-const canGoUp = computed(() => currentPath.value !== "/");
-const selectedEntry = computed(
-  () => entries.value.find((entry) => entry.path === selectedPath.value) ?? null
-);
 const resizing = computed(() => draggingHeight.value || draggingWidth.value);
+const canGoUp = computed(() => {
+  const path = selectedPath.value ?? ROOT_PATH;
+  return path !== ROOT_PATH;
+});
+
+const treeRows = computed(() => {
+  const rows: TreeRow[] = [];
+  function walk(dirPath: string, depth: number) {
+    const kids = childrenMap.value[dirPath] ?? [];
+    for (const entry of kids) {
+      rows.push({ entry, depth });
+      if (entry.isDir && expanded.value[entry.path]) {
+        walk(entry.path, depth + 1);
+      }
+    }
+  }
+  walk(ROOT_PATH, 0);
+  return rows;
+});
+
+const folderEntries = computed(() => {
+  if (!selectedPath.value || !selectedIsDir.value) return [];
+  return childrenMap.value[selectedPath.value] ?? [];
+});
 
 function clampHeight(value: number) {
   const maxByViewport = Math.max(MIN_HEIGHT, Math.floor(window.innerHeight * 0.7));
@@ -160,48 +201,69 @@ function onExplorerDown(event: MouseEvent) {
   }
 }
 
-function parentPath(path: string) {
-  if (path === "/") return "/";
-  const idx = path.lastIndexOf("/");
-  return idx <= 0 ? "/" : path.slice(0, idx);
+function resetTree() {
+  childrenMap.value = {};
+  expanded.value = { [ROOT_PATH]: true };
+  loadingDirs.value = {};
+  selectedPath.value = null;
+  selectedIsDir.value = false;
+  preview.value = null;
+  pathInput.value = ROOT_PATH;
+  error.value = "";
 }
 
-async function loadDir(path: string) {
-  if (!activeSessionId.value) {
-    entries.value = [];
-    currentPath.value = "/";
-    pathInput.value = "/";
-    selectedPath.value = null;
-    preview.value = null;
-    error.value = "";
-    return;
-  }
-  loading.value = true;
-  error.value = "";
-  selectedPath.value = null;
-  preview.value = null;
+async function fetchDir(path: string, force = false) {
+  if (!activeSessionId.value) return [];
+  if (!force && childrenMap.value[path]) return childrenMap.value[path];
+
+  loadingDirs.value = { ...loadingDirs.value, [path]: true };
   try {
     const listing = await api.listRemoteDir(activeSessionId.value, path);
-    currentPath.value = listing.path;
-    pathInput.value = listing.path;
-    entries.value = listing.entries;
-  } catch (e) {
-    error.value = String(e);
-    entries.value = [];
+    childrenMap.value = { ...childrenMap.value, [listing.path]: listing.entries };
+    return listing.entries;
   } finally {
-    loading.value = false;
+    const next = { ...loadingDirs.value };
+    delete next[path];
+    loadingDirs.value = next;
   }
 }
 
-async function openEntry(entry: RemoteEntry) {
-  if (entry.isDir) {
-    await loadDir(entry.path);
-    return;
+async function ensureAncestorsExpanded(path: string) {
+  const parts = path === ROOT_PATH ? [] : path.split("/").filter(Boolean);
+  let cursor = ROOT_PATH;
+  expanded.value = { ...expanded.value, [ROOT_PATH]: true };
+  await fetchDir(ROOT_PATH);
+  for (const part of parts) {
+    cursor = joinPath(cursor, part);
+    expanded.value = { ...expanded.value, [cursor]: true };
+    await fetchDir(cursor);
   }
+}
+
+async function selectFolder(path: string, expand = true) {
   if (!activeSessionId.value) return;
-  selectedPath.value = entry.path;
-  previewLoading.value = true;
   error.value = "";
+  preview.value = null;
+  selectedPath.value = path;
+  selectedIsDir.value = true;
+  pathInput.value = path;
+  if (expand) {
+    expanded.value = { ...expanded.value, [path]: true };
+  }
+  try {
+    await fetchDir(path);
+  } catch (e) {
+    error.value = String(e);
+  }
+}
+
+async function selectFile(entry: RemoteEntry) {
+  if (!activeSessionId.value) return;
+  error.value = "";
+  selectedPath.value = entry.path;
+  selectedIsDir.value = false;
+  pathInput.value = parentPath(entry.path);
+  previewLoading.value = true;
   try {
     preview.value = await api.readRemoteFile(activeSessionId.value, entry.path);
   } catch (e) {
@@ -212,23 +274,100 @@ async function openEntry(entry: RemoteEntry) {
   }
 }
 
-function goParent() {
-  if (!canGoUp.value) return;
-  void loadDir(parentPath(currentPath.value));
+async function toggleExpand(entry: RemoteEntry, event?: Event) {
+  event?.stopPropagation();
+  if (!entry.isDir) return;
+  if (expanded.value[entry.path]) {
+    const next = { ...expanded.value };
+    delete next[entry.path];
+    expanded.value = next;
+    return;
+  }
+  expanded.value = { ...expanded.value, [entry.path]: true };
+  try {
+    await fetchDir(entry.path);
+  } catch (e) {
+    error.value = String(e);
+  }
 }
 
-function goPath() {
-  void loadDir(pathInput.value.trim() || "/");
+async function onTreeClick(entry: RemoteEntry) {
+  if (entry.isDir) {
+    const isExpanded = !!expanded.value[entry.path];
+    if (isExpanded) {
+      const next = { ...expanded.value };
+      delete next[entry.path];
+      expanded.value = next;
+      // 折叠时仍选中该文件夹，右侧继续展示其内容
+      await selectFolder(entry.path, false);
+    } else {
+      await selectFolder(entry.path, true);
+    }
+    return;
+  }
+  expanded.value = { ...expanded.value, [parentPath(entry.path)]: true };
+  await selectFile(entry);
 }
 
-function refresh() {
-  void loadDir(currentPath.value);
+async function onRightEntryClick(entry: RemoteEntry) {
+  if (entry.isDir) {
+    expanded.value = { ...expanded.value, [entry.path]: true };
+    await selectFolder(entry.path, true);
+    return;
+  }
+  await selectFile(entry);
+}
+
+async function bootstrap() {
+  if (!activeSessionId.value) {
+    resetTree();
+    return;
+  }
+  treeLoading.value = true;
+  error.value = "";
+  try {
+    resetTree();
+    await selectFolder(ROOT_PATH, true);
+  } catch (e) {
+    error.value = String(e);
+  } finally {
+    treeLoading.value = false;
+  }
+}
+
+async function goParent() {
+  if (!selectedPath.value || selectedPath.value === ROOT_PATH) return;
+  await selectFolder(parentPath(selectedPath.value), true);
+}
+
+async function goPath() {
+  const target = pathInput.value.trim() || ROOT_PATH;
+  try {
+    await ensureAncestorsExpanded(target);
+    await selectFolder(target, true);
+  } catch (e) {
+    error.value = String(e);
+  }
+}
+
+async function refresh() {
+  if (!activeSessionId.value) return;
+  const focus = selectedIsDir.value && selectedPath.value ? selectedPath.value : ROOT_PATH;
+  // 清掉该目录缓存后重载
+  const next = { ...childrenMap.value };
+  delete next[focus];
+  childrenMap.value = next;
+  try {
+    await selectFolder(focus, true);
+  } catch (e) {
+    error.value = String(e);
+  }
 }
 
 watch(
   activeSessionId,
   () => {
-    void loadDir("/");
+    void bootstrap();
   },
   { immediate: true }
 );
@@ -257,36 +396,36 @@ onBeforeUnmount(() => {
       <button
         type="button"
         class="btn ghost mini"
-        title="返回上级目录"
-        :disabled="!activeSessionId || !canGoUp || loading"
+        :title="t('explorer.parentTitle')"
+        :disabled="!activeSessionId || !canGoUp || treeLoading"
         @click="goParent"
       >
-        ↑ 上级
+        {{ t("explorer.parent") }}
       </button>
       <input
         v-model="pathInput"
         class="path-input"
         type="text"
         spellcheck="false"
-        :disabled="!activeSessionId || loading"
-        placeholder="/ 根目录"
+        :disabled="!activeSessionId || treeLoading"
+        :placeholder="t('explorer.pathPlaceholder')"
         @keydown.enter.prevent="goPath"
       />
       <button
         type="button"
         class="btn ghost mini"
-        :disabled="!activeSessionId || loading"
+        :disabled="!activeSessionId || treeLoading"
         @click="goPath"
       >
-        转到
+        {{ t("explorer.go") }}
       </button>
       <button
         type="button"
         class="btn ghost mini"
-        :disabled="!activeSessionId || loading"
+        :disabled="!activeSessionId || treeLoading"
         @click="refresh"
       >
-        刷新
+        {{ t("common.refresh") }}
       </button>
     </div>
 
@@ -294,37 +433,70 @@ onBeforeUnmount(() => {
 
     <div class="panes" :style="{ gridTemplateColumns: `${entriesWidth}px 1fr` }">
       <div ref="entriesEl" class="entries">
-        <div v-if="!activeSessionId" class="placeholder">远端目录</div>
-        <div v-else-if="loading" class="placeholder">加载中…</div>
-        <div v-else-if="!entries.length" class="placeholder">空目录</div>
+        <div v-if="!activeSessionId" class="placeholder">{{ t("explorer.needConnect") }}</div>
+        <div v-else-if="treeLoading" class="placeholder">{{ t("common.loading") }}</div>
+        <div v-else-if="!treeRows.length" class="placeholder">{{ t("explorer.emptyDir") }}</div>
         <button
-          v-for="entry in entries"
-          :key="entry.path"
+          v-for="row in treeRows"
+          :key="row.entry.path"
           type="button"
-          class="entry"
-          :class="{ selected: selectedPath === entry.path, dir: entry.isDir }"
-          @click="openEntry(entry)"
-          @dblclick="entry.isDir ? openEntry(entry) : undefined"
+          class="tree-row"
+          :class="{
+            selected: selectedPath === row.entry.path,
+            dir: row.entry.isDir,
+          }"
+          :style="{ paddingLeft: 8 + row.depth * 14 + 'px' }"
+          @click="onTreeClick(row.entry)"
         >
-          <span class="kind">{{ entry.isDir ? "DIR" : "FILE" }}</span>
-          <span class="name">{{ entry.name }}</span>
+          <span
+            class="twist"
+            :class="{
+              open: row.entry.isDir && expanded[row.entry.path],
+              file: !row.entry.isDir,
+            }"
+            @click="toggleExpand(row.entry, $event)"
+          >
+            {{ row.entry.isDir ? (loadingDirs[row.entry.path] ? "…" : "▸") : "" }}
+          </span>
+          <span class="kind">{{ row.entry.isDir ? "DIR" : "FILE" }}</span>
+          <span class="name">{{ row.entry.name }}</span>
         </button>
       </div>
 
       <div class="preview">
-        <div v-if="!activeSessionId" class="placeholder">文件内容</div>
-        <div v-else-if="previewLoading" class="placeholder">读取文件中…</div>
-        <div v-else-if="!selectedEntry || selectedEntry.isDir" class="placeholder">
-          预览内容
+        <div v-if="!activeSessionId" class="placeholder">{{ t("explorer.previewHint") }}</div>
+        <div v-else-if="previewLoading || (selectedIsDir && selectedPath && loadingDirs[selectedPath])" class="placeholder">
+          {{ t(previewLoading ? "explorer.reading" : "common.loading") }}
         </div>
+        <div v-else-if="!selectedPath" class="placeholder">{{ t("explorer.selectItem") }}</div>
+
+        <template v-else-if="selectedIsDir">
+          <div class="preview-meta">
+            <span class="file-path">{{ selectedPath }}</span>
+            <span class="file-size">{{ t("explorer.items", { n: folderEntries.length }) }}</span>
+          </div>
+          <div v-if="!folderEntries.length" class="placeholder">{{ t("explorer.emptyDir") }}</div>
+          <button
+            v-for="entry in folderEntries"
+            :key="entry.path"
+            type="button"
+            class="folder-item"
+            :class="{ dir: entry.isDir }"
+            @click="onRightEntryClick(entry)"
+          >
+            <span class="kind">{{ entry.isDir ? "DIR" : "FILE" }}</span>
+            <span class="name">{{ entry.name }}</span>
+          </button>
+        </template>
+
         <template v-else-if="preview">
           <div class="preview-meta">
             <span class="file-path">{{ preview.path }}</span>
             <span class="file-size">{{ preview.size }} B</span>
-            <span v-if="preview.truncated" class="warn">已截断（最多 512KB）</span>
+            <span v-if="preview.truncated" class="warn">{{ t("explorer.truncated") }}</span>
           </div>
-          <pre v-if="preview.binary" class="preview-body muted">二进制文件，无法预览文本内容</pre>
-          <pre v-else class="preview-body">{{ preview.content || "(空文件)" }}</pre>
+          <pre v-if="preview.binary" class="preview-body muted">{{ t("explorer.binary") }}</pre>
+          <pre v-else class="preview-body">{{ preview.content || t("explorer.emptyFile") }}</pre>
         </template>
       </div>
     </div>
@@ -350,12 +522,14 @@ onBeforeUnmount(() => {
 .explorer.resize-height .toolbar,
 .explorer.resize-height .path-input,
 .explorer.resize-height .btn,
-.explorer.resize-height .entry {
+.explorer.resize-height .tree-row,
+.explorer.resize-height .folder-item {
   cursor: ns-resize;
 }
 
 .explorer.resize-width,
-.explorer.resize-width .entry,
+.explorer.resize-width .tree-row,
+.explorer.resize-width .folder-item,
 .explorer.resize-width .placeholder,
 .explorer.resize-width .preview,
 .explorer.resize-width .preview-body,
@@ -412,12 +586,13 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
-.entry {
+.tree-row,
+.folder-item {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 10px;
+  gap: 6px;
+  padding: 4px 10px;
   border: none;
   background: transparent;
   color: var(--text);
@@ -425,17 +600,36 @@ onBeforeUnmount(() => {
   text-align: left;
 }
 
-.entry:hover {
+.tree-row:hover,
+.folder-item:hover {
   background: var(--bg-hover);
 }
 
-.entry.selected {
+.tree-row.selected {
   background: var(--accent-dim);
   color: var(--accent);
 }
 
-.entry.dir .name {
-  font-weight: 600;
+.twist {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--text-dim);
+  font-size: 10px;
+  line-height: 14px;
+  text-align: center;
+  border-radius: 3px;
+  transition: transform 0.12s ease;
+}
+
+.twist:not(.file):hover {
+  background: var(--bg-active);
+  color: var(--text);
+}
+
+.twist.open {
+  transform: rotate(90deg);
+  color: var(--accent);
 }
 
 .kind {
@@ -448,7 +642,16 @@ onBeforeUnmount(() => {
   font-family: var(--font-mono);
 }
 
-.entry.dir .kind {
+.tree-row.dir .kind,
+.folder-item.dir .kind,
+.tree-row.dir .name,
+.folder-item.dir .name {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.tree-row.selected.dir .kind,
+.tree-row.selected.dir .name {
   color: var(--accent);
 }
 

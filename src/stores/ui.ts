@@ -1,21 +1,32 @@
-/** 侧栏折叠、主题与弹窗显隐等纯 UI 状态。 */
+/** 侧栏折叠、主题、语言与弹窗显隐等纯 UI 状态。 */
 import { setTheme as setTauriTheme } from "@tauri-apps/api/app";
 import { defineStore } from "pinia";
 import { ref, watch } from "vue";
+import type { Locale } from "../i18n/messages";
 import type { HostRecord } from "../types/host";
 
 export type ThemeMode = "dark" | "light";
 
 const THEME_KEY = "peekshell.theme";
+const LOCALE_KEY = "peekshell.locale";
 
 function readStoredTheme(): ThemeMode {
   const raw = localStorage.getItem(THEME_KEY);
   return raw === "light" ? "light" : "dark";
 }
 
+function readStoredLocale(): Locale {
+  const raw = localStorage.getItem(LOCALE_KEY);
+  return raw === "en" ? "en" : "zh";
+}
+
 /** 把主题写到 <html data-theme>，供全局 CSS 变量切换。 */
 export function applyTheme(mode: ThemeMode) {
   document.documentElement.setAttribute("data-theme", mode);
+}
+
+export function applyLocale(locale: Locale) {
+  document.documentElement.setAttribute("lang", locale === "zh" ? "zh-CN" : "en");
 }
 
 /**
@@ -32,6 +43,7 @@ export async function syncTauriTheme(mode: ThemeMode) {
 
 export const useUiStore = defineStore("ui", () => {
   const theme = ref<ThemeMode>(readStoredTheme());
+  const locale = ref<Locale>(readStoredLocale());
   const sidebarCollapsed = ref(false);
   const aiCollapsed = ref(false);
   const hostsModalOpen = ref(false);
@@ -41,6 +53,7 @@ export const useUiStore = defineStore("ui", () => {
   const editingHost = ref<HostRecord | null>(null);
 
   applyTheme(theme.value);
+  applyLocale(locale.value);
   void syncTauriTheme(theme.value);
 
   watch(theme, (mode) => {
@@ -49,12 +62,25 @@ export const useUiStore = defineStore("ui", () => {
     void syncTauriTheme(mode);
   });
 
+  watch(locale, (value) => {
+    applyLocale(value);
+    localStorage.setItem(LOCALE_KEY, value);
+  });
+
   function setTheme(mode: ThemeMode) {
     theme.value = mode;
   }
 
   function toggleTheme() {
     theme.value = theme.value === "dark" ? "light" : "dark";
+  }
+
+  function setLocale(value: Locale) {
+    locale.value = value;
+  }
+
+  function toggleLocale() {
+    locale.value = locale.value === "zh" ? "en" : "zh";
   }
 
   function openHostsModal() {
@@ -85,6 +111,7 @@ export const useUiStore = defineStore("ui", () => {
 
   return {
     theme,
+    locale,
     sidebarCollapsed,
     aiCollapsed,
     hostsModalOpen,
@@ -93,6 +120,8 @@ export const useUiStore = defineStore("ui", () => {
     editingHost,
     setTheme,
     toggleTheme,
+    setLocale,
+    toggleLocale,
     openHostsModal,
     closeHostsModal,
     openConnectModal,

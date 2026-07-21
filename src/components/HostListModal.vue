@@ -2,6 +2,7 @@
 /** 主机列表：分组、连接、编辑、删除。 */
 import { storeToRefs } from "pinia";
 import { onMounted, ref } from "vue";
+import { useI18n } from "../i18n";
 import { useHostsStore } from "../stores/hosts";
 import { useSessionsStore } from "../stores/sessions";
 import { useUiStore } from "../stores/ui";
@@ -9,6 +10,7 @@ import { useUiStore } from "../stores/ui";
 const hosts = useHostsStore();
 const sessions = useSessionsStore();
 const ui = useUiStore();
+const { t, groupLabel } = useI18n();
 const { groups, error } = storeToRefs(hosts);
 const localError = ref("");
 
@@ -27,12 +29,12 @@ async function connect(hostId: string) {
 }
 
 async function removeHost(id: string, name: string) {
-  if (!confirm(`确定删除主机「${name}」？`)) return;
+  if (!confirm(t("hosts.deleteHostConfirm", { name }))) return;
   await hosts.remove(id);
 }
 
 async function createGroup() {
-  const name = prompt("新分组名称");
+  const name = prompt(t("hosts.newGroupPrompt"));
   if (!name?.trim()) return;
   localError.value = "";
   try {
@@ -43,13 +45,13 @@ async function createGroup() {
 }
 
 async function renameGroup(from: string) {
-  const to = prompt("新的分组名称", from);
+  const to = prompt(t("hosts.renameGroupPrompt"), from);
   if (!to || to.trim() === from) return;
   await hosts.renameGroup(from, to.trim());
 }
 
 async function removeGroup(group: string) {
-  if (!confirm(`删除分组「${group}」？组内主机将移到「未分组」。`)) return;
+  if (!confirm(t("hosts.deleteGroupConfirm", { name: groupLabel(group) }))) return;
   await hosts.removeGroup(group);
 }
 
@@ -63,13 +65,13 @@ function onBackdrop(e: MouseEvent) {
     <div class="modal" role="dialog" aria-labelledby="hostsTitle">
       <div class="modal-head">
         <div>
-          <h2 id="hostsTitle">主机列表</h2>
-          <div class="sub">支持分组、新增、编辑、删除</div>
+          <h2 id="hostsTitle">{{ t("hosts.title") }}</h2>
+          <div class="sub">{{ t("hosts.sub") }}</div>
         </div>
         <div class="modal-tools">
-          <button type="button" class="btn primary md" @click="ui.openConnectModal(null)">＋ 新增连接</button>
-          <button type="button" class="btn ghost md" @click="createGroup">＋ 新建分组</button>
-          <button type="button" class="icon-btn" aria-label="关闭" @click="ui.closeHostsModal()">✕</button>
+          <button type="button" class="btn primary md" @click="ui.openConnectModal(null)">{{ t("hosts.addConnection") }}</button>
+          <button type="button" class="btn ghost md" @click="createGroup">{{ t("hosts.addGroup") }}</button>
+          <button type="button" class="icon-btn" :aria-label="t('common.close')" @click="ui.closeHostsModal()">✕</button>
         </div>
       </div>
       <div class="modal-body">
@@ -78,10 +80,10 @@ function onBackdrop(e: MouseEvent) {
         <div v-for="[group, list] in groups" :key="group" class="mgr-group">
           <div class="mgr-group-head">
             <span>▾</span>
-            <span>{{ group }}</span>
+            <span>{{ groupLabel(group) }}</span>
             <span class="count">{{ list.length }}</span>
-            <button type="button" class="btn ghost mini" @click="renameGroup(group)">重命名</button>
-            <button type="button" class="btn danger mini" @click="removeGroup(group)">删除组</button>
+            <button type="button" class="btn ghost mini" @click="renameGroup(group)">{{ t("hosts.rename") }}</button>
+            <button type="button" class="btn danger mini" @click="removeGroup(group)">{{ t("hosts.deleteGroup") }}</button>
           </div>
           <div v-for="host in list" :key="host.id" class="mgr-row">
             <span class="status" :class="{ on: false }" />
@@ -89,19 +91,19 @@ function onBackdrop(e: MouseEvent) {
               <strong>{{ host.name }}</strong>
               <span>
                 {{ host.username }}@{{ host.host }}:{{ host.port }} ·
-                {{ host.authType === "password" ? "密码" : "公钥" }}
+                {{ host.authType === "password" ? t("hosts.authPassword") : t("hosts.authKey") }}
               </span>
               <span v-if="host.note" class="note">{{ host.note }}</span>
             </div>
             <div class="row-actions">
-              <button type="button" class="btn primary mini" @click="ui.openConnectModal(host)">编辑</button>
-              <button type="button" class="btn ghost mini" @click="connect(host.id)">连接</button>
-              <button type="button" class="btn danger mini" @click="removeHost(host.id, host.name)">删除</button>
+              <button type="button" class="btn primary mini" @click="ui.openConnectModal(host)">{{ t("common.edit") }}</button>
+              <button type="button" class="btn ghost mini" @click="connect(host.id)">{{ t("common.connect") }}</button>
+              <button type="button" class="btn danger mini" @click="removeHost(host.id, host.name)">{{ t("common.delete") }}</button>
             </div>
           </div>
         </div>
 
-        <div v-if="!groups.length" class="empty">暂无主机或分组，可从右上角开始创建。</div>
+        <div v-if="!groups.length" class="empty">{{ t("hosts.empty") }}</div>
       </div>
     </div>
   </div>

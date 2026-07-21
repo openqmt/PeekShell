@@ -9,12 +9,14 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import * as api from "../api/tauri";
+import { useI18n } from "../i18n";
 import { useSessionsStore } from "../stores/sessions";
 import { useUiStore } from "../stores/ui";
 import RemoteExplorer from "./RemoteExplorer.vue";
 
 const sessions = useSessionsStore();
 const ui = useUiStore();
+const { t } = useI18n();
 const { sessions: sessionList, activeSessionId } = storeToRefs(sessions);
 const { theme } = storeToRefs(ui);
 
@@ -150,12 +152,12 @@ onBeforeUnmount(() => {
         <span>{{ s.title }}</span>
         <span class="x" @click="onClose(s.sessionId, $event)">×</span>
       </button>
-      <button type="button" class="tab-add" title="从主机列表连接" @click="ui.openHostsModal()">＋</button>
+      <button type="button" class="tab-add" :title="t('terminal.openFromHosts')" @click="ui.openHostsModal()">＋</button>
     </div>
 
     <div ref="hostEl" class="term-host">
       <div v-if="!sessionList.length" class="empty">
-        打开主机列表，选择一台主机连接后即可使用终端。
+        {{ t("terminal.empty") }}
       </div>
     </div>
 

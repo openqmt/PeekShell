@@ -6,12 +6,14 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { storeToRefs } from "pinia";
 import { computed, reactive, ref, watch } from "vue";
+import { useI18n, UNGROUPED_GROUP } from "../i18n";
 import { useHostsStore } from "../stores/hosts";
 import { useUiStore } from "../stores/ui";
 import type { AuthType, HostUpsert } from "../types/host";
 
 const hosts = useHostsStore();
 const ui = useUiStore();
+const { t, groupLabel } = useI18n();
 const { editingHost, connectModalOpen } = storeToRefs(ui);
 
 const saving = ref(false);
@@ -19,7 +21,7 @@ const error = ref("");
 
 const form = reactive({
   name: "",
-  group: "未分组",
+  group: UNGROUPED_GROUP,
   host: "",
   port: 22,
   note: "",
@@ -30,7 +32,9 @@ const form = reactive({
   passphrase: "",
 });
 
-const title = computed(() => (editingHost.value ? "编辑连接" : "新增连接"));
+const title = computed(() =>
+  editingHost.value ? t("connect.editTitle") : t("connect.addTitle")
+);
 const passwordRequired = computed(
   () =>
     !editingHost.value ||
@@ -40,7 +44,7 @@ const passwordRequired = computed(
 const groupOptions = computed(() => {
   const set = new Set(hosts.groupNames);
   for (const host of hosts.hosts) set.add(host.group);
-  set.add("未分组");
+  set.add(UNGROUPED_GROUP);
   if (form.group) set.add(form.group);
   return [...set].sort();
 });
@@ -64,7 +68,7 @@ watch(
       form.passphrase = "";
     } else {
       form.name = "";
-      form.group = "未分组";
+      form.group = UNGROUPED_GROUP;
       form.host = "";
       form.port = 22;
       form.note = "";
@@ -81,7 +85,7 @@ watch(
 async function pickPrivateKey() {
   const selected = await open({
     multiple: false,
-    title: "选择私钥文件",
+    title: t("connect.pickKeyTitle"),
   });
   if (typeof selected === "string") {
     form.privateKeyPath = selected;
@@ -91,7 +95,7 @@ async function pickPrivateKey() {
 async function save() {
   error.value = "";
   if (form.authType === "password" && passwordRequired.value && !form.password) {
-    error.value = "请输入密码；当前连接没有已保存的密码。";
+    error.value = t("connect.passwordRequired");
     return;
   }
   saving.value = true;
@@ -132,40 +136,40 @@ function onBackdrop(e: MouseEvent) {
       <div class="modal-head">
         <div>
           <h2>{{ title }}</h2>
-          <div class="sub">填写主机信息与认证方式</div>
+          <div class="sub">{{ t("connect.sub") }}</div>
         </div>
-        <button type="button" class="icon-btn" aria-label="关闭" @click="ui.closeConnectModal()">✕</button>
+        <button type="button" class="icon-btn" :aria-label="t('common.close')" @click="ui.closeConnectModal()">✕</button>
       </div>
       <div class="modal-body">
         <div v-if="error" class="error-banner">{{ error }}</div>
 
-        <div class="section-label">基本信息</div>
+        <div class="section-label">{{ t("connect.basic") }}</div>
         <div class="form-grid">
           <div class="field">
-            <label>名称<span class="req">*</span></label>
-            <input v-model="form.name" type="text" placeholder="显示名称" />
+            <label>{{ t("connect.name") }}<span class="req">*</span></label>
+            <input v-model="form.name" type="text" :placeholder="t('connect.namePlaceholder')" />
           </div>
           <div class="field">
-            <label>分组</label>
+            <label>{{ t("connect.group") }}</label>
             <select v-model="form.group">
-              <option v-for="g in groupOptions" :key="g" :value="g">{{ g }}</option>
+              <option v-for="g in groupOptions" :key="g" :value="g">{{ groupLabel(g) }}</option>
             </select>
           </div>
           <div class="field">
-            <label>主机 IP<span class="req">*</span></label>
-            <input v-model="form.host" type="text" placeholder="IP 或域名" />
+            <label>{{ t("connect.host") }}<span class="req">*</span></label>
+            <input v-model="form.host" type="text" :placeholder="t('connect.hostPlaceholder')" />
           </div>
           <div class="field">
-            <label>端口<span class="req">*</span></label>
+            <label>{{ t("connect.port") }}<span class="req">*</span></label>
             <input v-model.number="form.port" type="number" min="1" max="65535" />
           </div>
           <div class="field full">
-            <label>备注</label>
-            <textarea v-model="form.note" placeholder="可选，例如用途、注意事项" />
+            <label>{{ t("connect.note") }}</label>
+            <textarea v-model="form.note" :placeholder="t('connect.notePlaceholder')" />
           </div>
         </div>
 
-        <div class="section-label" style="margin-top: 16px">认证</div>
+        <div class="section-label" style="margin-top: 16px">{{ t("connect.auth") }}</div>
         <div class="auth-tabs">
           <button
             type="button"
@@ -173,7 +177,7 @@ function onBackdrop(e: MouseEvent) {
             :class="{ active: form.authType === 'password' }"
             @click="form.authType = 'password'"
           >
-            密码
+            {{ t("connect.password") }}
           </button>
           <button
             type="button"
@@ -181,50 +185,50 @@ function onBackdrop(e: MouseEvent) {
             :class="{ active: form.authType === 'privateKey' }"
             @click="form.authType = 'privateKey'"
           >
-            公钥 / 私钥
+            {{ t("connect.privateKey") }}
           </button>
         </div>
 
         <div class="form-grid">
           <div class="field full">
-            <label>用户名<span class="req">*</span></label>
-            <input v-model="form.username" type="text" placeholder="如 root / ubuntu" />
+            <label>{{ t("connect.username") }}<span class="req">*</span></label>
+            <input v-model="form.username" type="text" :placeholder="t('connect.usernamePlaceholder')" />
           </div>
         </div>
 
         <div v-if="form.authType === 'password'" class="form-grid" style="margin-top: 12px">
           <div class="field full">
-            <label>密码<span v-if="passwordRequired" class="req">*</span></label>
+            <label>{{ t("connect.password") }}<span v-if="passwordRequired" class="req">*</span></label>
             <input
               v-model="form.password"
               type="password"
-              :placeholder="passwordRequired ? '登录密码' : '留空则保持原密码'"
+              :placeholder="passwordRequired ? t('connect.passwordPlaceholder') : t('connect.passwordKeep')"
             />
           </div>
         </div>
 
         <div v-else class="form-grid" style="margin-top: 12px">
           <div class="field full">
-            <label>私钥文件<span class="req">*</span></label>
+            <label>{{ t("connect.keyFile") }}<span class="req">*</span></label>
             <div class="file-pick">
-              <input v-model="form.privateKeyPath" type="text" readonly placeholder="选择私钥路径" />
-              <button type="button" class="btn ghost md" @click="pickPrivateKey">加载私钥</button>
+              <input v-model="form.privateKeyPath" type="text" readonly :placeholder="t('connect.keyPathPlaceholder')" />
+              <button type="button" class="btn ghost md" @click="pickPrivateKey">{{ t("connect.loadKey") }}</button>
             </div>
           </div>
           <div class="field full">
-            <label>私钥口令（可选）</label>
+            <label>{{ t("connect.passphrase") }}</label>
             <input
               v-model="form.passphrase"
               type="password"
-              :placeholder="editingHost ? '留空则保持原口令' : '若私钥有 passphrase 请填写'"
+              :placeholder="editingHost ? t('connect.passphraseKeep') : t('connect.passphrasePlaceholder')"
             />
           </div>
         </div>
       </div>
       <div class="modal-foot">
-        <button type="button" class="btn ghost md" @click="ui.closeConnectModal()">取消</button>
+        <button type="button" class="btn ghost md" @click="ui.closeConnectModal()">{{ t("common.cancel") }}</button>
         <button type="button" class="btn primary md" :disabled="saving" @click="save">
-          {{ saving ? "保存中…" : "保存" }}
+          {{ saving ? t("common.saving") : t("common.save") }}
         </button>
       </div>
     </div>

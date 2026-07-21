@@ -5,6 +5,7 @@
  */
 import { storeToRefs } from "pinia";
 import { onBeforeUnmount, ref, watch } from "vue";
+import { useI18n } from "../i18n";
 import { useSessionsStore } from "../stores/sessions";
 import { useUiStore } from "../stores/ui";
 import { useHostsStore } from "../stores/hosts";
@@ -12,6 +13,7 @@ import { useHostsStore } from "../stores/hosts";
 const sessions = useSessionsStore();
 const hosts = useHostsStore();
 const ui = useUiStore();
+const { t, locale, toggleLocale, groupLabel } = useI18n();
 const { metrics, activeSession, connecting } = storeToRefs(sessions);
 const { sidebarCollapsed, theme } = storeToRefs(ui);
 
@@ -75,31 +77,47 @@ function hostMeta() {
 <template>
   <aside class="sidebar">
     <div v-if="!sidebarCollapsed" class="sidebar-toolbar">
-      <span class="panel-title">Host</span>
+      <span class="panel-title">{{ t("sidebar.host") }}</span>
       <div class="toolbar-actions">
+        <button
+          class="icon-btn lang-btn"
+          type="button"
+          :title="t('sidebar.language')"
+          @click="toggleLocale()"
+        >
+          {{ locale === "zh" ? "EN" : "中" }}
+        </button>
         <button
           class="icon-btn"
           type="button"
-          :title="theme === 'dark' ? '切换浅色主题' : '切换深色主题'"
+          :title="theme === 'dark' ? t('sidebar.themeToLight') : t('sidebar.themeToDark')"
           @click="ui.toggleTheme()"
         >
           {{ theme === "dark" ? "☀" : "☾" }}
         </button>
-        <button class="icon-btn" type="button" title="折叠侧栏" @click="sidebarCollapsed = true">«</button>
+        <button class="icon-btn" type="button" :title="t('sidebar.collapse')" @click="sidebarCollapsed = true">«</button>
       </div>
     </div>
 
     <div v-if="sidebarCollapsed" class="sidebar-rail">
-      <button class="icon-btn" type="button" title="展开侧栏" @click="sidebarCollapsed = false">»</button>
+      <button class="icon-btn" type="button" :title="t('sidebar.expand')" @click="sidebarCollapsed = false">»</button>
+      <button
+        class="icon-btn lang-btn"
+        type="button"
+        :title="t('sidebar.language')"
+        @click="toggleLocale()"
+      >
+        {{ locale === "zh" ? "EN" : "中" }}
+      </button>
       <button
         class="icon-btn"
         type="button"
-        :title="theme === 'dark' ? '切换浅色主题' : '切换深色主题'"
+        :title="theme === 'dark' ? t('sidebar.themeToLight') : t('sidebar.themeToDark')"
         @click="ui.toggleTheme()"
       >
         {{ theme === "dark" ? "☀" : "☾" }}
       </button>
-      <span class="rail-status" title="状态" />
+      <span class="rail-status" :title="t('sidebar.status')" />
       <span class="rail-cpu">CPU {{ Math.round(metrics?.cpuPercent ?? 0) }}%</span>
     </div>
 
@@ -107,30 +125,30 @@ function hostMeta() {
       <div class="host-switcher" role="button" tabindex="0" @click="ui.openHostsModal()">
         <span class="status" />
         <div class="names">
-          <strong>{{ activeSession?.title ?? "未连接" }}</strong>
-          <span>{{ hostMeta()?.group ?? "选择主机" }}</span>
+          <strong>{{ activeSession?.title ?? t("sidebar.disconnected") }}</strong>
+          <span>{{ hostMeta() ? groupLabel(hostMeta()!.group) : t("sidebar.selectHost") }}</span>
         </div>
         <span class="chev">▾</span>
       </div>
 
       <div class="info-scroll">
         <div v-if="!metrics" class="info-card muted">
-          {{ connecting ? "正在连接…" : "连接主机后显示系统与资源信息" }}
+          {{ connecting ? t("sidebar.connecting") : t("sidebar.connectHint") }}
         </div>
         <template v-else>
           <div class="info-card">
-            <h3>系统</h3>
+            <h3>{{ t("sidebar.system") }}</h3>
             <dl class="kv">
               <dt>IP</dt><dd>{{ metrics.ip }}</dd>
-              <dt>系统</dt><dd>{{ metrics.os || "—" }}</dd>
-              <dt>内核</dt><dd>{{ metrics.kernel || "—" }}</dd>
-              <dt>架构</dt><dd>{{ metrics.arch || "—" }}</dd>
-              <dt>运行时间</dt><dd>{{ metrics.uptimeDays }} 天</dd>
+              <dt>{{ t("sidebar.os") }}</dt><dd>{{ metrics.os || "—" }}</dd>
+              <dt>{{ t("sidebar.kernel") }}</dt><dd>{{ metrics.kernel || "—" }}</dd>
+              <dt>{{ t("sidebar.arch") }}</dt><dd>{{ metrics.arch || "—" }}</dd>
+              <dt>{{ t("sidebar.uptime") }}</dt><dd>{{ t("sidebar.days", { n: metrics.uptimeDays }) }}</dd>
             </dl>
           </div>
 
           <div class="info-card">
-            <h3>资源</h3>
+            <h3>{{ t("sidebar.resources") }}</h3>
             <div class="metric">
               <div class="metric-top">
                 <span class="label">CPU</span>
@@ -140,7 +158,7 @@ function hostMeta() {
             </div>
             <div class="metric">
               <div class="metric-top">
-                <span class="label">内存</span>
+                <span class="label">{{ t("sidebar.memory") }}</span>
                 <span class="value">{{ metrics.memUsedGiB.toFixed(1) }} / {{ metrics.memTotalGiB.toFixed(1) }} GiB</span>
               </div>
               <div :class="barClass(pct(metrics.memUsedGiB, metrics.memTotalGiB))">
@@ -149,7 +167,7 @@ function hostMeta() {
             </div>
             <div class="metric">
               <div class="metric-top">
-                <span class="label">交换</span>
+                <span class="label">{{ t("sidebar.swap") }}</span>
                 <span class="value">{{ Math.round(metrics.swapUsedMiB) }} / {{ Math.round(metrics.swapTotalMiB) }} MiB</span>
               </div>
               <div :class="barClass(pct(metrics.swapUsedMiB, metrics.swapTotalMiB))">
@@ -158,7 +176,7 @@ function hostMeta() {
             </div>
             <div class="metric">
               <div class="metric-top">
-                <span class="label">磁盘 /</span>
+                <span class="label">{{ t("sidebar.disk") }}</span>
                 <span class="value">{{ metrics.diskUsedGiB.toFixed(1) }} / {{ metrics.diskTotalGiB.toFixed(1) }} GiB</span>
               </div>
               <div :class="barClass(pct(metrics.diskUsedGiB, metrics.diskTotalGiB))">
@@ -168,11 +186,11 @@ function hostMeta() {
           </div>
 
           <div class="info-card">
-            <h3>进程概览</h3>
+            <h3>{{ t("sidebar.processes") }}</h3>
             <div v-if="metrics.topProcesses.length" class="process-table">
               <div class="process-head">
-                <span>进程</span>
-                <span>内存</span>
+                <span>{{ t("sidebar.process") }}</span>
+                <span>{{ t("sidebar.memory") }}</span>
                 <span>CPU</span>
               </div>
               <div
@@ -185,20 +203,20 @@ function hostMeta() {
                 <span>{{ process.cpuPercent.toFixed(1) }}%</span>
               </div>
             </div>
-            <div v-else class="process-empty">暂无进程数据</div>
+            <div v-else class="process-empty">{{ t("sidebar.noProcesses") }}</div>
           </div>
 
           <div class="info-card">
-            <h3>网络 · {{ metrics.netIface }}</h3>
+            <h3>{{ t("sidebar.network", { iface: metrics.netIface }) }}</h3>
             <div class="net-row">
               <span class="dir">↓ RX</span>
               <span class="rate">{{ metrics.netRxMBs.toFixed(1) }} MB/s</span>
-              <span class="total">总 {{ metrics.netRxTotalGB.toFixed(0) }} GB</span>
+              <span class="total">{{ t("sidebar.totalGb", { n: metrics.netRxTotalGB.toFixed(0) }) }}</span>
             </div>
             <div class="net-row">
               <span class="dir">↑ TX</span>
               <span class="rate">{{ metrics.netTxKBs.toFixed(0) }} KB/s</span>
-              <span class="total">总 {{ metrics.netTxTotalGB.toFixed(0) }} GB</span>
+              <span class="total">{{ t("sidebar.totalGb", { n: metrics.netTxTotalGB.toFixed(0) }) }}</span>
             </div>
           </div>
         </template>
@@ -228,6 +246,12 @@ function hostMeta() {
   display: flex;
   align-items: center;
   gap: 2px;
+}
+
+.lang-btn {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .panel-title {

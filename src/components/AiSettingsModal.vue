@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
 import { reactive, ref } from "vue";
+import { useI18n } from "../i18n";
 import { useAiStore } from "../stores/ai";
 import { useUiStore } from "../stores/ui";
 import type { AiProviderKind, AiProviderRecord, AiProviderUpsert } from "../types/ai";
 
 const ai = useAiStore();
 const ui = useUiStore();
+const { t } = useI18n();
 const { providers, activeProviderId } = storeToRefs(ai);
 const saving = ref(false);
 const error = ref("");
@@ -105,7 +107,7 @@ async function activate() {
 }
 
 async function remove() {
-  if (!selectedId.value || !window.confirm(`确定删除提供商“${form.name}”吗？`)) return;
+  if (!selectedId.value || !window.confirm(t("aiSettings.deleteConfirm", { name: form.name }))) return;
   error.value = "";
   try {
     await ai.remove(selectedId.value);
@@ -128,18 +130,18 @@ else newProvider();
 
 <template>
   <div class="overlay" @click="onBackdrop">
-    <div class="modal ai-settings" role="dialog" aria-label="AI 提供商设置">
+    <div class="modal ai-settings" role="dialog" :aria-label="t('aiSettings.aria')">
       <div class="modal-head">
         <div>
-          <h2>AI Assist 设置</h2>
-          <div class="sub">配置模型提供商；API Key 仅保存在系统钥匙串中</div>
+          <h2>{{ t("aiSettings.title") }}</h2>
+          <div class="sub">{{ t("aiSettings.sub") }}</div>
         </div>
-        <button type="button" class="icon-btn" aria-label="关闭" @click="ui.closeAiSettingsModal()">✕</button>
+        <button type="button" class="icon-btn" :aria-label="t('common.close')" @click="ui.closeAiSettingsModal()">✕</button>
       </div>
 
       <div class="settings-body">
         <aside class="provider-list">
-          <button type="button" class="btn primary md add-provider" @click="newProvider()">＋ 添加提供商</button>
+          <button type="button" class="btn primary md add-provider" @click="newProvider()">{{ t("aiSettings.add") }}</button>
           <button
             v-for="provider in providers"
             :key="provider.id"
@@ -150,65 +152,65 @@ else newProvider();
           >
             <span class="provider-name">{{ provider.name }}</span>
             <span class="provider-model">{{ provider.model }}</span>
-            <span v-if="activeProviderId === provider.id" class="active-mark">当前</span>
+            <span v-if="activeProviderId === provider.id" class="active-mark">{{ t("aiSettings.current") }}</span>
           </button>
-          <div v-if="!providers.length" class="empty">尚未配置提供商</div>
+          <div v-if="!providers.length" class="empty">{{ t("aiSettings.empty") }}</div>
         </aside>
 
         <div class="provider-form">
           <div v-if="error" class="error-banner">{{ error }}</div>
           <div class="form-grid">
             <div class="field">
-              <label>显示名称<span class="req">*</span></label>
-              <input v-model="form.name" type="text" placeholder="例如 OpenAI 工作账号" />
+              <label>{{ t("aiSettings.displayName") }}<span class="req">*</span></label>
+              <input v-model="form.name" type="text" :placeholder="t('aiSettings.namePlaceholder')" />
             </div>
             <div class="field">
-              <label>提供商类型<span class="req">*</span></label>
+              <label>{{ t("aiSettings.kind") }}<span class="req">*</span></label>
               <select v-model="form.kind" @change="onKindChange">
-                <option value="openAiCompatible">OpenAI 兼容</option>
-                <option value="anthropic">Anthropic</option>
-                <option value="ollama">Ollama（本地）</option>
+                <option value="openAiCompatible">{{ t("aiSettings.kindOpenAi") }}</option>
+                <option value="anthropic">{{ t("aiSettings.kindAnthropic") }}</option>
+                <option value="ollama">{{ t("aiSettings.kindOllama") }}</option>
               </select>
             </div>
             <div class="field full">
-              <label>Base URL<span class="req">*</span></label>
+              <label>{{ t("aiSettings.baseUrl") }}<span class="req">*</span></label>
               <input v-model="form.baseUrl" type="url" placeholder="https://api.example.com/v1" />
             </div>
             <div class="field full">
-              <label>模型<span class="req">*</span></label>
-              <input v-model="form.model" type="text" placeholder="模型 ID" />
+              <label>{{ t("aiSettings.model") }}<span class="req">*</span></label>
+              <input v-model="form.model" type="text" :placeholder="t('aiSettings.modelPlaceholder')" />
             </div>
             <div class="field full">
-              <label>API Key{{ form.kind === "ollama" ? "（可选）" : "" }}</label>
+              <label>{{ form.kind === "ollama" ? t("aiSettings.apiKeyOptional") : t("aiSettings.apiKey") }}</label>
               <input
                 v-model="form.apiKey"
                 type="password"
                 autocomplete="off"
-                :placeholder="form.hasApiKey ? '已安全保存；留空则保持不变' : '输入 API Key'"
+                :placeholder="form.hasApiKey ? t('aiSettings.keySaved') : t('aiSettings.keyInput')"
                 :disabled="form.clearApiKey"
               />
             </div>
             <label v-if="form.hasApiKey" class="clear-key full">
               <input v-model="form.clearApiKey" type="checkbox" />
-              删除已保存的 API Key
+              {{ t("aiSettings.clearKey") }}
             </label>
           </div>
         </div>
       </div>
 
       <div class="modal-foot">
-        <button v-if="selectedId" type="button" class="btn danger md delete-btn" @click="remove">删除</button>
+        <button v-if="selectedId" type="button" class="btn danger md delete-btn" @click="remove">{{ t("common.delete") }}</button>
         <button
           v-if="selectedId && activeProviderId !== selectedId"
           type="button"
           class="btn ghost md"
           @click="activate"
         >
-          设为当前
+          {{ t("aiSettings.setActive") }}
         </button>
-        <button type="button" class="btn ghost md" @click="ui.closeAiSettingsModal()">关闭</button>
+        <button type="button" class="btn ghost md" @click="ui.closeAiSettingsModal()">{{ t("common.close") }}</button>
         <button type="button" class="btn primary md" :disabled="saving" @click="save">
-          {{ saving ? "保存中…" : "保存配置" }}
+          {{ saving ? t("common.saving") : t("aiSettings.save") }}
         </button>
       </div>
     </div>

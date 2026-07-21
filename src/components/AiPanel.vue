@@ -4,32 +4,36 @@
  */
 import { storeToRefs } from "pinia";
 import { computed, ref } from "vue";
+import { useI18n } from "../i18n";
 import { useAiStore } from "../stores/ai";
 import { useUiStore } from "../stores/ui";
 
 const ai = useAiStore();
 const ui = useUiStore();
+const { t } = useI18n();
 const { aiCollapsed } = storeToRefs(ui);
 const { activeProvider } = storeToRefs(ai);
 const draft = ref("");
-const modelLabel = computed(() => activeProvider.value?.model ?? "未配置");
+const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfigured"));
 </script>
 
 <template>
   <aside class="ai-panel">
     <div v-if="!aiCollapsed" class="ai-head">
       <div class="ai-head-left">
-        <h2>AI Assist</h2>
+        <h2>{{ t("ai.title") }}</h2>
       </div>
       <div class="ai-head-right">
         <span class="model-tag" :title="activeProvider?.name">{{ modelLabel }}</span>
-        <button class="icon-btn" type="button" title="配置 AI 提供商" @click="ui.openAiSettingsModal()">⚙</button>
-        <button class="icon-btn" type="button" title="折叠 AI 助手" @click="aiCollapsed = true">»</button>
+        <div class="ai-head-actions">
+          <button class="icon-btn" type="button" :title="t('ai.configure')" @click="ui.openAiSettingsModal()">⚙</button>
+          <button class="icon-btn" type="button" :title="t('ai.collapse')" @click="aiCollapsed = true">»</button>
+        </div>
       </div>
     </div>
 
     <div v-if="aiCollapsed" class="ai-rail">
-      <button class="icon-btn" type="button" title="展开 AI 助手" @click="aiCollapsed = false">«</button>
+      <button class="icon-btn" type="button" :title="t('ai.expand')" @click="aiCollapsed = false">«</button>
       <span class="rail-dot" />
       <span class="rail-ai-label">AI</span>
     </div>
@@ -40,19 +44,19 @@ const modelLabel = computed(() => activeProvider.value?.model ?? "未配置");
           <div class="role">PeekShell Agent</div>
           <div>
             <template v-if="activeProvider">
-              已选择 {{ activeProvider.name }} / {{ activeProvider.model }}。AI 对话与命令确认将在 Phase 2 接入。
+              {{ t("ai.ready", { name: activeProvider.name, model: activeProvider.model }) }}
             </template>
             <template v-else>
-              请先点击右上角设置按钮配置模型提供商。API Key 将安全保存在系统钥匙串中。
+              {{ t("ai.setup") }}
             </template>
           </div>
         </div>
       </div>
       <div class="composer">
-        <textarea v-model="draft" class="composer-box" rows="3" placeholder="Phase 2：在此提问，例如「检查 nginx 错误日志」" disabled />
+        <textarea v-model="draft" class="composer-box" rows="3" :placeholder="t('ai.placeholder')" disabled />
         <div class="composer-bar">
-          <span class="hint">上下文：最近终端输出 · 当前主机</span>
-          <button class="send" type="button" disabled>发送</button>
+          <span class="hint">{{ t("ai.context") }}</span>
+          <button class="send" type="button" disabled>{{ t("ai.send") }}</button>
         </div>
       </div>
     </div>
@@ -79,6 +83,12 @@ const modelLabel = computed(() => activeProvider.value?.model ?? "未配置");
 }
 
 .ai-head-left, .ai-head-right { display: flex; align-items: center; gap: 8px; }
+
+.ai-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
 
 .ai-head h2 {
   font-size: 13px;
