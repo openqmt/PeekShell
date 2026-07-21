@@ -60,6 +60,11 @@ pub struct RemoteEntry {
     pub name: String,
     pub path: String,
     pub is_dir: bool,
+    pub size: u64,
+    pub file_type: String,
+    pub modified: String,
+    pub permissions: String,
+    pub group: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -73,7 +78,12 @@ pub struct RemoteDirListing {
 #[serde(rename_all = "camelCase")]
 pub struct RemoteFileContent {
     pub path: String,
+    pub name: String,
     pub size: u64,
+    pub file_type: String,
+    pub modified: String,
+    pub permissions: String,
+    pub group: String,
     pub truncated: bool,
     pub content: String,
     pub binary: bool,
@@ -475,7 +485,8 @@ if [ ! -d "$path" ]; then
   exit 0
 fi
 echo "OK|$path"
-find "$path" -mindepth 1 -maxdepth 1 \( -type d -printf 'D|%f\n' -o -type f -printf 'F|%f\n' -o -printf 'O|%f\n' \) 2>/dev/null | LC_ALL=C sort
+# type|name|size|mtime|permissions|group
+find "$path" -mindepth 1 -maxdepth 1 -printf '%y\t%f\t%s\t%TY-%Tm-%Td %TH:%TM\t%M\t%G\n' 2>/dev/null | LC_ALL=C sort
 "#
     );
     let output = run_exec(host, &script).await?;
@@ -493,17 +504,25 @@ find "$path" -mindepth 1 -maxdepth 1 \( -type d -printf 'D|%f\n' -o -type f -pri
 
     let mut entries = Vec::new();
     for line in lines {
-        let Some((kind, name)) = line.split_once('|') else {
+        let parts: Vec<&str> = line.splitn(6, '\t').collect();
+        if parts.len() < 6 {
             continue;
-        };
+        }
+        let kind = parts[0];
+        let name = parts[1];
         if name.is_empty() || name == "." || name == ".." {
             continue;
         }
-        let is_dir = kind == "D";
+        let is_dir = kind == "d";
         entries.push(RemoteEntry {
             name: name.to_string(),
             path: join_remote(&resolved, name),
             is_dir,
+            size: parts[2].parse().unwrap_or(0),
+            file_type: remote_file_type_label(kind),
+            modified: parts[3].to_string(),
+            permissions: parts[4].to_string(),
+            group: parts[5].to_string(),
         });
     }
     entries.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.name.cmp(&b.name)));
@@ -511,6 +530,19 @@ find "$path" -mindepth 1 -maxdepth 1 \( -type d -printf 'D|%f\n' -o -type f -pri
         path: resolved,
         entries,
     })
+}
+
+fn remote_file_type_label(kind: &str) -> String {
+    match kind {
+        "d" => "directory".into(),
+        "f" => "file".into(),
+        "l" => "symlink".into(),
+        "c" => "char".into(),
+        "b" => "block".into(),
+        "p" => "pipe".into(),
+        "s" => "socket".into(),
+        other => other.to_string(),
+    }
 }
 
 const MAX_PREVIEW_BYTES: u64 = 512 * 1024;
@@ -531,8 +563,9 @@ if [ -d "$path" ]; then
   echo "ERR|路径是目录"
   exit 0
 fi
-size=$(stat -c%s "$path" 2>/dev/null || echo 0)
-echo "META|$path|$size"
+# name|size|type|mtime|permissions|group
+meta=$(stat -c $'%n\t%s\t%F\t%y\t%A\t%G' "$path" 2>/dev/null)
+echo "META|$meta"
 head -c "$max" "$path"
 "#
     );
@@ -553,9 +586,25 @@ head -c "$max" "$path"
     let meta = header
         .strip_prefix("META|")
         .ok_or_else(|| AppError::Message("读取文件失败：响应格式错误".into()))?;
-    let mut parts = meta.splitn(2, '|');
-    let resolved = parts.next().unwrap_or(&path).to_string();
-    let size: u64 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let parts: Vec<&str> = meta.splitn(6, '\t').collect();
+    let resolved = parts.first().copied().unwrap_or(path.as_str()).to_string();
+    let name = resolved
+        .rsplit('/')
+        .next()
+        .filter(|s| !s.is_empty())
+        .unwrap_or(resolved.as_str())
+        .to_string();
+    let size: u64 = parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(0);
+    let file_type = parts
+        .get(2)
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "file".into());
+    let modified = parts
+        .get(3)
+        .map(|s| s.chars().take(16).collect::<String>())
+        .unwrap_or_default();
+    let permissions = parts.get(4).unwrap_or(&"").to_string();
+    let group = parts.get(5).unwrap_or(&"").to_string();
     let binary = body.contains(&0);
     let truncated = size > MAX_PREVIEW_BYTES;
     let content = if binary {
@@ -565,7 +614,12 @@ head -c "$max" "$path"
     };
     Ok(RemoteFileContent {
         path: resolved,
+        name,
         size,
+        file_type,
+        modified,
+        permissions,
+        group,
         truncated,
         content,
         binary,

@@ -73,6 +73,11 @@ export interface RemoteEntry {
   name: string;
   path: string;
   isDir: boolean;
+  size: number;
+  fileType: string;
+  modified: string;
+  permissions: string;
+  group: string;
 }
 
 export interface RemoteDirListing {
@@ -82,7 +87,12 @@ export interface RemoteDirListing {
 
 export interface RemoteFileContent {
   path: string;
+  name: string;
   size: number;
+  fileType: string;
+  modified: string;
+  permissions: string;
+  group: string;
   truncated: boolean;
   content: string;
   binary: boolean;

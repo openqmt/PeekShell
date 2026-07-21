@@ -100,6 +100,29 @@ const folderEntries = computed(() => {
   return childrenMap.value[selectedPath.value] ?? [];
 });
 
+function formatSize(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes < 0) return "—";
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KiB", "MiB", "GiB", "TiB"];
+  let value = bytes;
+  let unit = "B";
+  for (const next of units) {
+    if (value < 1024) break;
+    value /= 1024;
+    unit = next;
+  }
+  const digits = value >= 100 || unit === "B" ? 0 : value >= 10 ? 1 : 2;
+  return `${value.toFixed(digits)} ${unit}`;
+}
+
+function formatType(entry: Pick<RemoteEntry, "isDir" | "fileType">) {
+  const raw = entry.fileType.toLowerCase();
+  if (entry.isDir || raw.includes("directory") || raw === "d") return t("explorer.typeDir");
+  if (raw.includes("link") || raw === "l" || raw === "symlink") return t("explorer.typeSymlink");
+  if (raw === "f" || raw === "file" || raw.includes("regular")) return t("explorer.typeFile");
+  return entry.fileType || t("explorer.typeFile");
+}
+
 function clampHeight(value: number) {
   const maxByViewport = Math.max(MIN_HEIGHT, Math.floor(window.innerHeight * 0.7));
   return Math.min(Math.min(MAX_HEIGHT, maxByViewport), Math.max(MIN_HEIGHT, Math.round(value)));
@@ -471,30 +494,50 @@ onBeforeUnmount(() => {
         <div v-else-if="!selectedPath" class="placeholder">{{ t("explorer.selectItem") }}</div>
 
         <template v-else-if="selectedIsDir">
-          <div class="preview-meta">
-            <span class="file-path">{{ selectedPath }}</span>
-            <span class="file-size">{{ t("explorer.items", { n: folderEntries.length }) }}</span>
+          <div class="attr-head">
+            <span>{{ t("explorer.colName") }}</span>
+            <span>{{ t("explorer.colSize") }}</span>
+            <span>{{ t("explorer.colType") }}</span>
+            <span>{{ t("explorer.colModified") }}</span>
+            <span>{{ t("explorer.colPermissions") }}</span>
+            <span>{{ t("explorer.colGroup") }}</span>
           </div>
           <div v-if="!folderEntries.length" class="placeholder">{{ t("explorer.emptyDir") }}</div>
           <button
             v-for="entry in folderEntries"
             :key="entry.path"
             type="button"
-            class="folder-item"
+            class="attr-row"
             :class="{ dir: entry.isDir }"
             @click="onRightEntryClick(entry)"
           >
-            <span class="kind">{{ entry.isDir ? "DIR" : "FILE" }}</span>
-            <span class="name">{{ entry.name }}</span>
+            <span class="name" :title="entry.name">{{ entry.name }}</span>
+            <span>{{ entry.isDir ? "—" : formatSize(entry.size) }}</span>
+            <span>{{ formatType(entry) }}</span>
+            <span :title="entry.modified">{{ entry.modified || "—" }}</span>
+            <span class="mono">{{ entry.permissions || "—" }}</span>
+            <span>{{ entry.group || "—" }}</span>
           </button>
         </template>
 
         <template v-else-if="preview">
-          <div class="preview-meta">
-            <span class="file-path">{{ preview.path }}</span>
-            <span class="file-size">{{ preview.size }} B</span>
-            <span v-if="preview.truncated" class="warn">{{ t("explorer.truncated") }}</span>
+          <div class="attr-head">
+            <span>{{ t("explorer.colName") }}</span>
+            <span>{{ t("explorer.colSize") }}</span>
+            <span>{{ t("explorer.colType") }}</span>
+            <span>{{ t("explorer.colModified") }}</span>
+            <span>{{ t("explorer.colPermissions") }}</span>
+            <span>{{ t("explorer.colGroup") }}</span>
           </div>
+          <div class="attr-row file-meta">
+            <span class="name" :title="preview.name">{{ preview.name }}</span>
+            <span>{{ formatSize(preview.size) }}</span>
+            <span>{{ formatType({ isDir: false, fileType: preview.fileType }) }}</span>
+            <span :title="preview.modified">{{ preview.modified || "—" }}</span>
+            <span class="mono">{{ preview.permissions || "—" }}</span>
+            <span>{{ preview.group || "—" }}</span>
+          </div>
+          <div v-if="preview.truncated" class="trunc-banner">{{ t("explorer.truncated") }}</div>
           <pre v-if="preview.binary" class="preview-body muted">{{ t("explorer.binary") }}</pre>
           <pre v-else class="preview-body">{{ preview.content || t("explorer.emptyFile") }}</pre>
         </template>
@@ -523,17 +566,17 @@ onBeforeUnmount(() => {
 .explorer.resize-height .path-input,
 .explorer.resize-height .btn,
 .explorer.resize-height .tree-row,
-.explorer.resize-height .folder-item {
+.explorer.resize-height .attr-row {
   cursor: ns-resize;
 }
 
 .explorer.resize-width,
 .explorer.resize-width .tree-row,
-.explorer.resize-width .folder-item,
+.explorer.resize-width .attr-row,
 .explorer.resize-width .placeholder,
 .explorer.resize-width .preview,
 .explorer.resize-width .preview-body,
-.explorer.resize-width .preview-meta {
+.explorer.resize-width .attr-head {
   cursor: ew-resize;
 }
 
@@ -586,8 +629,7 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
-.tree-row,
-.folder-item {
+.tree-row {
   width: 100%;
   display: flex;
   align-items: center;
@@ -600,8 +642,7 @@ onBeforeUnmount(() => {
   text-align: left;
 }
 
-.tree-row:hover,
-.folder-item:hover {
+.tree-row:hover {
   background: var(--bg-hover);
 }
 
@@ -643,9 +684,7 @@ onBeforeUnmount(() => {
 }
 
 .tree-row.dir .kind,
-.folder-item.dir .kind,
-.tree-row.dir .name,
-.folder-item.dir .name {
+.tree-row.dir .name {
   color: var(--accent);
   font-weight: 600;
 }
@@ -669,31 +708,62 @@ onBeforeUnmount(() => {
   text-align: center;
 }
 
-.preview-meta {
-  display: flex;
+.attr-head,
+.attr-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.6fr) 72px 88px 118px 88px 72px;
+  gap: 8px;
   align-items: center;
-  gap: 10px;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--border-soft);
+  padding: 5px 10px;
   font-size: 11px;
+}
+
+.attr-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.attr-row {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--border-soft);
+  background: transparent;
   color: var(--text-muted);
+  text-align: left;
+  font-family: var(--font-mono);
+  cursor: pointer;
 }
 
-.file-path {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--font-mono);
+.attr-row:hover {
+  background: var(--bg-hover);
+}
+
+.attr-row.dir .name {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.attr-row.file-meta {
+  cursor: default;
   color: var(--text);
+  background: var(--bg-root);
 }
 
-.file-size {
+.attr-row .mono {
   font-family: var(--font-mono);
 }
 
-.warn {
+.trunc-banner {
+  padding: 4px 10px;
+  font-size: 11px;
   color: var(--warn);
+  background: var(--warn-dim);
+  border-bottom: 1px solid var(--border-soft);
 }
 
 .preview-body {
