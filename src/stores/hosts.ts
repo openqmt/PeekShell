@@ -1,0 +1,74 @@
+/**
+ * 主机列表与分组操作。
+ * 凭证明文不进入本 store，仅保存后端返回的 HostRecord。
+ */
+import { defineStore } from "pinia";
+import { computed, ref } from "vue";
+import * as api from "../api/tauri";
+import type { HostRecord, HostUpsert } from "../types/host";
+
+export const useHostsStore = defineStore("hosts", () => {
+  const hosts = ref<HostRecord[]>([]);
+  const loading = ref(false);
+  const error = ref("");
+
+  const groups = computed(() => {
+    const map = new Map<string, HostRecord[]>();
+    for (const host of hosts.value) {
+      const list = map.get(host.group) ?? [];
+      list.push(host);
+      map.set(host.group, list);
+    }
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  });
+
+  async function refresh() {
+    loading.value = true;
+    error.value = "";
+    try {
+      hosts.value = await api.listHosts();
+    } catch (e) {
+      error.value = String(e);
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function upsert(payload: HostUpsert) {
+    const saved = await api.upsertHost(payload);
+    await refresh();
+    return saved;
+  }
+
+  async function remove(id: string) {
+    await api.deleteHost(id);
+    await refresh();
+  }
+
+  async function renameGroup(from: string, to: string) {
+    await api.renameGroup(from, to);
+    await refresh();
+  }
+
+  async function removeGroup(group: string) {
+    await api.deleteGroup(group);
+    await refresh();
+  }
+
+  function findById(id: string) {
+    return hosts.value.find((h) => h.id === id);
+  }
+
+  return {
+    hosts,
+    loading,
+    error,
+    groups,
+    refresh,
+    upsert,
+    remove,
+    renameGroup,
+    removeGroup,
+    findById,
+  };
+});
