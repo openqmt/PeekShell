@@ -633,8 +633,8 @@ onBeforeUnmount(() => {
 }
 
 .kind {
-  width: 32px;
   flex-shrink: 0;
+  margin-right: 2px;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.04em;
