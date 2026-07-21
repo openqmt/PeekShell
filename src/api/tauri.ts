@@ -5,6 +5,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { AiProviderRecord, AiProviderUpsert, AiSettings } from "../types/ai";
 import type {
+  AuthType,
   HostMetrics,
   HostRecord,
   HostUpsert,
@@ -59,6 +60,22 @@ export function deleteGroup(group: string): Promise<void> {
 
 export function connectHost(hostId: string): Promise<SessionInfo> {
   return invoke("connect_host", { hostId });
+}
+
+export interface ConnectionTestPayload {
+  host: string;
+  port: number;
+  username: string;
+  authType: AuthType;
+  password?: string;
+  privateKeyPath?: string;
+  passphrase?: string;
+  hostId?: string;
+}
+
+/** 用当前表单凭证探测 SSH，不保存主机、不创建会话。 */
+export function testHostConnection(payload: ConnectionTestPayload): Promise<void> {
+  return invoke("test_host_connection", { payload });
 }
 
 export function disconnectSession(sessionId: string): Promise<void> {

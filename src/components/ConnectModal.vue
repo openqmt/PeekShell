@@ -6,6 +6,7 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { storeToRefs } from "pinia";
 import { computed, reactive, ref, watch } from "vue";
+import * as api from "../api/tauri";
 import { useI18n, UNGROUPED_GROUP } from "../i18n";
 import { useHostsStore } from "../stores/hosts";
 import { useUiStore } from "../stores/ui";
@@ -17,7 +18,9 @@ const { t, groupLabel } = useI18n();
 const { editingHost, connectModalOpen } = storeToRefs(ui);
 
 const saving = ref(false);
+const testing = ref(false);
 const error = ref("");
+const testOk = ref("");
 
 const form = reactive({
   name: "",
@@ -54,6 +57,7 @@ watch(
   (openModal) => {
     if (!openModal) return;
     error.value = "";
+    testOk.value = "";
     const h = editingHost.value;
     if (h) {
       form.name = h.name;
@@ -92,8 +96,49 @@ async function pickPrivateKey() {
   }
 }
 
+function validateForTest(): string | null {
+  if (!form.host.trim()) return t("connect.hostRequired");
+  if (!form.port || form.port < 1 || form.port > 65535) return t("connect.portInvalid");
+  if (!form.username.trim()) return t("connect.usernameRequired");
+  if (form.authType === "password") {
+    if (passwordRequired.value && !form.password) return t("connect.passwordRequired");
+  } else if (!form.privateKeyPath.trim()) {
+    return t("connect.keyRequired");
+  }
+  return null;
+}
+
+async function testConnection() {
+  error.value = "";
+  testOk.value = "";
+  const validation = validateForTest();
+  if (validation) {
+    error.value = validation;
+    return;
+  }
+  testing.value = true;
+  try {
+    await api.testHostConnection({
+      host: form.host.trim(),
+      port: Number(form.port),
+      username: form.username.trim(),
+      authType: form.authType,
+      password: form.authType === "password" && form.password ? form.password : undefined,
+      privateKeyPath: form.authType === "privateKey" ? form.privateKeyPath.trim() : undefined,
+      passphrase: form.authType === "privateKey" && form.passphrase ? form.passphrase : undefined,
+      hostId: editingHost.value?.id,
+    });
+    testOk.value = t("connect.testOk");
+  } catch (e) {
+    error.value = String(e);
+  } finally {
+    testing.value = false;
+  }
+}
+
 async function save() {
   error.value = "";
+  testOk.value = "";
   if (form.authType === "password" && passwordRequired.value && !form.password) {
     error.value = t("connect.passwordRequired");
     return;
@@ -142,6 +187,7 @@ function onBackdrop(e: MouseEvent) {
       </div>
       <div class="modal-body">
         <div v-if="error" class="error-banner">{{ error }}</div>
+        <div v-else-if="testOk" class="ok-banner">{{ testOk }}</div>
 
         <div class="section-label">{{ t("connect.basic") }}</div>
         <div class="form-grid">
@@ -226,8 +272,17 @@ function onBackdrop(e: MouseEvent) {
         </div>
       </div>
       <div class="modal-foot">
+        <button
+          type="button"
+          class="btn ghost md"
+          :disabled="testing || saving"
+          @click="testConnection"
+        >
+          {{ testing ? t("connect.testing") : t("connect.test") }}
+        </button>
+        <span class="foot-spacer" />
         <button type="button" class="btn ghost md" @click="ui.closeConnectModal()">{{ t("common.cancel") }}</button>
-        <button type="button" class="btn primary md" :disabled="saving" @click="save">
+        <button type="button" class="btn primary md" :disabled="saving || testing" @click="save">
           {{ saving ? t("common.saving") : t("common.save") }}
         </button>
       </div>
@@ -236,6 +291,15 @@ function onBackdrop(e: MouseEvent) {
 </template>
 
 <style scoped>
+.ok-banner {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 12px;
+}
+
 .auth-tabs {
   display: flex;
   gap: 4px;
@@ -273,5 +337,9 @@ function onBackdrop(e: MouseEvent) {
   flex: 1;
   font-family: var(--font-mono);
   font-size: 12px;
+}
+
+.foot-spacer {
+  flex: 1;
 }
 </style>

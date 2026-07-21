@@ -8,7 +8,8 @@ use ai_config::{AiProviderRecord, AiProviderUpsert, AiSettings};
 use error::AppResult;
 use hosts::{HostRecord, HostUpsert};
 use ssh::{
-    HostMetrics, RemoteDirListing, RemoteFileContent, SessionInfo, SessionManager,
+    test_connection, ConnectionTestRequest, HostMetrics, RemoteDirListing, RemoteFileContent,
+    SessionInfo, SessionManager,
 };
 
 use std::sync::Arc;
@@ -76,6 +77,11 @@ async fn connect_host(
     host_id: String,
 ) -> AppResult<SessionInfo> {
     state.connect(app, &host_id).await
+}
+
+#[tauri::command]
+async fn test_host_connection(payload: ConnectionTestRequest) -> AppResult<()> {
+    test_connection(payload).await
 }
 
 #[tauri::command]
@@ -152,6 +158,7 @@ pub fn run() {
             delete_ai_provider,
             set_active_ai_provider,
             connect_host,
+            test_host_connection,
             disconnect_session,
             pty_write,
             pty_resize,

@@ -25,7 +25,8 @@ export const useSessionsStore = defineStore("sessions", () => {
       const info = await api.connectHost(hostId);
       sessions.value.push(info);
       activeSessionId.value = info.sessionId;
-      await refreshMetrics();
+      // 指标异步拉取，不阻塞「连接成功 → 关弹窗」
+      void refreshMetrics();
       return info;
     } catch (e) {
       error.value = String(e);

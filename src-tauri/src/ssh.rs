@@ -8,10 +8,11 @@ use async_trait::async_trait;
 use russh::client::{self, Handle, Msg};
 use russh::ChannelMsg;
 use russh_keys::key::KeyPair;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
+use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, Mutex};
 use uuid::Uuid;
@@ -308,6 +309,98 @@ fn load_key(path: &str, passphrase: Option<&str>) -> AppResult<KeyPair> {
         return Err(AppError::Message(format!("私钥文件不存在: {}", path.display())));
     }
     Ok(russh_keys::load_secret_key(path, passphrase)?)
+}
+
+/// 新增 / 编辑连接时的连通性探测（不落库、不创建交互会话）。
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConnectionTestRequest {
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub auth_type: AuthType,
+    pub password: Option<String>,
+    pub private_key_path: Option<String>,
+    pub passphrase: Option<String>,
+    /// 编辑已有主机时：表单未填密码/口令则回退到钥匙串。
+    pub host_id: Option<String>,
+}
+
+pub async fn test_connection(req: ConnectionTestRequest) -> AppResult<()> {
+    let host = req.host.trim();
+    let username = req.username.trim();
+    if host.is_empty() {
+        return Err(AppError::Message("请填写主机地址".into()));
+    }
+    if username.is_empty() {
+        return Err(AppError::Message("请填写用户名".into()));
+    }
+    if req.port == 0 {
+        return Err(AppError::Message("端口无效".into()));
+    }
+
+    let timeout = Duration::from_secs(12);
+    tokio::time::timeout(timeout, test_connection_inner(req))
+        .await
+        .map_err(|_| AppError::Message("连接超时（12 秒内未完成认证）".into()))?
+}
+
+async fn test_connection_inner(req: ConnectionTestRequest) -> AppResult<()> {
+    let config = Arc::new(client::Config::default());
+    let mut handle = client::connect(
+        config,
+        (req.host.trim(), req.port),
+        ClientHandler,
+    )
+    .await
+    .map_err(|e| AppError::Message(format!("无法连接服务器: {e}")))?;
+
+    let ok = match req.auth_type {
+        AuthType::Password => {
+            let password = match req.password.filter(|p| !p.is_empty()) {
+                Some(p) => p,
+                None => {
+                    let host_id = req.host_id.as_deref().ok_or_else(|| {
+                        AppError::Message("请输入密码后再测试连接".into())
+                    })?;
+                    credentials::get_secret(host_id, "password")?.ok_or_else(|| {
+                        AppError::Message("未找到已保存的密码，请输入密码后再测试".into())
+                    })?
+                }
+            };
+            handle
+                .authenticate_password(req.username.trim(), password)
+                .await?
+        }
+        AuthType::PrivateKey => {
+            let path = req
+                .private_key_path
+                .as_deref()
+                .map(str::trim)
+                .filter(|p| !p.is_empty())
+                .ok_or_else(|| AppError::Message("请选择私钥文件".into()))?;
+            let passphrase = match req.passphrase.filter(|p| !p.is_empty()) {
+                Some(p) => Some(p),
+                None => match req.host_id.as_deref() {
+                    Some(host_id) => credentials::get_secret(host_id, "passphrase")?,
+                    None => None,
+                },
+            };
+            let key = load_key(path, passphrase.as_deref())?;
+            handle
+                .authenticate_publickey(req.username.trim(), Arc::new(key))
+                .await?
+        }
+    };
+
+    if !ok {
+        return Err(AppError::Message("SSH 认证失败：用户名或凭证不正确".into()));
+    }
+
+    let _ = handle
+        .disconnect(russh::Disconnect::ByApplication, "peekshell-test", "")
+        .await;
+    Ok(())
 }
 
 /// 用独立短连接执行只读探测，避免干扰交互式 PTY。

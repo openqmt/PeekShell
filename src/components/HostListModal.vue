@@ -27,6 +27,7 @@ const { t, groupLabel } = useI18n();
 const { groups, error } = storeToRefs(hosts);
 const localError = ref("");
 const collapsedGroups = ref(readCollapsedGroups());
+const connectingHostId = ref<string | null>(null);
 
 function persistCollapsed() {
   localStorage.setItem(COLLAPSED_GROUPS_KEY, JSON.stringify([...collapsedGroups.value]));
@@ -49,12 +50,16 @@ function toggleGroup(group: string) {
 }
 
 async function connect(hostId: string) {
+  if (connectingHostId.value) return;
   localError.value = "";
+  connectingHostId.value = hostId;
   try {
     await sessions.connect(hostId);
     ui.closeHostsModal();
   } catch (e) {
     localError.value = String(e);
+  } finally {
+    connectingHostId.value = null;
   }
 }
 
@@ -154,9 +159,16 @@ function onBackdrop(e: MouseEvent) {
                 <span v-if="host.note" class="note">{{ host.note }}</span>
               </div>
               <div class="row-actions">
-                <button type="button" class="btn primary mini" @click="ui.openConnectModal(host)">{{ t("common.edit") }}</button>
-                <button type="button" class="btn ghost mini" @click="connect(host.id)">{{ t("common.connect") }}</button>
-                <button type="button" class="btn danger mini" @click="removeHost(host.id, host.name)">{{ t("common.delete") }}</button>
+                <button type="button" class="btn primary mini" :disabled="!!connectingHostId" @click="ui.openConnectModal(host)">{{ t("common.edit") }}</button>
+                <button
+                  type="button"
+                  class="btn ghost mini"
+                  :disabled="!!connectingHostId"
+                  @click="connect(host.id)"
+                >
+                  {{ connectingHostId === host.id ? t("common.connecting") : t("common.connect") }}
+                </button>
+                <button type="button" class="btn danger mini" :disabled="!!connectingHostId" @click="removeHost(host.id, host.name)">{{ t("common.delete") }}</button>
               </div>
             </div>
           </template>
