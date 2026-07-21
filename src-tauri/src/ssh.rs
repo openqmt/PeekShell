@@ -314,7 +314,12 @@ fn load_key(path: &str, passphrase: Option<&str>) -> AppResult<KeyPair> {
 async fn collect_metrics(host: &HostRecord) -> AppResult<HostMetrics> {
     // 使用 KEY=VALUE 输出，避免把发行版版本号等误解析成内存字节数。
     let script = r#"
-OS=$(cat /etc/os-release 2>/dev/null | grep -E '^PRETTY_NAME=' | head -1 | cut -d= -f2- | tr -d '"')
+OS=$(cat /etc/os-release 2>/dev/null | grep -E '^NAME=' | head -1 | cut -d= -f2- | tr -d '"')
+if [ -z "$OS" ]; then
+  OS=$(cat /etc/os-release 2>/dev/null | grep -E '^PRETTY_NAME=' | head -1 | cut -d= -f2- | tr -d '"')
+  # PRETTY_NAME 常带版本号，如 "Debian GNU/Linux 12 (bookworm)" → "Debian GNU/Linux"
+  OS=$(printf '%s' "$OS" | sed -E 's/ [0-9].*$//; s/ \([^)]*\)$//')
+fi
 echo "HOSTNAME=$(hostname)"
 echo "KERNEL=$(uname -r)"
 echo "ARCH=$(uname -m)"
