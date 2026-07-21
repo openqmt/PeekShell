@@ -118,7 +118,7 @@ function hostMeta() {
         {{ theme === "dark" ? "☀" : "☾" }}
       </button>
       <span class="rail-status" :title="t('sidebar.status')" />
-      <span class="rail-cpu">CPU {{ Math.round(metrics?.cpuPercent ?? 0) }}%</span>
+      <span class="rail-cpu">CPU {{ Math.round(activeSession && metrics ? metrics.cpuPercent : 0) }}%</span>
     </div>
 
     <div v-else class="sidebar-body">
@@ -132,7 +132,7 @@ function hostMeta() {
       </div>
 
       <div class="info-scroll">
-        <div v-if="!metrics" class="info-card muted">
+        <div v-if="!activeSession || !metrics" class="info-card muted">
           {{ connecting ? t("sidebar.connecting") : t("sidebar.connectHint") }}
         </div>
         <template v-else>

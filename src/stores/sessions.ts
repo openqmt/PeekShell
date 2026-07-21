@@ -37,17 +37,32 @@ export const useSessionsStore = defineStore("sessions", () => {
   }
 
   async function close(sessionId: string) {
-    await api.disconnectSession(sessionId);
-    sessions.value = sessions.value.filter((s) => s.sessionId !== sessionId);
-    if (activeSessionId.value === sessionId) {
-      activeSessionId.value = sessions.value[0]?.sessionId ?? null;
-      if (activeSessionId.value) await refreshMetrics();
-      else metrics.value = null;
+    const wasActive = activeSessionId.value === sessionId;
+    const nextId = wasActive
+      ? sessions.value.find((s) => s.sessionId !== sessionId)?.sessionId ?? null
+      : activeSessionId.value;
+
+    // 先切走活动会话并清指标，避免断开等待期间侧栏仍显示旧数据
+    if (wasActive) {
+      activeSessionId.value = nextId;
+      if (!nextId) metrics.value = null;
+    }
+
+    try {
+      await api.disconnectSession(sessionId);
+    } finally {
+      sessions.value = sessions.value.filter((s) => s.sessionId !== sessionId);
+      if (wasActive && activeSessionId.value) {
+        void refreshMetrics();
+      } else if (!activeSessionId.value) {
+        metrics.value = null;
+      }
     }
   }
 
   function select(sessionId: string) {
     activeSessionId.value = sessionId;
+    metrics.value = null;
     void refreshMetrics();
   }
 
@@ -62,14 +77,20 @@ export const useSessionsStore = defineStore("sessions", () => {
   }
 
   async function refreshMetrics() {
-    if (!activeSessionId.value) {
+    const sessionId = activeSessionId.value;
+    if (!sessionId) {
       metrics.value = null;
       return;
     }
     try {
-      metrics.value = await api.fetchHostMetrics(activeSessionId.value);
+      const next = await api.fetchHostMetrics(sessionId);
+      // 断开或切换会话后忽略过期响应，避免旧指标写回侧栏
+      if (activeSessionId.value === sessionId) {
+        metrics.value = next;
+      }
     } catch {
       // 指标失败不阻断终端使用
+      if (!activeSessionId.value) metrics.value = null;
     }
   }
 
