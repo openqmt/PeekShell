@@ -11,6 +11,7 @@ import { useI18n, UNGROUPED_GROUP } from "../i18n";
 import { useHostsStore } from "../stores/hosts";
 import { useUiStore } from "../stores/ui";
 import type { AuthType, HostUpsert } from "../types/host";
+import AppSelect from "./AppSelect.vue";
 
 const hosts = useHostsStore();
 const ui = useUiStore();
@@ -49,7 +50,9 @@ const groupOptions = computed(() => {
   for (const host of hosts.hosts) set.add(host.group);
   set.add(UNGROUPED_GROUP);
   if (form.group) set.add(form.group);
-  return [...set].sort();
+  return [...set]
+    .sort()
+    .map((g) => ({ value: g, label: groupLabel(g) }));
 });
 
 watch(
@@ -197,9 +200,7 @@ function onBackdrop(e: MouseEvent) {
           </div>
           <div class="field">
             <label>{{ t("connect.group") }}</label>
-            <select v-model="form.group">
-              <option v-for="g in groupOptions" :key="g" :value="g">{{ groupLabel(g) }}</option>
-            </select>
+            <AppSelect v-model="form.group" :options="groupOptions" />
           </div>
           <div class="field">
             <label>{{ t("connect.host") }}<span class="req">*</span></label>

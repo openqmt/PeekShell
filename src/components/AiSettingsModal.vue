@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { reactive, ref } from "vue";
+import { computed, reactive, ref } from "vue";
 import { useI18n } from "../i18n";
 import { useAiStore } from "../stores/ai";
 import { useUiStore } from "../stores/ui";
 import type { AiProviderKind, AiProviderRecord, AiProviderUpsert } from "../types/ai";
+import AppSelect from "./AppSelect.vue";
 
 const ai = useAiStore();
 const ui = useUiStore();
@@ -41,6 +42,12 @@ const form = reactive({
   clearApiKey: false,
   hasApiKey: false,
 });
+
+const kindOptions = computed(() => [
+  { value: "openAiCompatible", label: t("aiSettings.kindOpenAi") },
+  { value: "anthropic", label: t("aiSettings.kindAnthropic") },
+  { value: "ollama", label: t("aiSettings.kindOllama") },
+]);
 
 function newProvider(kind: AiProviderKind = "openAiCompatible") {
   selectedId.value = null;
@@ -166,11 +173,12 @@ else newProvider();
             </div>
             <div class="field">
               <label>{{ t("aiSettings.kind") }}<span class="req">*</span></label>
-              <select v-model="form.kind" @change="onKindChange">
-                <option value="openAiCompatible">{{ t("aiSettings.kindOpenAi") }}</option>
-                <option value="anthropic">{{ t("aiSettings.kindAnthropic") }}</option>
-                <option value="ollama">{{ t("aiSettings.kindOllama") }}</option>
-              </select>
+              <AppSelect
+                :model-value="form.kind"
+                :options="kindOptions"
+                @update:model-value="(v) => (form.kind = v as AiProviderKind)"
+                @change="onKindChange"
+              />
             </div>
             <div class="field full">
               <label>{{ t("aiSettings.baseUrl") }}<span class="req">*</span></label>

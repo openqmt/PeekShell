@@ -1,13 +1,21 @@
 <script setup lang="ts">
 /** 主机列表：分组、连接、编辑、删除。 */
 import { storeToRefs } from "pinia";
-import { onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref } from "vue";
 import { useI18n } from "../i18n";
 import { useHostsStore } from "../stores/hosts";
 import { useSessionsStore } from "../stores/sessions";
 import { useUiStore } from "../stores/ui";
 
 const COLLAPSED_GROUPS_KEY = "peekshell.hosts.collapsedGroups";
+
+type NameDialog =
+  | { mode: "create" }
+  | { mode: "rename"; from: string };
+
+type ConfirmDialog =
+  | { kind: "host"; id: string; name: string }
+  | { kind: "group"; group: string };
 
 function readCollapsedGroups(): Set<string> {
   try {
@@ -28,6 +36,25 @@ const { groups, error } = storeToRefs(hosts);
 const localError = ref("");
 const collapsedGroups = ref(readCollapsedGroups());
 const connectingHostId = ref<string | null>(null);
+const nameDialog = ref<NameDialog | null>(null);
+const nameInput = ref("");
+const nameInputEl = ref<HTMLInputElement | null>(null);
+const nameSaving = ref(false);
+const confirmDialog = ref<ConfirmDialog | null>(null);
+const confirmBusy = ref(false);
+
+const nameDialogTitle = computed(() =>
+  nameDialog.value?.mode === "rename" ? t("hosts.rename") : t("hosts.addGroup")
+);
+const nameDialogLabel = computed(() =>
+  nameDialog.value?.mode === "rename" ? t("hosts.renameGroupPrompt") : t("hosts.newGroupPrompt")
+);
+const confirmMessage = computed(() => {
+  const dialog = confirmDialog.value;
+  if (!dialog) return "";
+  if (dialog.kind === "host") return t("hosts.deleteHostConfirm", { name: dialog.name });
+  return t("hosts.deleteGroupConfirm", { name: groupLabel(dialog.group) });
+});
 
 function persistCollapsed() {
   localStorage.setItem(COLLAPSED_GROUPS_KEY, JSON.stringify([...collapsedGroups.value]));
@@ -63,44 +90,104 @@ async function connect(hostId: string) {
   }
 }
 
-async function removeHost(id: string, name: string) {
-  if (!confirm(t("hosts.deleteHostConfirm", { name }))) return;
-  await hosts.remove(id);
+function openRemoveHost(id: string, name: string) {
+  confirmDialog.value = { kind: "host", id, name };
 }
 
-async function createGroup() {
-  const name = prompt(t("hosts.newGroupPrompt"));
-  if (!name?.trim()) return;
+function openRemoveGroup(group: string) {
+  confirmDialog.value = { kind: "group", group };
+}
+
+function closeConfirmDialog() {
+  if (confirmBusy.value) return;
+  confirmDialog.value = null;
+}
+
+async function submitConfirmDialog() {
+  const dialog = confirmDialog.value;
+  if (!dialog || confirmBusy.value) return;
+
+  confirmBusy.value = true;
   localError.value = "";
   try {
-    await hosts.createGroup(name.trim());
+    if (dialog.kind === "host") {
+      await hosts.remove(dialog.id);
+    } else {
+      await hosts.removeGroup(dialog.group);
+      if (collapsedGroups.value.has(dialog.group)) {
+        const updated = new Set(collapsedGroups.value);
+        updated.delete(dialog.group);
+        collapsedGroups.value = updated;
+        persistCollapsed();
+      }
+    }
+    confirmDialog.value = null;
   } catch (e) {
     localError.value = String(e);
+  } finally {
+    confirmBusy.value = false;
   }
 }
 
-async function renameGroup(from: string) {
-  const to = prompt(t("hosts.renameGroupPrompt"), from);
-  if (!to || to.trim() === from) return;
-  const next = to.trim();
-  await hosts.renameGroup(from, next);
-  if (collapsedGroups.value.has(from)) {
-    const updated = new Set(collapsedGroups.value);
-    updated.delete(from);
-    updated.add(next);
-    collapsedGroups.value = updated;
-    persistCollapsed();
-  }
+function openCreateGroup() {
+  nameDialog.value = { mode: "create" };
+  nameInput.value = "";
+  localError.value = "";
+  void nextTick(() => {
+    nameInputEl.value?.focus();
+    nameInputEl.value?.select();
+  });
 }
 
-async function removeGroup(group: string) {
-  if (!confirm(t("hosts.deleteGroupConfirm", { name: groupLabel(group) }))) return;
-  await hosts.removeGroup(group);
-  if (!collapsedGroups.value.has(group)) return;
-  const updated = new Set(collapsedGroups.value);
-  updated.delete(group);
-  collapsedGroups.value = updated;
-  persistCollapsed();
+function openRenameGroup(from: string) {
+  nameDialog.value = { mode: "rename", from };
+  nameInput.value = from;
+  localError.value = "";
+  void nextTick(() => {
+    nameInputEl.value?.focus();
+    nameInputEl.value?.select();
+  });
+}
+
+function closeNameDialog() {
+  if (nameSaving.value) return;
+  nameDialog.value = null;
+  nameInput.value = "";
+}
+
+async function submitNameDialog() {
+  const dialog = nameDialog.value;
+  const name = nameInput.value.trim();
+  if (!dialog || !name || nameSaving.value) return;
+
+  if (dialog.mode === "rename" && name === dialog.from) {
+    nameDialog.value = null;
+    nameInput.value = "";
+    return;
+  }
+
+  nameSaving.value = true;
+  localError.value = "";
+  try {
+    if (dialog.mode === "create") {
+      await hosts.createGroup(name);
+    } else {
+      await hosts.renameGroup(dialog.from, name);
+      if (collapsedGroups.value.has(dialog.from)) {
+        const updated = new Set(collapsedGroups.value);
+        updated.delete(dialog.from);
+        updated.add(name);
+        collapsedGroups.value = updated;
+        persistCollapsed();
+      }
+    }
+    nameDialog.value = null;
+    nameInput.value = "";
+  } catch (e) {
+    localError.value = String(e);
+  } finally {
+    nameSaving.value = false;
+  }
 }
 
 function onBackdrop(e: MouseEvent) {
@@ -118,7 +205,7 @@ function onBackdrop(e: MouseEvent) {
         </div>
         <div class="modal-tools">
           <button type="button" class="btn primary md" @click="ui.openConnectModal(null)">{{ t("hosts.addConnection") }}</button>
-          <button type="button" class="btn ghost md" @click="createGroup">{{ t("hosts.addGroup") }}</button>
+          <button type="button" class="btn ghost md" @click="openCreateGroup">{{ t("hosts.addGroup") }}</button>
           <button type="button" class="icon-btn" :aria-label="t('common.close')" @click="ui.closeHostsModal()">✕</button>
         </div>
       </div>
@@ -144,8 +231,8 @@ function onBackdrop(e: MouseEvent) {
             <span class="chev" aria-hidden="true">▾</span>
             <span>{{ groupLabel(group) }}</span>
             <span class="count">{{ list.length }}</span>
-            <button type="button" class="btn ghost mini" @click.stop="renameGroup(group)">{{ t("hosts.rename") }}</button>
-            <button type="button" class="btn danger mini" @click.stop="removeGroup(group)">{{ t("hosts.deleteGroup") }}</button>
+            <button type="button" class="btn ghost mini" @click.stop="openRenameGroup(group)">{{ t("hosts.rename") }}</button>
+            <button type="button" class="btn danger mini" @click.stop="openRemoveGroup(group)">{{ t("hosts.deleteGroup") }}</button>
           </div>
           <template v-if="!isGroupCollapsed(group)">
             <div v-for="host in list" :key="host.id" class="mgr-row">
@@ -168,7 +255,7 @@ function onBackdrop(e: MouseEvent) {
                 >
                   {{ connectingHostId === host.id ? t("common.connecting") : t("common.connect") }}
                 </button>
-                <button type="button" class="btn danger mini" :disabled="!!connectingHostId" @click="removeHost(host.id, host.name)">{{ t("common.delete") }}</button>
+                <button type="button" class="btn danger mini" :disabled="!!connectingHostId" @click="openRemoveHost(host.id, host.name)">{{ t("common.delete") }}</button>
               </div>
             </div>
           </template>
@@ -176,11 +263,71 @@ function onBackdrop(e: MouseEvent) {
 
         <div v-if="!groups.length" class="empty">{{ t("hosts.empty") }}</div>
       </div>
+
+      <div
+        v-if="nameDialog"
+        class="prompt-overlay"
+        @click.self="closeNameDialog"
+        @keydown.esc.prevent="closeNameDialog"
+      >
+        <div class="prompt-box" role="dialog" :aria-label="nameDialogTitle">
+          <h3>{{ nameDialogTitle }}</h3>
+          <div class="field">
+            <label for="groupNameInput">{{ nameDialogLabel }}</label>
+            <input
+              id="groupNameInput"
+              ref="nameInputEl"
+              v-model="nameInput"
+              type="text"
+              autocomplete="off"
+              :disabled="nameSaving"
+              @keydown.enter.prevent="submitNameDialog"
+            />
+          </div>
+          <div class="prompt-actions">
+            <button type="button" class="btn ghost md" :disabled="nameSaving" @click="closeNameDialog">
+              {{ t("common.cancel") }}
+            </button>
+            <button
+              type="button"
+              class="btn primary md"
+              :disabled="nameSaving || !nameInput.trim()"
+              @click="submitNameDialog"
+            >
+              {{ nameSaving ? t("common.saving") : t("common.save") }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="confirmDialog"
+        class="prompt-overlay"
+        @click.self="closeConfirmDialog"
+        @keydown.esc.prevent="closeConfirmDialog"
+      >
+        <div class="prompt-box" role="dialog" :aria-label="t('common.confirm')">
+          <h3>{{ t("common.confirm") }}</h3>
+          <p class="prompt-message">{{ confirmMessage }}</p>
+          <div class="prompt-actions">
+            <button type="button" class="btn ghost md" :disabled="confirmBusy" @click="closeConfirmDialog">
+              {{ t("common.cancel") }}
+            </button>
+            <button type="button" class="btn danger md" :disabled="confirmBusy" @click="submitConfirmDialog">
+              {{ confirmBusy ? t("common.saving") : t("common.delete") }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+.modal {
+  position: relative;
+}
+
 .mgr-group {
   margin-bottom: 12px;
   border: 1px solid var(--border-soft);
@@ -261,4 +408,44 @@ function onBackdrop(e: MouseEvent) {
 
 .row-actions { display: flex; gap: 4px; }
 .empty { color: var(--text-muted); font-size: 13px; padding: 24px; text-align: center; }
+
+.prompt-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--overlay);
+}
+
+.prompt-box {
+  width: min(360px, 100%);
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+}
+
+.prompt-box h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.prompt-message {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.prompt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
 </style>
