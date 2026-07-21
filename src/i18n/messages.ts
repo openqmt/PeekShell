@@ -80,6 +80,8 @@ export const messages = {
     "hosts.newGroupPrompt": "新分组名称",
     "hosts.renameGroupPrompt": "新的分组名称",
     "hosts.deleteGroupConfirm": "删除分组「{name}」？组内主机将移到「未分组」。",
+    "hosts.collapseGroup": "折叠分组",
+    "hosts.expandGroup": "展开分组",
 
     "connect.editTitle": "编辑连接",
     "connect.addTitle": "新增连接",
@@ -223,6 +225,8 @@ export const messages = {
     "hosts.newGroupPrompt": "New group name",
     "hosts.renameGroupPrompt": "New group name",
     "hosts.deleteGroupConfirm": "Delete group “{name}”? Hosts will move to Ungrouped.",
+    "hosts.collapseGroup": "Collapse group",
+    "hosts.expandGroup": "Expand group",
 
     "connect.editTitle": "Edit connection",
     "connect.addTitle": "New connection",
