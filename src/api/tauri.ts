@@ -4,7 +4,14 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import type { AiProviderRecord, AiProviderUpsert, AiSettings } from "../types/ai";
-import type { HostMetrics, HostRecord, HostUpsert, SessionInfo } from "../types/host";
+import type {
+  HostMetrics,
+  HostRecord,
+  HostUpsert,
+  RemoteDirListing,
+  RemoteFileContent,
+  SessionInfo,
+} from "../types/host";
 
 export function getAiSettings(): Promise<AiSettings> {
   return invoke("get_ai_settings");
@@ -68,4 +75,12 @@ export function ptyResize(sessionId: string, cols: number, rows: number): Promis
 
 export function fetchHostMetrics(sessionId: string): Promise<HostMetrics> {
   return invoke("fetch_host_metrics", { sessionId });
+}
+
+export function listRemoteDir(sessionId: string, path: string): Promise<RemoteDirListing> {
+  return invoke("list_remote_dir", { sessionId, path });
+}
+
+export function readRemoteFile(sessionId: string, path: string): Promise<RemoteFileContent> {
+  return invoke("read_remote_file", { sessionId, path });
 }

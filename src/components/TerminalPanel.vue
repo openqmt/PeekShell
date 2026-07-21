@@ -11,6 +11,7 @@ import { storeToRefs } from "pinia";
 import * as api from "../api/tauri";
 import { useSessionsStore } from "../stores/sessions";
 import { useUiStore } from "../stores/ui";
+import RemoteExplorer from "./RemoteExplorer.vue";
 
 const sessions = useSessionsStore();
 const ui = useUiStore();
@@ -158,13 +159,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div class="status-bar">
-      <span class="live">{{ activeSessionId ? "● connected" : "○ idle" }}</span>
-      <span class="sep">|</span>
-      <span>{{ sessions.activeSession?.title ?? "PeekShell" }}</span>
-      <span class="sep">|</span>
-      <span>utf-8</span>
-    </div>
+    <RemoteExplorer @resized="onResize" />
   </section>
 </template>
 
@@ -173,6 +168,9 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
   background: var(--term-bg);
 }
 
@@ -246,20 +244,4 @@ onBeforeUnmount(() => {
   padding: 24px;
   text-align: center;
 }
-
-.status-bar {
-  height: 26px;
-  border-top: 1px solid var(--border-soft);
-  background: var(--bg-panel);
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  gap: 16px;
-  font-size: 11px;
-  font-family: var(--font-mono);
-  color: var(--text-dim);
-}
-
-.live { color: var(--accent); }
-.sep { color: var(--border); }
 </style>

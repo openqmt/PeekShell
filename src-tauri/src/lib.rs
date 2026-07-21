@@ -7,7 +7,10 @@ mod ssh;
 use ai_config::{AiProviderRecord, AiProviderUpsert, AiSettings};
 use error::AppResult;
 use hosts::{HostRecord, HostUpsert};
-use ssh::{HostMetrics, SessionInfo, SessionManager};
+use ssh::{
+    HostMetrics, RemoteDirListing, RemoteFileContent, SessionInfo, SessionManager,
+};
+
 use std::sync::Arc;
 use tauri::Manager;
 
@@ -110,6 +113,24 @@ async fn fetch_host_metrics(
     state.metrics(&session_id).await
 }
 
+#[tauri::command]
+async fn list_remote_dir(
+    state: tauri::State<'_, Arc<SessionManager>>,
+    session_id: String,
+    path: String,
+) -> AppResult<RemoteDirListing> {
+    state.list_dir(&session_id, &path).await
+}
+
+#[tauri::command]
+async fn read_remote_file(
+    state: tauri::State<'_, Arc<SessionManager>>,
+    session_id: String,
+    path: String,
+) -> AppResult<RemoteFileContent> {
+    state.read_file(&session_id, &path).await
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let sessions = Arc::new(SessionManager::new());
@@ -134,7 +155,9 @@ pub fn run() {
             disconnect_session,
             pty_write,
             pty_resize,
-            fetch_host_metrics
+            fetch_host_metrics,
+            list_remote_dir,
+            read_remote_file
         ])
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {

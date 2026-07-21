@@ -61,3 +61,22 @@ export interface SessionInfo {
   hostId: string;
   title: string;
 }
+
+export interface RemoteEntry {
+  name: string;
+  path: string;
+  isDir: boolean;
+}
+
+export interface RemoteDirListing {
+  path: string;
+  entries: RemoteEntry[];
+}
+
+export interface RemoteFileContent {
+  path: string;
+  size: number;
+  truncated: boolean;
+  content: string;
+  binary: boolean;
+}

@@ -56,6 +56,31 @@ pub struct SessionInfo {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct RemoteEntry {
+    pub name: String,
+    pub path: String,
+    pub is_dir: bool,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteDirListing {
+    pub path: String,
+    pub entries: Vec<RemoteEntry>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteFileContent {
+    pub path: String,
+    pub size: u64,
+    pub truncated: bool,
+    pub content: String,
+    pub binary: bool,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct HostMetrics {
     pub ip: String,
     pub os: String,
@@ -190,14 +215,28 @@ impl SessionManager {
     }
 
     pub async fn metrics(&self, session_id: &str) -> AppResult<HostMetrics> {
+        let host = self.host_for_session(session_id).await?;
+        collect_metrics(&host).await
+    }
+
+    pub async fn list_dir(&self, session_id: &str, path: &str) -> AppResult<RemoteDirListing> {
+        let host = self.host_for_session(session_id).await?;
+        list_remote_dir(&host, path).await
+    }
+
+    pub async fn read_file(&self, session_id: &str, path: &str) -> AppResult<RemoteFileContent> {
+        let host = self.host_for_session(session_id).await?;
+        read_remote_file(&host, path).await
+    }
+
+    async fn host_for_session(&self, session_id: &str) -> AppResult<HostRecord> {
         let host_id = {
             let map = self.inner.lock().await;
             map.get(session_id)
                 .map(|s| s.host_id.clone())
                 .ok_or_else(|| AppError::Message("会话不存在".into()))?
         };
-        let host = hosts::get_host(&host_id)?;
-        collect_metrics(&host).await
+        hosts::get_host(&host_id)
     }
 }
 
@@ -330,6 +369,193 @@ async fn run_exec(host: &HostRecord, command: &str) -> AppResult<String> {
         }
     }
     Ok(buf)
+}
+
+async fn run_exec_bytes(host: &HostRecord, command: &str) -> AppResult<Vec<u8>> {
+    let config = Arc::new(client::Config::default());
+    let mut handle =
+        client::connect(config, (host.host.as_str(), host.port), ClientHandler).await?;
+
+    let ok = match host.auth_type {
+        AuthType::Password => {
+            let password = credentials::get_secret(&host.id, "password")?.ok_or_else(|| {
+                AppError::Message("未找到已保存的密码，请编辑连接并重新输入密码".into())
+            })?;
+            handle
+                .authenticate_password(&host.username, password)
+                .await?
+        }
+        AuthType::PrivateKey => {
+            let path = host
+                .private_key_path
+                .as_ref()
+                .ok_or_else(|| AppError::Message("未配置私钥路径".into()))?;
+            let passphrase = credentials::get_secret(&host.id, "passphrase")?;
+            let key = load_key(path, passphrase.as_deref())?;
+            handle
+                .authenticate_publickey(&host.username, Arc::new(key))
+                .await?
+        }
+    };
+    if !ok {
+        return Err(AppError::Message("SSH 认证失败".into()));
+    }
+
+    let mut channel = handle.channel_open_session().await?;
+    channel.exec(true, command).await?;
+    let mut buf = Vec::new();
+    while let Some(msg) = channel.wait().await {
+        if let ChannelMsg::Data { ref data } = msg {
+            buf.extend_from_slice(data);
+        }
+    }
+    Ok(buf)
+}
+
+fn shell_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\\''"))
+}
+
+fn normalize_remote_path(path: &str) -> AppResult<String> {
+    let trimmed = path.trim();
+    if trimmed.is_empty() {
+        return Ok("/".into());
+    }
+    if trimmed.contains('\0') || trimmed.contains('\n') || trimmed.contains('\r') {
+        return Err(AppError::Message("路径无效".into()));
+    }
+    let mut parts: Vec<&str> = Vec::new();
+    for part in trimmed.split('/') {
+        if part.is_empty() || part == "." {
+            continue;
+        }
+        if part == ".." {
+            parts.pop();
+            continue;
+        }
+        parts.push(part);
+    }
+    if parts.is_empty() {
+        Ok("/".into())
+    } else {
+        Ok(format!("/{}", parts.join("/")))
+    }
+}
+
+fn join_remote(dir: &str, name: &str) -> String {
+    if dir == "/" {
+        format!("/{name}")
+    } else {
+        format!("{dir}/{name}")
+    }
+}
+
+async fn list_remote_dir(host: &HostRecord, path: &str) -> AppResult<RemoteDirListing> {
+    let path = normalize_remote_path(path)?;
+    let quoted = shell_quote(&path);
+    let script = format!(
+        r#"
+path={quoted}
+if [ ! -d "$path" ]; then
+  echo "ERR|目录不存在或不可访问"
+  exit 0
+fi
+echo "OK|$path"
+find "$path" -mindepth 1 -maxdepth 1 \( -type d -printf 'D|%f\n' -o -type f -printf 'F|%f\n' -o -printf 'O|%f\n' \) 2>/dev/null | LC_ALL=C sort
+"#
+    );
+    let output = run_exec(host, &script).await?;
+    let mut lines = output.lines().map(str::trim).filter(|l| !l.is_empty());
+    let header = lines
+        .next()
+        .ok_or_else(|| AppError::Message("列出目录失败：无响应".into()))?;
+    if let Some(msg) = header.strip_prefix("ERR|") {
+        return Err(AppError::Message(msg.into()));
+    }
+    let resolved = header
+        .strip_prefix("OK|")
+        .unwrap_or(path.as_str())
+        .to_string();
+
+    let mut entries = Vec::new();
+    for line in lines {
+        let Some((kind, name)) = line.split_once('|') else {
+            continue;
+        };
+        if name.is_empty() || name == "." || name == ".." {
+            continue;
+        }
+        let is_dir = kind == "D";
+        entries.push(RemoteEntry {
+            name: name.to_string(),
+            path: join_remote(&resolved, name),
+            is_dir,
+        });
+    }
+    entries.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.name.cmp(&b.name)));
+    Ok(RemoteDirListing {
+        path: resolved,
+        entries,
+    })
+}
+
+const MAX_PREVIEW_BYTES: u64 = 512 * 1024;
+
+async fn read_remote_file(host: &HostRecord, path: &str) -> AppResult<RemoteFileContent> {
+    let path = normalize_remote_path(path)?;
+    let quoted = shell_quote(&path);
+    let max = MAX_PREVIEW_BYTES;
+    let script = format!(
+        r#"
+path={quoted}
+max={max}
+if [ ! -e "$path" ]; then
+  echo "ERR|文件不存在"
+  exit 0
+fi
+if [ -d "$path" ]; then
+  echo "ERR|路径是目录"
+  exit 0
+fi
+size=$(stat -c%s "$path" 2>/dev/null || echo 0)
+echo "META|$path|$size"
+head -c "$max" "$path"
+"#
+    );
+    let output = run_exec_bytes(host, &script).await?;
+    let Some(nl) = output.iter().position(|b| *b == b'\n') else {
+        let text = String::from_utf8_lossy(&output);
+        if let Some(msg) = text.trim().strip_prefix("ERR|") {
+            return Err(AppError::Message(msg.into()));
+        }
+        return Err(AppError::Message("读取文件失败：无响应".into()));
+    };
+    let header = String::from_utf8_lossy(&output[..nl]);
+    let body = &output[nl + 1..];
+    let header = header.trim();
+    if let Some(msg) = header.strip_prefix("ERR|") {
+        return Err(AppError::Message(msg.into()));
+    }
+    let meta = header
+        .strip_prefix("META|")
+        .ok_or_else(|| AppError::Message("读取文件失败：响应格式错误".into()))?;
+    let mut parts = meta.splitn(2, '|');
+    let resolved = parts.next().unwrap_or(&path).to_string();
+    let size: u64 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let binary = body.contains(&0);
+    let truncated = size > MAX_PREVIEW_BYTES;
+    let content = if binary {
+        String::new()
+    } else {
+        String::from_utf8_lossy(body).into_owned()
+    };
+    Ok(RemoteFileContent {
+        path: resolved,
+        size,
+        truncated,
+        content,
+        binary,
+    })
 }
 
 fn parse_metrics(host: &HostRecord, raw: &str) -> HostMetrics {
