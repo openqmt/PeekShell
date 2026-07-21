@@ -294,7 +294,7 @@ onBeforeUnmount(() => {
 
     <div class="panes" :style="{ gridTemplateColumns: `${entriesWidth}px 1fr` }">
       <div ref="entriesEl" class="entries">
-        <div v-if="!activeSessionId" class="placeholder">连接主机后浏览远端目录</div>
+        <div v-if="!activeSessionId" class="placeholder">远端目录</div>
         <div v-else-if="loading" class="placeholder">加载中…</div>
         <div v-else-if="!entries.length" class="placeholder">空目录</div>
         <button
@@ -312,10 +312,10 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="preview">
-        <div v-if="!activeSessionId" class="placeholder">文件内容将显示在这里</div>
+        <div v-if="!activeSessionId" class="placeholder">文件内容</div>
         <div v-else-if="previewLoading" class="placeholder">读取文件中…</div>
         <div v-else-if="!selectedEntry || selectedEntry.isDir" class="placeholder">
-          选择左侧文件以预览内容
+          预览内容
         </div>
         <template v-else-if="preview">
           <div class="preview-meta">
