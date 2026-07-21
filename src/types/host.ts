@@ -33,6 +33,12 @@ export interface HostUpsert {
 }
 
 /** 侧栏展示的远端主机指标快照。 */
+export interface ProcessMetrics {
+  name: string;
+  memoryMiB: number;
+  cpuPercent: number;
+}
+
 export interface HostMetrics {
   ip: string;
   os: string;
@@ -54,6 +60,7 @@ export interface HostMetrics {
   netTxKBs: number;
   netRxTotalGB: number;
   netTxTotalGB: number;
+  topProcesses: ProcessMetrics[];
 }
 
 export interface SessionInfo {

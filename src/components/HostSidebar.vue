@@ -93,7 +93,6 @@ function hostMeta() {
               <span class="num">{{ metrics.uptimeDays }}</span>
               <span class="unit">天</span>
             </div>
-            <div class="uptime-sub">{{ metrics.uptimeText || "—" }} · load {{ metrics.loadAvg || "—" }}</div>
           </div>
 
           <div class="info-card">
@@ -132,6 +131,27 @@ function hostMeta() {
                 <i :style="{ width: pct(metrics.diskUsedGiB, metrics.diskTotalGiB) + '%' }" />
               </div>
             </div>
+          </div>
+
+          <div class="info-card">
+            <h3>进程概览 · 内存占用前 5</h3>
+            <div v-if="metrics.topProcesses.length" class="process-table">
+              <div class="process-head">
+                <span>进程</span>
+                <span>内存</span>
+                <span>CPU</span>
+              </div>
+              <div
+                v-for="(process, index) in metrics.topProcesses"
+                :key="`${process.name}-${index}`"
+                class="process-row"
+              >
+                <span class="process-name" :title="process.name">{{ process.name }}</span>
+                <span>{{ process.memoryMiB.toFixed(1) }} MiB</span>
+                <span>{{ process.cpuPercent.toFixed(1) }}%</span>
+              </div>
+            </div>
+            <div v-else class="process-empty">暂无进程数据</div>
           </div>
 
           <div class="info-card">
@@ -295,7 +315,6 @@ function hostMeta() {
   color: var(--accent);
 }
 .uptime-big .unit { font-size: 12px; color: var(--text-muted); }
-.uptime-sub { margin-top: 4px; font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
 
 .metric + .metric { margin-top: 10px; }
 .metric-top { display: flex; justify-content: space-between; margin-bottom: 6px; gap: 8px; }
@@ -312,6 +331,42 @@ function hostMeta() {
 .bar > i { display: block; height: 100%; background: var(--accent); }
 .bar.warn > i { background: var(--warn); }
 .bar.danger > i { background: var(--danger); }
+
+.process-table {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
+.process-head,
+.process-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 68px 42px;
+  gap: 6px;
+  align-items: center;
+}
+
+.process-head {
+  padding-bottom: 5px;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.process-row {
+  padding: 5px 0;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.process-row:last-child { border-bottom: none; }
+.process-head span:not(:first-child),
+.process-row span:not(:first-child) { text-align: right; }
+.process-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.process-empty { color: var(--text-dim); font-size: 11px; }
 
 .net-row {
   display: flex;

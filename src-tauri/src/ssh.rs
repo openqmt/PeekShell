@@ -81,6 +81,14 @@ pub struct RemoteFileContent {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ProcessMetrics {
+    pub name: String,
+    pub memory_mi_b: f64,
+    pub cpu_percent: f64,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct HostMetrics {
     pub ip: String,
     pub os: String,
@@ -102,6 +110,7 @@ pub struct HostMetrics {
     pub net_tx_k_bs: f64,
     pub net_rx_total_g_b: f64,
     pub net_tx_total_g_b: f64,
+    pub top_processes: Vec<ProcessMetrics>,
 }
 
 impl SessionManager {
@@ -324,6 +333,11 @@ fi
 echo "CPU1=$CPU1"
 echo "CPU2=$CPU2"
 echo "NET=$RX1 $TX1 $RX2 $TX2"
+LC_ALL=C ps -eo comm=,rss=,pcpu= --sort=-rss 2>/dev/null | head -n 5 | awk '{
+  cpu=$NF; rss=$(NF-1); $NF=""; $(NF-1)="";
+  sub(/^[[:space:]]+/, "", $0); sub(/[[:space:]]+$/, "", $0);
+  printf "PROC\t%s\t%s\t%s\n", $0, rss, cpu
+}'
 "#;
 
     let output = run_exec(host, script).await.unwrap_or_default();
@@ -560,8 +574,27 @@ head -c "$max" "$path"
 
 fn parse_metrics(host: &HostRecord, raw: &str) -> HostMetrics {
     let mut fields = std::collections::HashMap::new();
+    let mut top_processes = Vec::new();
     for line in raw.lines() {
-        if let Some((key, value)) = line.split_once('=') {
+        if let Some(process) = line.strip_prefix("PROC\t") {
+            let mut parts = process.splitn(3, '\t');
+            let name = parts.next().unwrap_or("").trim();
+            let memory_kib = parts
+                .next()
+                .and_then(|value| value.parse::<f64>().ok())
+                .unwrap_or(0.0);
+            let cpu_percent = parts
+                .next()
+                .and_then(|value| value.parse::<f64>().ok())
+                .unwrap_or(0.0);
+            if !name.is_empty() {
+                top_processes.push(ProcessMetrics {
+                    name: name.to_string(),
+                    memory_mi_b: memory_kib / 1024.0,
+                    cpu_percent,
+                });
+            }
+        } else if let Some((key, value)) = line.split_once('=') {
             fields.insert(key.trim().to_string(), value.trim().to_string());
         }
     }
@@ -638,6 +671,7 @@ fn parse_metrics(host: &HostRecord, raw: &str) -> HostMetrics {
         net_tx_k_bs,
         net_rx_total_g_b: rx2 as f64 / 1_000_000_000.0,
         net_tx_total_g_b: tx2 as f64 / 1_000_000_000.0,
+        top_processes,
     }
 }
 
