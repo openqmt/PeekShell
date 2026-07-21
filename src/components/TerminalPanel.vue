@@ -48,6 +48,8 @@ async function ensureTerm(sessionId: string) {
     fontFamily: "IBM Plex Mono, ui-monospace, monospace",
     fontSize: 13,
     theme: readTermTheme(),
+    // 控制自定义滚动条宽度（默认 14px）
+    overviewRuler: { width: 6 },
   });
   const fit = new FitAddon();
   term.loadAddon(fit);
@@ -229,12 +231,28 @@ onBeforeUnmount(() => {
 .term-host {
   flex: 1;
   min-height: 0;
-  padding: 8px;
+  padding: 8px 0 8px 8px;
   position: relative;
 }
 
 .term-host :deep(.xterm) { height: 100%; }
-.term-host :deep(.xterm-viewport) { overflow-y: auto !important; }
+.term-host :deep(.xterm-viewport) {
+  overflow-y: auto !important;
+}
+/* xterm 自定义滚动条贴右侧 */
+.term-host :deep(.xterm-scrollable-element > .scrollbar.vertical) {
+  width: 6px !important;
+  right: 0 !important;
+}
+.term-host :deep(.xterm-scrollable-element > .scrollbar.vertical > .slider) {
+  width: 6px !important;
+  left: 0 !important;
+  border-radius: 999px;
+  background: var(--scrollbar-thumb) !important;
+}
+.term-host :deep(.xterm-scrollable-element > .scrollbar.vertical > .slider:hover) {
+  background: var(--scrollbar-thumb-hover) !important;
+}
 
 .empty {
   position: absolute;
