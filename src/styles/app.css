@@ -119,15 +119,27 @@ button { cursor: pointer; }
 .workspace {
   flex: 1;
   display: grid;
-  grid-template-columns: 240px 1fr 300px;
+  grid-template-columns: var(--sidebar-width, 240px) 1fr var(--ai-panel-width, 300px);
   min-height: 0;
   transition: grid-template-columns 0.2s ease;
 }
 
-.workspace.sidebar-collapsed { grid-template-columns: 44px 1fr 300px; }
-.workspace.ai-collapsed { grid-template-columns: 240px 1fr 44px; }
+.workspace.is-resizing-ai,
+.workspace.is-resizing-sidebar {
+  transition: none;
+  cursor: ew-resize;
+}
+
+.workspace.is-resizing-ai *,
+.workspace.is-resizing-sidebar * {
+  cursor: ew-resize !important;
+  user-select: none !important;
+}
+
+.workspace.sidebar-collapsed { grid-template-columns: 44px 1fr var(--ai-panel-width, 300px); }
+.workspace.ai-collapsed { grid-template-columns: var(--sidebar-width, 240px) 1fr 44px; }
 .workspace.sidebar-collapsed.ai-collapsed { grid-template-columns: 44px 1fr 44px; }
-.workspace.ai-hidden { grid-template-columns: 240px 1fr; }
+.workspace.ai-hidden { grid-template-columns: var(--sidebar-width, 240px) 1fr; }
 .workspace.sidebar-collapsed.ai-hidden { grid-template-columns: 44px 1fr; }
 
 .icon-btn {

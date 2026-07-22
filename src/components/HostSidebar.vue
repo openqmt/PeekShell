@@ -7,7 +7,7 @@ import { storeToRefs } from "pinia";
 import { onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "../i18n";
 import { useSessionsStore } from "../stores/sessions";
-import { useUiStore } from "../stores/ui";
+import { useUiStore, SIDEBAR_WIDTH_MAX, SIDEBAR_WIDTH_MIN } from "../stores/ui";
 import { useHostsStore } from "../stores/hosts";
 
 const sessions = useSessionsStore();
@@ -15,11 +15,12 @@ const hosts = useHostsStore();
 const ui = useUiStore();
 const { t, locale, toggleLocale, groupLabel } = useI18n();
 const { metrics, activeSession, connecting } = storeToRefs(sessions);
-const { sidebarCollapsed, theme, displayPrefs } = storeToRefs(ui);
+const { sidebarCollapsed, sidebarWidth, theme, displayPrefs } = storeToRefs(ui);
 
 const METRICS_INTERVAL_MS = 1000;
 let metricsTimer: ReturnType<typeof setInterval> | null = null;
 const metricsRefreshing = ref(false);
+const resizing = ref(false);
 
 async function pollMetrics() {
   if (!activeSession.value || metricsRefreshing.value) return;
@@ -55,8 +56,6 @@ watch(
   { immediate: true }
 );
 
-onBeforeUnmount(stopMetricsPolling);
-
 function barClass(pct: number) {
   if (pct >= 85) return "bar danger";
   if (pct >= 70) return "bar warn";
@@ -72,10 +71,47 @@ function hostMeta() {
   if (!activeSession.value) return null;
   return hosts.findById(activeSession.value.hostId);
 }
+
+function onResizeStart(ev: MouseEvent) {
+  if (ev.button !== 0 || sidebarCollapsed.value) return;
+  ev.preventDefault();
+  resizing.value = true;
+  const startX = ev.clientX;
+  const startWidth = sidebarWidth.value;
+  const workspace = document.querySelector(".workspace");
+  workspace?.classList.add("is-resizing-sidebar");
+
+  function onMove(moveEv: MouseEvent) {
+    const next = startWidth + (moveEv.clientX - startX);
+    ui.setSidebarWidth(Math.min(SIDEBAR_WIDTH_MAX, Math.max(SIDEBAR_WIDTH_MIN, next)));
+  }
+
+  function onUp() {
+    resizing.value = false;
+    workspace?.classList.remove("is-resizing-sidebar");
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("mouseup", onUp);
+    window.dispatchEvent(new Event("resize"));
+  }
+
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+}
+
+onBeforeUnmount(() => {
+  stopMetricsPolling();
+  document.querySelector(".workspace")?.classList.remove("is-resizing-sidebar");
+});
 </script>
 
 <template>
-  <aside class="sidebar">
+  <aside class="sidebar" :class="{ resizing }">
+    <div
+      v-if="!sidebarCollapsed"
+      class="sidebar-resize-handle"
+      :title="t('sidebar.resize')"
+      @mousedown="onResizeStart"
+    />
     <div v-if="!sidebarCollapsed" class="sidebar-toolbar">
       <span class="panel-title">{{ t("sidebar.host") }}</span>
       <div class="toolbar-actions">
@@ -269,12 +305,23 @@ function hostMeta() {
 
 <style scoped>
 .sidebar {
+  position: relative;
   background: var(--bg-panel);
   border-right: 1px solid var(--border-soft);
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+}
+
+.sidebar-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  z-index: 5;
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
 }
 
 .sidebar-toolbar {

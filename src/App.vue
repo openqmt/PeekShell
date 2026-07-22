@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { onMounted } from "vue";
+import { computed, onMounted } from "vue";
 import AiPanel from "./components/AiPanel.vue";
 import AiSettingsModal from "./components/AiSettingsModal.vue";
 import ConnectModal from "./components/ConnectModal.vue";
@@ -18,6 +18,8 @@ const ui = useUiStore();
 const {
   sidebarCollapsed,
   aiCollapsed,
+  aiPanelWidth,
+  sidebarWidth,
   hostsModalOpen,
   connectModalOpen,
   aiSettingsModalOpen,
@@ -28,6 +30,17 @@ const {
 onMounted(() => {
   void hosts.refresh();
   void ai.refresh();
+});
+
+const workspaceStyle = computed(() => {
+  const style: Record<string, string> = {};
+  if (!sidebarCollapsed.value) {
+    style["--sidebar-width"] = `${sidebarWidth.value}px`;
+  }
+  if (displayPrefs.value.aiPanel && !aiCollapsed.value) {
+    style["--ai-panel-width"] = `${aiPanelWidth.value}px`;
+  }
+  return Object.keys(style).length ? style : undefined;
 });
 </script>
 
@@ -40,6 +53,7 @@ onMounted(() => {
         'ai-collapsed': displayPrefs.aiPanel && aiCollapsed,
         'ai-hidden': !displayPrefs.aiPanel,
       }"
+      :style="workspaceStyle"
     >
       <HostSidebar />
       <TerminalPanel />

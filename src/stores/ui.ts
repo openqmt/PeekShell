@@ -30,6 +30,36 @@ export interface DisplayPrefs {
 const THEME_KEY = "peekshell.theme";
 const LOCALE_KEY = "peekshell.locale";
 const DISPLAY_PREFS_KEY = "peekshell.displayPrefs";
+const AI_PANEL_WIDTH_KEY = "peekshell.aiPanelWidth";
+const SIDEBAR_WIDTH_KEY = "peekshell.sidebarWidth";
+
+export const AI_PANEL_WIDTH_DEFAULT = 300;
+export const AI_PANEL_WIDTH_MIN = 240;
+export const AI_PANEL_WIDTH_MAX = 640;
+
+export const SIDEBAR_WIDTH_DEFAULT = 240;
+export const SIDEBAR_WIDTH_MIN = 180;
+export const SIDEBAR_WIDTH_MAX = 420;
+
+function clampAiPanelWidth(value: number) {
+  return Math.min(AI_PANEL_WIDTH_MAX, Math.max(AI_PANEL_WIDTH_MIN, Math.round(value)));
+}
+
+function clampSidebarWidth(value: number) {
+  return Math.min(SIDEBAR_WIDTH_MAX, Math.max(SIDEBAR_WIDTH_MIN, Math.round(value)));
+}
+
+function readStoredAiPanelWidth() {
+  const raw = Number(localStorage.getItem(AI_PANEL_WIDTH_KEY));
+  if (!Number.isFinite(raw)) return AI_PANEL_WIDTH_DEFAULT;
+  return clampAiPanelWidth(raw);
+}
+
+function readStoredSidebarWidth() {
+  const raw = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
+  if (!Number.isFinite(raw)) return SIDEBAR_WIDTH_DEFAULT;
+  return clampSidebarWidth(raw);
+}
 
 export const DEFAULT_DISPLAY_PREFS: DisplayPrefs = {
   sidebar: {
@@ -102,6 +132,8 @@ export const useUiStore = defineStore("ui", () => {
   const displayPrefs = reactive<DisplayPrefs>(readStoredDisplayPrefs());
   const sidebarCollapsed = ref(false);
   const aiCollapsed = ref(false);
+  const aiPanelWidth = ref(readStoredAiPanelWidth());
+  const sidebarWidth = ref(readStoredSidebarWidth());
   const hostsModalOpen = ref(false);
   const connectModalOpen = ref(false);
   const aiSettingsModalOpen = ref(false);
@@ -146,6 +178,22 @@ export const useUiStore = defineStore("ui", () => {
 
   function toggleLocale() {
     locale.value = locale.value === "zh" ? "en" : "zh";
+  }
+
+  watch(aiPanelWidth, (value) => {
+    localStorage.setItem(AI_PANEL_WIDTH_KEY, String(value));
+  });
+
+  watch(sidebarWidth, (value) => {
+    localStorage.setItem(SIDEBAR_WIDTH_KEY, String(value));
+  });
+
+  function setAiPanelWidth(value: number) {
+    aiPanelWidth.value = clampAiPanelWidth(value);
+  }
+
+  function setSidebarWidth(value: number) {
+    sidebarWidth.value = clampSidebarWidth(value);
   }
 
   function openHostsModal() {
@@ -194,6 +242,8 @@ export const useUiStore = defineStore("ui", () => {
     displayPrefs,
     sidebarCollapsed,
     aiCollapsed,
+    aiPanelWidth,
+    sidebarWidth,
     hostsModalOpen,
     connectModalOpen,
     aiSettingsModalOpen,
@@ -203,6 +253,8 @@ export const useUiStore = defineStore("ui", () => {
     toggleTheme,
     setLocale,
     toggleLocale,
+    setAiPanelWidth,
+    setSidebarWidth,
     openHostsModal,
     closeHostsModal,
     openConnectModal,

@@ -3,11 +3,11 @@
  * AI 助手面板：自然语言提问 → 按执行模式自动/确认执行命令。
  */
 import { storeToRefs } from "pinia";
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "../i18n";
 import { useAiStore, visibleStreamText } from "../stores/ai";
 import { useSessionsStore } from "../stores/sessions";
-import { useUiStore } from "../stores/ui";
+import { useUiStore, AI_PANEL_WIDTH_MAX, AI_PANEL_WIDTH_MIN } from "../stores/ui";
 import type { ExecMode } from "../types/ai";
 import AppSelect from "./AppSelect.vue";
 import CommandApproveCard from "./CommandApproveCard.vue";
@@ -16,13 +16,14 @@ const ai = useAiStore();
 const ui = useUiStore();
 const sessions = useSessionsStore();
 const { t } = useI18n();
-const { aiCollapsed } = storeToRefs(ui);
+const { aiCollapsed, aiPanelWidth } = storeToRefs(ui);
 const { activeProvider, messages, sending, execMode, error } = storeToRefs(ai);
 const { activeSessionId } = storeToRefs(sessions);
 
 const draft = ref("");
 const chatEl = ref<HTMLElement | null>(null);
 const approvingId = ref<string | null>(null);
+const resizing = ref(false);
 
 const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfigured"));
 
@@ -98,10 +99,50 @@ async function onReject(id: string) {
 function onModeChange(value: string) {
   execMode.value = value as ExecMode;
 }
+
+function onResizeStart(ev: MouseEvent) {
+  if (ev.button !== 0 || aiCollapsed.value) return;
+  ev.preventDefault();
+  resizing.value = true;
+  const startX = ev.clientX;
+  const startWidth = aiPanelWidth.value;
+  document.documentElement.classList.add("is-resizing-ai");
+  const workspace = document.querySelector(".workspace");
+  workspace?.classList.add("is-resizing-ai");
+
+  function onMove(moveEv: MouseEvent) {
+    // 向左拖变宽，向右拖变窄
+    const next = startWidth + (startX - moveEv.clientX);
+    ui.setAiPanelWidth(Math.min(AI_PANEL_WIDTH_MAX, Math.max(AI_PANEL_WIDTH_MIN, next)));
+  }
+
+  function onUp() {
+    resizing.value = false;
+    document.documentElement.classList.remove("is-resizing-ai");
+    workspace?.classList.remove("is-resizing-ai");
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("mouseup", onUp);
+    window.dispatchEvent(new Event("resize"));
+  }
+
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+}
+
+onBeforeUnmount(() => {
+  document.documentElement.classList.remove("is-resizing-ai");
+  document.querySelector(".workspace")?.classList.remove("is-resizing-ai");
+});
 </script>
 
 <template>
-  <aside class="ai-panel">
+  <aside class="ai-panel" :class="{ resizing }">
+    <div
+      v-if="!aiCollapsed"
+      class="ai-resize-handle"
+      :title="t('ai.resize')"
+      @mousedown="onResizeStart"
+    />
     <div v-if="!aiCollapsed" class="ai-head">
       <div class="ai-head-left">
         <h2>{{ t("ai.title") }}</h2>
@@ -226,12 +267,23 @@ function onModeChange(value: string) {
 
 <style scoped>
 .ai-panel {
+  position: relative;
   background: var(--bg-panel);
   border-left: 1px solid var(--border-soft);
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+}
+
+.ai-resize-handle {
+  position: absolute;
+  top: 0;
+  left: -3px;
+  z-index: 5;
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
 }
 
 .ai-head {
