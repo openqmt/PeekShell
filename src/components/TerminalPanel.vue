@@ -37,6 +37,10 @@ function applyTermTheme() {
   const next = readTermTheme();
   for (const [, entry] of terms) {
     entry.term.options.theme = next;
+    // 同步滚动视口背景（xterm.css 默认写死为 #000）
+    const viewport = entry.term.element?.querySelector(".xterm-viewport") as HTMLElement | null;
+    if (viewport) viewport.style.backgroundColor = next.background;
+    entry.term.refresh(0, entry.term.rows - 1);
   }
 }
 
@@ -115,7 +119,9 @@ watch(
   }
 );
 
-watch(theme, () => {
+watch(theme, async () => {
+  // 等 <html data-theme> 与 CSS 变量落定后再读色
+  await nextTick();
   applyTermTheme();
 });
 
@@ -244,6 +250,8 @@ onBeforeUnmount(() => {
 .term-host :deep(.xterm) { height: 100%; }
 .term-host :deep(.xterm-viewport) {
   overflow-y: auto !important;
+  /* 覆盖 @xterm/xterm 默认的 #000，跟随 UI 主题 */
+  background-color: var(--term-bg) !important;
 }
 /* xterm 自定义滚动条贴右侧 */
 .term-host :deep(.xterm-scrollable-element > .scrollbar.vertical) {
