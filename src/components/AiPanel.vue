@@ -75,7 +75,7 @@ const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfig
 
 .ai-head {
   padding: 4px 6px 4px 10px;
-  min-height: 40px;
+  min-height: 36px;
   border-bottom: 1px solid var(--border-soft);
   display: flex;
   align-items: center;
@@ -200,13 +200,13 @@ const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfig
 .hint { font-size: 10px; color: var(--text-dim); }
 
 .send {
-  height: 32px;
-  padding: 0 16px;
+  height: 28px;
+  padding: 0 12px;
   border: none;
   border-radius: var(--radius);
   background: var(--accent);
   color: #06140e;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
 }
 

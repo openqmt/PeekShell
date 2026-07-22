@@ -282,7 +282,7 @@ function hostMeta() {
   align-items: center;
   justify-content: space-between;
   padding: 4px 4px 0 10px;
-  min-height: 36px;
+  min-height: 32px;
 }
 
 .toolbar-actions {

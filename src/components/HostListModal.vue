@@ -533,12 +533,6 @@ function onBackdrop(e: MouseEvent) {
     gap: 4px;
 }
 
-.hosts-modal :deep(.modal-tools .btn) {
-    height: 28px;
-    padding: 0 10px;
-    font-size: 12px;
-}
-
 .mgr-group {
     margin-bottom: 6px;
     border: 1px solid var(--border-soft);

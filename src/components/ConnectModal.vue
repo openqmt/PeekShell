@@ -334,13 +334,13 @@ function onBackdrop(e: MouseEvent) {
 .modal :deep(.field input),
 .modal :deep(.field select),
 .modal :deep(.field textarea) {
-  height: 30px;
+  height: 28px;
   padding: 0 8px;
   font-size: 12.5px;
 }
 
 .modal :deep(.app-select-trigger) {
-  height: 30px;
+  height: 28px;
   padding: 0 8px 0 10px;
   font-size: 12.5px;
 }

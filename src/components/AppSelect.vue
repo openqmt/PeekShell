@@ -237,16 +237,16 @@ onBeforeUnmount(() => {
 
 .app-select-trigger {
   width: 100%;
-  height: 34px;
+  height: 28px;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 10px 0 12px;
+  padding: 0 8px 0 10px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--bg-root);
   color: var(--text);
-  font-size: 13px;
+  font-size: 12.5px;
   text-align: left;
   outline: none;
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;

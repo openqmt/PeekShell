@@ -323,11 +323,11 @@ onBeforeUnmount(() => {
 .x:hover { opacity: 1; color: var(--danger); }
 
 .tab-add {
-  width: 32px;
+  width: 28px;
   border: none;
   background: transparent;
   color: var(--text-dim);
-  font-size: 18px;
+  font-size: 16px;
   margin-top: 2px;
 }
 
