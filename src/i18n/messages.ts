@@ -144,8 +144,8 @@ export const messages = {
 
         'hosts.title': '主机列表',
         'hosts.sub': '支持分组、新增、编辑、删除',
-        'hosts.addConnection': '＋ 新增连接',
-        'hosts.addGroup': '＋ 新建分组',
+        'hosts.addConnection': '＋ 连接',
+        'hosts.addGroup': '＋ 分组',
         'hosts.rename': '重命名',
         'hosts.deleteGroup': '删除组',
         'hosts.authPassword': '密码',
