@@ -532,8 +532,8 @@ onBeforeUnmount(() => {
 }
 
 .mode-select {
-  flex: 1;
-  min-width: 0;
+  width: min(120px, 36vw);
+  flex-shrink: 0;
 }
 
 .hint {
