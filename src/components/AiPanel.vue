@@ -147,14 +147,16 @@ function onModeChange(value: string) {
     <div v-else class="ai-body">
       <div ref="chatEl" class="chat">
         <div v-if="!messages.length" class="msg assistant">
-          <div class="role">PeekShell Agent</div>
-          <div>
-            <template v-if="activeProvider">
-              {{ t("ai.ready", { name: activeProvider.name, model: activeProvider.model }) }}
-            </template>
-            <template v-else>
-              {{ t("ai.setup") }}
-            </template>
+          <div class="msg-inner">
+            <div class="role">PeekShell Agent</div>
+            <div class="content">
+              <template v-if="activeProvider">
+                {{ t("ai.ready", { name: activeProvider.name, model: activeProvider.model }) }}
+              </template>
+              <template v-else>
+                {{ t("ai.setup") }}
+              </template>
+            </div>
           </div>
         </div>
 
@@ -164,21 +166,25 @@ function onModeChange(value: string) {
           class="msg"
           :class="msg.role"
         >
-          <div class="role">{{ msg.role === "user" ? t("ai.you") : "PeekShell Agent" }}</div>
-          <div class="content">{{ msg.content }}</div>
-          <CommandApproveCard
-            v-for="cmd in msg.commands || []"
-            :key="cmd.id"
-            :command="cmd"
-            :busy="approvingId === cmd.id || sending"
-            @approve="onApprove(cmd.id)"
-            @reject="onReject(cmd.id)"
-          />
+          <div class="msg-inner">
+            <div v-if="msg.role !== 'user'" class="role">PeekShell Agent</div>
+            <div class="content">{{ msg.content }}</div>
+            <CommandApproveCard
+              v-for="cmd in msg.commands || []"
+              :key="cmd.id"
+              :command="cmd"
+              :busy="approvingId === cmd.id || sending"
+              @approve="onApprove(cmd.id)"
+              @reject="onReject(cmd.id)"
+            />
+          </div>
         </div>
 
         <div v-if="sending" class="msg assistant thinking">
-          <div class="role">PeekShell Agent</div>
-          <div>{{ t("ai.thinking") }}</div>
+          <div class="msg-inner">
+            <div class="role">PeekShell Agent</div>
+            <div class="content">{{ t("ai.thinking") }}</div>
+          </div>
         </div>
       </div>
 
@@ -316,26 +322,47 @@ function onModeChange(value: string) {
 .chat {
   flex: 1;
   overflow: auto;
-  padding: 8px 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .msg {
-  margin-bottom: 12px;
+  display: flex;
+  width: 100%;
   font-size: 12.5px;
   line-height: 1.5;
-  color: var(--text);
+}
+
+.msg.user {
+  justify-content: flex-end;
 }
 
 .msg.assistant {
-  color: var(--text-muted);
+  justify-content: flex-start;
 }
 
-.msg.user .content {
-  color: var(--text);
+.msg-inner {
+  max-width: min(100%, 340px);
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft);
 }
 
-.msg.thinking {
-  opacity: 0.75;
+.msg.user .msg-inner {
+  background: var(--bg-active);
+  border-color: var(--border);
+  border-bottom-right-radius: 3px;
+}
+
+.msg.assistant .msg-inner {
+  background: var(--bg-elevated);
+  border-bottom-left-radius: 3px;
+}
+
+.msg.thinking .msg-inner {
+  opacity: 0.8;
 }
 
 .role {
@@ -343,17 +370,18 @@ function onModeChange(value: string) {
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  margin-bottom: 5px;
   color: var(--accent);
-  margin-bottom: 4px;
-}
-
-.msg.user .role {
-  color: var(--text-dim);
 }
 
 .content {
   white-space: pre-wrap;
   word-break: break-word;
+  color: var(--text);
+}
+
+.msg.assistant .content {
+  color: var(--text-muted);
 }
 
 .composer {

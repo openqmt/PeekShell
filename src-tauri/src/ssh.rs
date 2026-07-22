@@ -332,11 +332,29 @@ impl SessionManager {
         Ok(strip_ansi_light(&raw))
     }
 
-    /// 在已连接主机上开非交互 exec，捕获 stdout/stderr/exit（不写入交互式 PTY）。
+    /// 在已连接主机上开非交互 exec，捕获 stdout/stderr/exit（不写入交互式 shell stdin）。
     /// 使用与指标采集相同的独立 SSH 通道，避免占用交互式 shell。
     pub async fn exec_command(&self, session_id: &str, command: &str) -> AppResult<ExecResult> {
         let host = self.host_for_session(session_id).await?;
         run_exec_result(&host, command).await
+    }
+
+    /// 仅回显到前端终端（及 ring buffer），不写入远端 shell stdin，避免命令被执行两次。
+    pub async fn mirror_display_output(
+        &self,
+        app: &AppHandle,
+        session_id: &str,
+        text: &str,
+    ) -> AppResult<()> {
+        {
+            let map = self.inner.lock().await;
+            let session = map
+                .get(session_id)
+                .ok_or_else(|| AppError::Message("会话不存在".into()))?;
+            append_pty_buffer(&session.output_buf, text).await;
+        }
+        let _ = app.emit(&format!("pty://{session_id}"), text.to_string());
+        Ok(())
     }
 
     pub async fn host_record_for_session(&self, session_id: &str) -> AppResult<HostRecord> {

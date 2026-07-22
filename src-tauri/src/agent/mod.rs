@@ -16,11 +16,13 @@ use schema::{
 };
 use serde::Serialize;
 use std::collections::HashMap;
+use tauri::AppHandle;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
 const PTY_CONTEXT_CHARS: usize = 6_000;
 const OUTPUT_FEEDBACK_CHARS: usize = 4_000;
+const TERMINAL_ECHO_CHARS: usize = 8_000;
 
 pub struct AgentState {
     pending: Mutex<HashMap<String, PendingCommand>>,
@@ -44,6 +46,7 @@ pub struct ExecuteCommandResponse {
 
 /// 用户提问：组装上下文 → LLM → 有会话时按模式自动/确认执行；无会话仅返回建议命令。
 pub async fn chat(
+    app: &AppHandle,
     agent: &AgentState,
     sessions: &SessionManager,
     req: AiChatRequest,
@@ -144,6 +147,15 @@ pub async fn chat(
                     let result = sessions.exec_command(session_id, &command_text).await;
                     match result {
                         Ok(exec) => {
+                            let _ = echo_exec_to_terminal(
+                                app,
+                                sessions,
+                                session_id,
+                                &command_text,
+                                Some(&exec),
+                                None,
+                            )
+                            .await;
                             pending.status = AgentCommandStatus::Executed;
                             audit::append(
                                 session_id,
@@ -158,6 +170,15 @@ pub async fn chat(
                             commands.push(command_view(&pending, true));
                         }
                         Err(err) => {
+                            let _ = echo_exec_to_terminal(
+                                app,
+                                sessions,
+                                session_id,
+                                &command_text,
+                                None,
+                                Some(&err.to_string()),
+                            )
+                            .await;
                             pending.status = AgentCommandStatus::Failed;
                             audit::append(
                                 session_id,
@@ -220,6 +241,7 @@ pub async fn chat(
 
 /// 用户确认后执行挂起的命令（仅 PendingConfirm）。
 pub async fn execute_approved(
+    app: &AppHandle,
     agent: &AgentState,
     sessions: &SessionManager,
     session_id: &str,
@@ -245,6 +267,15 @@ pub async fn execute_approved(
 
     match result {
         Ok(exec) => {
+            let _ = echo_exec_to_terminal(
+                app,
+                sessions,
+                session_id,
+                &pending.command,
+                Some(&exec),
+                None,
+            )
+            .await;
             {
                 let mut map = agent.pending.lock().await;
                 if let Some(cmd) = map.get_mut(command_id) {
@@ -284,6 +315,15 @@ pub async fn execute_approved(
             })
         }
         Err(err) => {
+            let _ = echo_exec_to_terminal(
+                app,
+                sessions,
+                session_id,
+                &pending.command,
+                None,
+                Some(&err.to_string()),
+            )
+            .await;
             {
                 let mut map = agent.pending.lock().await;
                 if let Some(cmd) = map.get_mut(command_id) {
@@ -469,4 +509,63 @@ fn truncate(s: &str, max: usize) -> String {
     } else {
         s.chars().take(max).collect::<String>() + "…"
     }
+}
+
+/// 把 Agent 执行过程回显到 xterm（只显示，不写入远端 shell）。
+async fn echo_exec_to_terminal(
+    app: &AppHandle,
+    sessions: &SessionManager,
+    session_id: &str,
+    command: &str,
+    result: Option<&ExecResult>,
+    error: Option<&str>,
+) -> AppResult<()> {
+    let text = format_terminal_echo(command, result, error);
+    sessions.mirror_display_output(app, session_id, &text).await
+}
+
+fn format_terminal_echo(command: &str, result: Option<&ExecResult>, error: Option<&str>) -> String {
+    let mut out = String::new();
+    out.push_str("\r\n\x1b[2m── PeekShell Agent ──\x1b[0m\r\n");
+    out.push_str("\x1b[1;36m$ ");
+    out.push_str(&to_term_lines(command));
+    out.push_str("\x1b[0m\r\n");
+
+    if let Some(err) = error {
+        out.push_str("\x1b[31m");
+        out.push_str(&to_term_lines(err));
+        out.push_str("\x1b[0m\r\n");
+        return out;
+    }
+
+    if let Some(exec) = result {
+        let stdout = truncate(&exec.stdout, TERMINAL_ECHO_CHARS);
+        let stderr = truncate(&exec.stderr, TERMINAL_ECHO_CHARS / 2);
+        if !stdout.is_empty() {
+            out.push_str(&to_term_lines(&stdout));
+            if !stdout.ends_with('\n') {
+                out.push_str("\r\n");
+            }
+        }
+        if !stderr.is_empty() {
+            out.push_str("\x1b[31m");
+            out.push_str(&to_term_lines(&stderr));
+            out.push_str("\x1b[0m");
+            if !stderr.ends_with('\n') {
+                out.push_str("\r\n");
+            }
+        }
+        match exec.exit_code {
+            Some(0) => out.push_str("\x1b[2m[exit 0]\x1b[0m\r\n"),
+            Some(code) => out.push_str(&format!("\x1b[33m[exit {code}]\x1b[0m\r\n")),
+            None => out.push_str("\x1b[2m[done]\x1b[0m\r\n"),
+        }
+    }
+    out
+}
+
+fn to_term_lines(text: &str) -> String {
+    text.replace("\r\n", "\n")
+        .replace('\r', "\n")
+        .replace('\n', "\r\n")
 }

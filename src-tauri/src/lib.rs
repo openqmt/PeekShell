@@ -76,21 +76,30 @@ fn set_active_ai_provider(id: String) -> AppResult<()> {
 
 #[tauri::command]
 async fn ai_chat(
+    app: tauri::AppHandle,
     agent: tauri::State<'_, Arc<AgentState>>,
     sessions: tauri::State<'_, Arc<SessionManager>>,
     payload: AiChatRequest,
 ) -> AppResult<AiChatResponse> {
-    agent::chat(agent.inner(), sessions.inner(), payload).await
+    agent::chat(&app, agent.inner(), sessions.inner(), payload).await
 }
 
 #[tauri::command]
 async fn execute_approved_command(
+    app: tauri::AppHandle,
     agent: tauri::State<'_, Arc<AgentState>>,
     sessions: tauri::State<'_, Arc<SessionManager>>,
     session_id: String,
     command_id: String,
 ) -> AppResult<ExecuteCommandResponse> {
-    agent::execute_approved(agent.inner(), sessions.inner(), &session_id, &command_id).await
+    agent::execute_approved(
+        &app,
+        agent.inner(),
+        sessions.inner(),
+        &session_id,
+        &command_id,
+    )
+    .await
 }
 
 #[tauri::command]
