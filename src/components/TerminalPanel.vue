@@ -811,6 +811,11 @@ onBeforeUnmount(() => {
     background: var(--bg-root);
     color: var(--text);
     font-size: 12px;
+    outline: none;
+}
+
+.term-find-input:focus {
+    border-color: var(--accent-border);
 }
 
 .term-find-btn {
