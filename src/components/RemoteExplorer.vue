@@ -1245,7 +1245,6 @@ onBeforeUnmount(() => {
               v-for="col in visibleAttrCols"
               :key="col"
               :class="{ name: col === 'colName', mono: col === 'colPermissions' }"
-              :title="col === 'colName' || col === 'colModified' ? attrCell(entry, col) : undefined"
             >{{ attrCell(entry, col) }}</span>
           </button>
         </template>
@@ -1263,7 +1262,6 @@ onBeforeUnmount(() => {
               v-for="col in visibleAttrCols"
               :key="col"
               :class="{ name: col === 'colName', mono: col === 'colPermissions' }"
-              :title="col === 'colName' || col === 'colModified' ? attrCell(previewAsEntry(preview), col) : undefined"
             >{{ attrCell(previewAsEntry(preview), col) }}</span>
           </div>
           <div
