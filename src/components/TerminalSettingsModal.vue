@@ -3,14 +3,30 @@
  * 终端更多设置：快捷键、配色、背景图、字体。
  */
 import { storeToRefs } from "pinia";
+import { computed } from "vue";
 import { useI18n } from "../i18n";
 import { FONT_PRESETS, useTerminalPrefsStore } from "../stores/terminalPrefs";
 import { useUiStore } from "../stores/ui";
+import AppSelect from "./AppSelect.vue";
 
 const ui = useUiStore();
 const termPrefs = useTerminalPrefsStore();
 const { t } = useI18n();
 const { prefs } = storeToRefs(termPrefs);
+
+const colorSchemeOptions = computed(() => [
+  { value: "theme", label: t("terminalSettings.schemeTheme") },
+  { value: "dark", label: t("terminalSettings.schemeDark") },
+  { value: "light", label: t("terminalSettings.schemeLight") },
+  { value: "custom", label: t("terminalSettings.schemeCustom") },
+]);
+
+const fontFamilyOptions = computed(() =>
+  FONT_PRESETS.map((font) => ({
+    value: font,
+    label: font.split(",")[0]!.trim(),
+  }))
+);
 
 function onBackdrop(e: MouseEvent) {
   if (e.target === e.currentTarget) ui.closeTerminalSettingsModal();
@@ -82,12 +98,7 @@ function clearBackground() {
         <div class="section-label">{{ t("terminalSettings.colors") }}</div>
         <label class="field">
           <span>{{ t("terminalSettings.colorScheme") }}</span>
-          <select v-model="prefs.colorScheme">
-            <option value="theme">{{ t("terminalSettings.schemeTheme") }}</option>
-            <option value="dark">{{ t("terminalSettings.schemeDark") }}</option>
-            <option value="light">{{ t("terminalSettings.schemeLight") }}</option>
-            <option value="custom">{{ t("terminalSettings.schemeCustom") }}</option>
-          </select>
+          <AppSelect v-model="prefs.colorScheme" :options="colorSchemeOptions" />
         </label>
         <div v-if="prefs.colorScheme === 'custom'" class="color-grid">
           <label class="field color">
@@ -133,11 +144,7 @@ function clearBackground() {
         <div class="section-label">{{ t("terminalSettings.font") }}</div>
         <label class="field">
           <span>{{ t("terminalSettings.fontFamily") }}</span>
-          <select v-model="prefs.fontFamily">
-            <option v-for="font in FONT_PRESETS" :key="font" :value="font">
-              {{ font.split(",")[0] }}
-            </option>
-          </select>
+          <AppSelect v-model="prefs.fontFamily" :options="fontFamilyOptions" />
         </label>
         <label class="field">
           <span>{{ t("terminalSettings.fontSize") }}</span>
@@ -203,8 +210,7 @@ function clearBackground() {
 }
 
 .field input[type="text"],
-.field input[type="number"],
-.field select {
+.field input[type="number"] {
   height: 30px;
   padding: 0 8px;
   border-radius: 6px;
