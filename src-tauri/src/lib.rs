@@ -5,6 +5,7 @@ mod error;
 mod hosts;
 mod local_fs;
 mod ssh;
+mod utils;
 
 use agent::schema::{AgentCommandView, AiChatRequest, AiChatResponse};
 use agent::{AgentState, ExecuteCommandResponse};
@@ -268,10 +269,19 @@ pub fn run() {
     let sessions = Arc::new(SessionManager::new());
     let agent = Arc::new(AgentState::new());
 
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_store::Builder::new().build());
+
+    // Focus the existing window when a second process starts (desktop only).
+    #[cfg(desktop)]
+    {
+        builder = utils::init::setup_single_instance(builder);
+    }
+
+    builder
         .manage(sessions)
         .manage(agent)
         .invoke_handler(tauri::generate_handler![
@@ -308,6 +318,8 @@ pub fn run() {
             expand_local_upload
         ])
         .setup(|app| {
+            // Restore last size/position, then show the window.
+            utils::init::setup_window_state(app)?;
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_title("PeekShell");
             }
