@@ -135,7 +135,8 @@ const error = ref("");
 const statusMsg = ref("");
 const actionBusy = ref(false);
 
-type CtxMenu = { x: number; y: number; entry: RemoteEntry };
+type CtxMenuVariant = "entry" | "blank";
+type CtxMenu = { x: number; y: number; variant: CtxMenuVariant; entry: RemoteEntry };
 type PromptKind = "rename" | "mkdir" | "mkfile" | "chmod" | "delete";
 
 const ctxMenu = ref<CtxMenu | null>(null);
@@ -193,9 +194,10 @@ function formatType(entry: Pick<RemoteEntry, "isDir" | "fileType">) {
   return entry.fileType || t("explorer.typeFile");
 }
 
-function previewAsEntry(file: RemoteFileContent) {
+function previewAsEntry(file: RemoteFileContent): RemoteEntry {
   return {
     name: file.name,
+    path: file.path,
     size: file.size,
     isDir: false,
     fileType: file.fileType,
@@ -203,6 +205,35 @@ function previewAsEntry(file: RemoteFileContent) {
     permissions: file.permissions,
     group: file.group,
   };
+}
+
+function makeDirEntry(path: string): RemoteEntry {
+  return {
+    name: path === ROOT_PATH ? "root" : basenameOf(path),
+    path,
+    isDir: true,
+    size: 0,
+    fileType: "directory",
+    modified: "",
+    permissions: "",
+    group: "",
+  };
+}
+
+/** 上传 / 新建：目录用自身，文件用其父目录 */
+function containerDir(entry: RemoteEntry): RemoteEntry {
+  return entry.isDir ? entry : makeDirEntry(parentPath(entry.path));
+}
+
+function currentContainerEntry(): RemoteEntry | null {
+  if (!activeSessionId.value) return null;
+  if (selectedIsDir.value && selectedPath.value) {
+    return makeDirEntry(selectedPath.value);
+  }
+  if (preview.value) {
+    return makeDirEntry(parentPath(preview.value.path));
+  }
+  return makeDirEntry(ROOT_PATH);
 }
 
 function clampHeight(value: number) {
@@ -478,6 +509,52 @@ function closeCtxMenu() {
   ctxMenu.value = null;
 }
 
+function openCtxMenu(event: MouseEvent, variant: CtxMenuVariant, entry: RemoteEntry) {
+  const pad = 8;
+  const menuW = 200;
+  const menuH = variant === "blank" ? 160 : 320;
+  const x = Math.min(event.clientX, window.innerWidth - menuW - pad);
+  const y = Math.min(event.clientY, window.innerHeight - menuH - pad);
+  ctxMenu.value = { x: Math.max(pad, x), y: Math.max(pad, y), variant, entry };
+}
+
+function onEntryContextMenu(entry: RemoteEntry, event: MouseEvent) {
+  openCtxMenu(event, "entry", entry);
+}
+
+function onPreviewBlankContextMenu(event: MouseEvent) {
+  if (!activeSessionId.value) return;
+  const target = event.target as HTMLElement | null;
+  if (target?.closest?.(".attr-row")) return;
+  const container = currentContainerEntry();
+  if (!container) return;
+  openCtxMenu(event, "blank", container);
+}
+
+async function ctxRefresh() {
+  closeCtxMenu();
+  await refresh();
+}
+
+function ctxUpload() {
+  if (!ctxMenu.value) return;
+  const target =
+    ctxMenu.value.variant === "blank"
+      ? ctxMenu.value.entry
+      : containerDir(ctxMenu.value.entry);
+  void uploadInto(target);
+}
+
+function ctxNewFolder() {
+  if (!ctxMenu.value) return;
+  openPrompt("mkdir", containerDir(ctxMenu.value.entry));
+}
+
+function ctxNewFile() {
+  if (!ctxMenu.value) return;
+  openPrompt("mkfile", containerDir(ctxMenu.value.entry));
+}
+
 function closePrompt() {
   if (actionBusy.value) return;
   promptKind.value = null;
@@ -553,18 +630,6 @@ async function refreshAfterMutation(dirPath: string) {
   if (selectedIsDir.value && selectedPath.value === dirPath) {
     await selectFolder(dirPath, true);
   }
-}
-
-async function onDirContextMenu(entry: RemoteEntry, event: MouseEvent) {
-  if (!entry.isDir || !activeSessionId.value) return;
-  event.preventDefault();
-  event.stopPropagation();
-  const pad = 8;
-  const menuW = 180;
-  const menuH = 280;
-  const x = Math.min(event.clientX, window.innerWidth - menuW - pad);
-  const y = Math.min(event.clientY, window.innerHeight - menuH - pad);
-  ctxMenu.value = { x: Math.max(pad, x), y: Math.max(pad, y), entry };
 }
 
 async function copyPath(entry: RemoteEntry) {
@@ -717,7 +782,8 @@ async function submitPrompt() {
       }
       expanded.value = nextExpanded;
       await fetchDir(parentPath(entry.path), true);
-      await selectFolder(to, true);
+      if (entry.isDir) await selectFolder(to, true);
+      else await selectFile({ ...entry, name: value, path: to });
     } else if (kind === "mkdir") {
       const path = joinPath(entry.path, value);
       await api.remoteMkdir(sessionId, path);
@@ -729,7 +795,8 @@ async function submitPrompt() {
     } else if (kind === "chmod") {
       await api.remoteChmod(sessionId, entry.path, value);
       await refreshAfterMutation(parentPath(entry.path));
-      await selectFolder(entry.path, false);
+      if (entry.isDir) await selectFolder(entry.path, false);
+      else await selectFile(entry);
     } else if (kind === "delete") {
       const parent = parentPath(entry.path);
       await api.remoteDelete(sessionId, entry.path);
@@ -988,7 +1055,7 @@ onBeforeUnmount(() => {
           }"
           :style="{ paddingLeft: 8 + row.depth * 14 + 'px' }"
           @click="onTreeClick(row.entry)"
-          @contextmenu.prevent="row.entry.isDir && onDirContextMenu(row.entry, $event)"
+          @contextmenu.prevent="onEntryContextMenu(row.entry, $event)"
         >
           <span
             class="twist"
@@ -1022,7 +1089,7 @@ onBeforeUnmount(() => {
         </button>
       </div>
 
-      <div class="preview">
+      <div class="preview" @contextmenu.prevent="onPreviewBlankContextMenu">
         <div v-if="!activeSessionId" class="placeholder">{{ t("explorer.previewHint") }}</div>
         <div v-else-if="previewLoading || (selectedIsDir && selectedPath && loadingDirs[selectedPath])" class="placeholder">
           {{ t(previewLoading ? "explorer.reading" : "common.loading") }}
@@ -1042,7 +1109,7 @@ onBeforeUnmount(() => {
             :class="{ dir: entry.isDir }"
             :style="attrGridStyle"
             @click="onRightEntryClick(entry)"
-            @contextmenu.prevent="entry.isDir && onDirContextMenu(entry, $event)"
+            @contextmenu.prevent.stop="onEntryContextMenu(entry, $event)"
           >
             <span
               v-for="col in visibleAttrCols"
@@ -1057,7 +1124,11 @@ onBeforeUnmount(() => {
           <div v-if="visibleAttrCols.length" class="attr-head" :style="attrGridStyle">
             <span v-for="col in visibleAttrCols" :key="col">{{ t(`explorer.${col}`) }}</span>
           </div>
-          <div class="attr-row file-meta" :style="attrGridStyle">
+          <div
+            class="attr-row file-meta"
+            :style="attrGridStyle"
+            @contextmenu.prevent.stop="onEntryContextMenu(previewAsEntry(preview), $event)"
+          >
             <span
               v-for="col in visibleAttrCols"
               :key="col"
@@ -1065,9 +1136,23 @@ onBeforeUnmount(() => {
               :title="col === 'colName' || col === 'colModified' ? attrCell(previewAsEntry(preview), col) : undefined"
             >{{ attrCell(previewAsEntry(preview), col) }}</span>
           </div>
-          <div v-if="preview.truncated" class="trunc-banner">{{ t("explorer.truncated") }}</div>
-          <pre v-if="preview.binary" class="preview-body muted">{{ t("explorer.binary") }}</pre>
-          <pre v-else class="preview-body">{{ preview.content || t("explorer.emptyFile") }}</pre>
+          <div
+            v-if="preview.truncated"
+            class="trunc-banner"
+            @contextmenu.prevent.stop="onEntryContextMenu(previewAsEntry(preview), $event)"
+          >
+            {{ t("explorer.truncated") }}
+          </div>
+          <pre
+            v-if="preview.binary"
+            class="preview-body muted"
+            @contextmenu.prevent.stop="onEntryContextMenu(previewAsEntry(preview), $event)"
+          >{{ t("explorer.binary") }}</pre>
+          <pre
+            v-else
+            class="preview-body"
+            @contextmenu.prevent.stop="onEntryContextMenu(previewAsEntry(preview), $event)"
+          >{{ preview.content || t("explorer.emptyFile") }}</pre>
         </template>
       </div>
     </div>
@@ -1079,32 +1164,56 @@ onBeforeUnmount(() => {
         :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
         @contextmenu.prevent
       >
-        <button type="button" class="ctx-item" :disabled="actionBusy" @click="copyPath(ctxMenu.entry)">
-          {{ t("explorer.copyPath") }}
-        </button>
-        <button type="button" class="ctx-item" :disabled="actionBusy" @click="downloadEntry(ctxMenu.entry)">
-          {{ t("explorer.download") }}
-        </button>
-        <button type="button" class="ctx-item" :disabled="actionBusy" @click="uploadInto(ctxMenu.entry)">
-          {{ t("explorer.upload") }}
-        </button>
-        <div class="ctx-sep" />
-        <button type="button" class="ctx-item" :disabled="actionBusy" @click="openPrompt('rename', ctxMenu.entry)">
-          {{ t("explorer.rename") }}
-        </button>
-        <button type="button" class="ctx-item danger" :disabled="actionBusy" @click="openPrompt('delete', ctxMenu.entry)">
-          {{ t("explorer.delete") }}
-        </button>
-        <button type="button" class="ctx-item" :disabled="actionBusy" @click="openPrompt('chmod', ctxMenu.entry)">
-          {{ t("explorer.permissions") }}
-        </button>
-        <div class="ctx-sep" />
-        <button type="button" class="ctx-item" :disabled="actionBusy" @click="openPrompt('mkdir', ctxMenu.entry)">
-          {{ t("explorer.newFolder") }}
-        </button>
-        <button type="button" class="ctx-item" :disabled="actionBusy" @click="openPrompt('mkfile', ctxMenu.entry)">
-          {{ t("explorer.newFile") }}
-        </button>
+        <template v-if="ctxMenu.variant === 'blank'">
+          <button type="button" class="ctx-item" :disabled="actionBusy" @click="ctxRefresh">
+            {{ t("common.refresh") }}
+          </button>
+          <button type="button" class="ctx-item" :disabled="actionBusy" @click="ctxUpload">
+            {{ t("explorer.upload") }}
+          </button>
+          <div class="ctx-sep" />
+          <button type="button" class="ctx-item" :disabled="actionBusy" @click="ctxNewFile">
+            {{ t("explorer.newFile") }}
+          </button>
+          <button type="button" class="ctx-item" :disabled="actionBusy" @click="ctxNewFolder">
+            {{ t("explorer.newFolder") }}
+          </button>
+        </template>
+        <template v-else>
+          <button type="button" class="ctx-item" :disabled="actionBusy" @click="ctxRefresh">
+            {{ t("common.refresh") }}
+          </button>
+          <button type="button" class="ctx-item" :disabled="actionBusy" @click="copyPath(ctxMenu.entry)">
+            {{ t("explorer.copyPath") }}
+          </button>
+          <button type="button" class="ctx-item" :disabled="actionBusy" @click="downloadEntry(ctxMenu.entry)">
+            {{ t("explorer.download") }}
+          </button>
+          <button type="button" class="ctx-item" :disabled="actionBusy" @click="ctxUpload">
+            {{ t("explorer.upload") }}
+          </button>
+          <div class="ctx-sep" />
+          <button
+            type="button"
+            class="ctx-item danger"
+            :disabled="actionBusy"
+            @click="openPrompt('delete', ctxMenu.entry)"
+          >
+            {{ t("explorer.delete") }}
+          </button>
+          <button type="button" class="ctx-item" :disabled="actionBusy" @click="ctxNewFile">
+            {{ t("explorer.newFile") }}
+          </button>
+          <button type="button" class="ctx-item" :disabled="actionBusy" @click="ctxNewFolder">
+            {{ t("explorer.newFolder") }}
+          </button>
+          <button type="button" class="ctx-item" :disabled="actionBusy" @click="openPrompt('rename', ctxMenu.entry)">
+            {{ t("explorer.rename") }}
+          </button>
+          <button type="button" class="ctx-item" :disabled="actionBusy" @click="openPrompt('chmod', ctxMenu.entry)">
+            {{ t("explorer.permissions") }}
+          </button>
+        </template>
       </div>
     </Teleport>
 
@@ -1455,6 +1564,8 @@ onBeforeUnmount(() => {
 .preview {
   min-height: 0;
   overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .entries {
