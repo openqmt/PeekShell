@@ -547,6 +547,7 @@ function onBackdrop(e: MouseEvent) {
 
 .hosts-modal {
     width: min(560px, 100%);
+    min-height: min(560px, calc(100vh - 48px));
 }
 
 .hosts-modal :deep(.modal-head) {
