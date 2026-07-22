@@ -33,3 +33,4 @@ chrono = { version = "0.4", features = ["serde"] }
 russh = "0.45"
 russh-keys = "0.45"
 async-trait = "0.1"
+tauri-plugin-clipboard-manager = "2.3.2"

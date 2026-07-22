@@ -133,12 +133,22 @@ function hostMeta() {
       >
         {{ theme === "dark" ? "☀" : "☾" }}
       </button>
-      <span class="rail-status" :title="t('sidebar.status')" />
+      <span
+        class="rail-status"
+        :class="{ on: !!activeSession, connecting: connecting && !activeSession }"
+        :title="t('sidebar.status')"
+      />
       <span class="rail-cpu">CPU {{ Math.round(activeSession && metrics ? metrics.cpuPercent : 0) }}%</span>
     </div>
 
     <div v-else class="sidebar-body">
-      <div class="host-switcher" role="button" tabindex="0" @click="ui.openHostsModal()">
+      <div
+        class="host-switcher"
+        :class="{ connected: !!activeSession, connecting: connecting && !activeSession }"
+        role="button"
+        tabindex="0"
+        @click="ui.openHostsModal()"
+      >
         <span class="status" />
         <div class="names">
           <strong>{{ activeSession?.title ?? t("sidebar.disconnected") }}</strong>
@@ -308,8 +318,18 @@ function hostMeta() {
   width: 10px;
   height: 10px;
   border-radius: 50%;
+  background: var(--text-dim);
+  box-shadow: none;
+}
+
+.rail-status.on {
   background: var(--accent);
   box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.2);
+}
+
+.rail-status.connecting {
+  background: var(--warn);
+  box-shadow: 0 0 0 3px var(--warn-dim);
 }
 
 .rail-cpu {
@@ -331,20 +351,46 @@ function hostMeta() {
   margin: 6px 8px 0;
   padding: 8px 10px;
   border-radius: 6px;
-  border: 1px solid var(--accent-border);
-  background: var(--accent-dim);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.host-switcher:hover {
+  background: var(--bg-hover);
+}
+
+.host-switcher.connected {
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+}
+
+.host-switcher.connecting {
+  border-color: rgba(230, 162, 60, 0.35);
+  background: var(--warn-dim);
 }
 
 .host-switcher .status {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  background: var(--text-dim);
+  box-shadow: none;
+  flex-shrink: 0;
+}
+
+.host-switcher.connected .status {
   background: var(--accent);
   box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.2);
+}
+
+.host-switcher.connecting .status {
+  background: var(--warn);
+  box-shadow: 0 0 0 3px var(--warn-dim);
 }
 
 .names { flex: 1; min-width: 0; }

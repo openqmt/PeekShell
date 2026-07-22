@@ -6,6 +6,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import * as api from "../api/tauri";
@@ -26,10 +27,13 @@ const terms = new Map<string, { term: Terminal; fit: FitAddon; unlisten: Unliste
 /** 从当前 CSS 变量读取终端配色，保证与 UI 主题一致。 */
 function readTermTheme() {
   const styles = getComputedStyle(document.documentElement);
+  const isLight = document.documentElement.getAttribute("data-theme") === "light";
   return {
     background: styles.getPropertyValue("--term-bg").trim() || "#0a0d10",
     foreground: styles.getPropertyValue("--term-fg").trim() || "#d6dde6",
     cursor: styles.getPropertyValue("--accent").trim() || "#3ecf8e",
+    selectionBackground: isLight ? "rgba(31, 157, 99, 0.38)" : "rgba(62, 207, 142, 0.4)",
+    selectionInactiveBackground: isLight ? "rgba(31, 157, 99, 0.22)" : "rgba(62, 207, 142, 0.22)",
   };
 }
 
@@ -44,6 +48,46 @@ function applyTermTheme() {
   }
 }
 
+async function readClipboardText(): Promise<string> {
+  try {
+    return await readText();
+  } catch {
+    try {
+      return await navigator.clipboard.readText();
+    } catch {
+      return "";
+    }
+  }
+}
+
+async function writeClipboardText(text: string) {
+  if (!text) return;
+  try {
+    await writeText(text);
+  } catch {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+async function pasteIntoSession(term: Terminal) {
+  const text = await readClipboardText();
+  if (!text) return;
+  // 走 xterm.paste，统一换行 / bracketed-paste；最终仍由 onData → ptyWrite
+  term.paste(text);
+}
+
+function copyTermSelection(term: Terminal): boolean {
+  if (!term.hasSelection()) return false;
+  const selected = term.getSelection();
+  if (!selected) return false;
+  void writeClipboardText(selected);
+  return true;
+}
+
 async function ensureTerm(sessionId: string) {
   if (terms.has(sessionId) || !hostEl.value) return;
 
@@ -52,6 +96,7 @@ async function ensureTerm(sessionId: string) {
     fontFamily: "IBM Plex Mono, ui-monospace, monospace",
     fontSize: 13,
     theme: readTermTheme(),
+    rightClickSelectsWord: true,
   });
   const fit = new FitAddon();
   term.loadAddon(fit);
@@ -61,6 +106,52 @@ async function ensureTerm(sessionId: string) {
   term.onData((data) => {
     // 绑定到本会话，避免非当前标签的按键写入到 active 会话
     void api.ptyWrite(sessionId, data);
+  });
+
+  // 快捷键粘贴后短时间内忽略原生 paste，避免粘贴两次
+  let ignoreNativePasteUntil = 0;
+  const onNativePaste = (ev: Event) => {
+    if (performance.now() < ignoreNativePasteUntil) {
+      ev.preventDefault();
+      ev.stopPropagation();
+    }
+  };
+  term.textarea?.addEventListener("paste", onNativePaste, true);
+  term.element?.addEventListener("paste", onNativePaste, true);
+
+  // WebView 里 clipboardData.setData 常无效，改走 Tauri 剪贴板
+  const onNativeCopy = (ev: Event) => {
+    if (!term.hasSelection()) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    copyTermSelection(term);
+  };
+  term.element?.addEventListener("copy", onNativeCopy, true);
+  term.textarea?.addEventListener("copy", onNativeCopy, true);
+
+  // Ctrl/Cmd+C（有选区）/ Ctrl+Shift+C 复制；Ctrl/Cmd+V 粘贴
+  term.attachCustomKeyEventHandler((ev) => {
+    if (ev.type !== "keydown") return true;
+    const mod = ev.ctrlKey || ev.metaKey;
+    if (!mod || ev.altKey) return true;
+
+    const key = ev.key.toLowerCase();
+    if (key === "v" && !ev.shiftKey) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      ignoreNativePasteUntil = performance.now() + 500;
+      void pasteIntoSession(term);
+      return false;
+    }
+    // Ctrl+C 有选区时复制；Ctrl+Shift+C 始终尝试复制选区
+    if (key === "c" && (ev.shiftKey || term.hasSelection())) {
+      if (copyTermSelection(term)) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        return false;
+      }
+    }
+    return true;
   });
 
   const unlisten = await listen<string>(`pty://${sessionId}`, (event) => {
