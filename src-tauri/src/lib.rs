@@ -2,6 +2,7 @@ mod ai_config;
 mod credentials;
 mod error;
 mod hosts;
+mod local_fs;
 mod ssh;
 
 use ai_config::{AiProviderRecord, AiProviderUpsert, AiSettings};
@@ -185,6 +186,11 @@ async fn remote_chmod(
 }
 
 #[tauri::command]
+fn expand_local_upload(path: String) -> AppResult<Vec<local_fs::LocalUploadItem>> {
+    local_fs::expand_local_upload(&path)
+}
+
+#[tauri::command]
 async fn remote_download(
     app: tauri::AppHandle,
     state: tauri::State<'_, Arc<SessionManager>>,
@@ -247,7 +253,8 @@ pub fn run() {
             remote_delete,
             remote_chmod,
             remote_download,
-            remote_upload
+            remote_upload,
+            expand_local_upload
         ])
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {

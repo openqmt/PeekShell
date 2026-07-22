@@ -97,3 +97,9 @@ export interface RemoteFileContent {
   content: string;
   binary: boolean;
 }
+
+export interface LocalUploadItem {
+  localPath: string;
+  remoteRelative: string;
+  isDir: boolean;
+}

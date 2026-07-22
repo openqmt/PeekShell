@@ -9,6 +9,7 @@ import type {
   HostMetrics,
   HostRecord,
   HostUpsert,
+  LocalUploadItem,
   RemoteDirListing,
   RemoteFileContent,
   SessionInfo,
@@ -138,4 +139,8 @@ export function remoteUpload(
   transferId: string
 ): Promise<void> {
   return invoke("remote_upload", { sessionId, localPath, remotePath, transferId });
+}
+
+export function expandLocalUpload(path: string): Promise<LocalUploadItem[]> {
+  return invoke("expand_local_upload", { path });
 }

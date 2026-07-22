@@ -6,6 +6,8 @@
 import { storeToRefs } from "pinia";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
+import type { UnlistenFn } from "@tauri-apps/api/event";
 import * as api from "../api/tauri";
 import { useI18n } from "../i18n";
 import { useSessionsStore } from "../stores/sessions";
@@ -134,6 +136,9 @@ const previewLoading = ref(false);
 const error = ref("");
 const statusMsg = ref("");
 const actionBusy = ref(false);
+const fileDragActive = ref(false);
+const fileDragTargetPath = ref<string | null>(null);
+let unlistenDragDrop: UnlistenFn | null = null;
 
 type CtxMenuVariant = "entry" | "blank";
 type CtxMenu = { x: number; y: number; variant: CtxMenuVariant; entry: RemoteEntry };
@@ -150,6 +155,8 @@ const canGoUp = computed(() => {
   const path = selectedPath.value ?? ROOT_PATH;
   return path !== ROOT_PATH;
 });
+
+const dropRootPath = computed(() => currentContainerEntry()?.path ?? ROOT_PATH);
 
 const treeRows = computed(() => {
   const rows: TreeRow[] = [];
@@ -234,6 +241,48 @@ function currentContainerEntry(): RemoteEntry | null {
     return makeDirEntry(parentPath(preview.value.path));
   }
   return makeDirEntry(ROOT_PATH);
+}
+
+function toCssPoint(position: { x: number; y: number }) {
+  const scale = window.devicePixelRatio || 1;
+  return { x: position.x / scale, y: position.y / scale };
+}
+
+function resolveDropRemoteDir(position?: { x: number; y: number }): string | null {
+  if (!activeSessionId.value) return null;
+  if (position) {
+    const { x, y } = toCssPoint(position);
+    const el = document.elementFromPoint(x, y) as HTMLElement | null;
+    const hit = el?.closest?.("[data-drop-path]") as HTMLElement | null;
+    if (hit?.dataset.dropPath) return hit.dataset.dropPath;
+    if (!el?.closest?.(".explorer")) return null;
+  }
+  return currentContainerEntry()?.path ?? ROOT_PATH;
+}
+
+function updateFileDragTarget(position?: { x: number; y: number }) {
+  if (!activeSessionId.value || !position) {
+    fileDragActive.value = false;
+    fileDragTargetPath.value = null;
+    return;
+  }
+  const { x, y } = toCssPoint(position);
+  const el = document.elementFromPoint(x, y) as HTMLElement | null;
+  if (!el?.closest?.(".explorer")) {
+    fileDragActive.value = false;
+    fileDragTargetPath.value = null;
+    return;
+  }
+  fileDragActive.value = true;
+  fileDragTargetPath.value = resolveDropRemoteDir(position);
+}
+
+async function handleExternalDrop(paths: string[], position?: { x: number; y: number }) {
+  fileDragActive.value = false;
+  const remoteDir = resolveDropRemoteDir(position);
+  fileDragTargetPath.value = null;
+  if (!remoteDir || !paths.length) return;
+  await uploadLocalPaths(remoteDir, paths);
 }
 
 function clampHeight(value: number) {
@@ -712,6 +761,42 @@ async function downloadEntry(entry: RemoteEntry) {
   }
 }
 
+async function uploadLocalPaths(remoteDirPath: string, localPaths: string[]) {
+  if (!activeSessionId.value || !localPaths.length) return;
+  statusMsg.value = t("explorer.working");
+  error.value = "";
+  try {
+    for (const localPath of localPaths) {
+      const items = await api.expandLocalUpload(localPath);
+      for (const item of items) {
+        const remotePath = joinPath(remoteDirPath, item.remoteRelative.replace(/\\/g, "/"));
+        if (item.isDir) {
+          await api.remoteMkdir(activeSessionId.value, remotePath);
+          continue;
+        }
+        const name = item.remoteRelative.split(/[/\\]/).pop() || item.remoteRelative;
+        const transferId = transfers.startTransfer({
+          kind: "upload",
+          name,
+          remotePath,
+          localPath: item.localPath,
+        });
+        try {
+          await api.remoteUpload(activeSessionId.value, item.localPath, remotePath, transferId);
+        } catch (e) {
+          transfers.markError(transferId, String(e));
+          throw e;
+        }
+      }
+    }
+    await refreshAfterMutation(remoteDirPath);
+    statusMsg.value = t("explorer.uploadDone");
+  } catch (e) {
+    statusMsg.value = "";
+    error.value = String(e);
+  }
+}
+
 async function uploadInto(entry: RemoteEntry) {
   closeCtxMenu();
   if (!activeSessionId.value) return;
@@ -723,32 +808,7 @@ async function uploadInto(entry: RemoteEntry) {
   if (!selected) return;
   const files = Array.isArray(selected) ? selected : [selected];
   if (!files.length) return;
-
-  statusMsg.value = t("explorer.working");
-  error.value = "";
-  try {
-    for (const localPath of files) {
-      const name = localPath.split(/[/\\]/).pop() || "upload.bin";
-      const remotePath = joinPath(entry.path, name);
-      const transferId = transfers.startTransfer({
-        kind: "upload",
-        name,
-        remotePath,
-        localPath,
-      });
-      try {
-        await api.remoteUpload(activeSessionId.value, localPath, remotePath, transferId);
-      } catch (e) {
-        transfers.markError(transferId, String(e));
-        throw e;
-      }
-    }
-    await refreshAfterMutation(entry.path);
-    statusMsg.value = t("explorer.uploadDone");
-  } catch (e) {
-    statusMsg.value = "";
-    error.value = String(e);
-  }
+  await uploadLocalPaths(entry.path, files);
 }
 
 async function submitPrompt() {
@@ -845,12 +905,34 @@ watch(
 onMounted(() => {
   window.addEventListener("pointerdown", onGlobalPointerDown, true);
   void transfers.ensureListening();
+  void getCurrentWebview()
+    .onDragDropEvent((event) => {
+      const payload = event.payload;
+      if (payload.type === "enter" || payload.type === "over") {
+        updateFileDragTarget(payload.position);
+      } else if (payload.type === "drop") {
+        void handleExternalDrop(payload.paths, payload.position);
+      } else {
+        fileDragActive.value = false;
+        fileDragTargetPath.value = null;
+      }
+    })
+    .then((unlisten) => {
+      unlistenDragDrop = unlisten;
+    })
+    .catch(() => {
+      /* 非 Tauri 预览环境忽略 */
+    });
 });
 
 onBeforeUnmount(() => {
   draggingHeight.value = false;
   draggingWidth.value = false;
   window.removeEventListener("pointerdown", onGlobalPointerDown, true);
+  if (unlistenDragDrop) {
+    unlistenDragDrop();
+    unlistenDragDrop = null;
+  }
 });
 </script>
 
@@ -862,12 +944,21 @@ onBeforeUnmount(() => {
       dragging: resizing,
       'resize-height': nearTopEdge || draggingHeight,
       'resize-width': nearEntriesEdge || draggingWidth,
+      'file-drag-over': fileDragActive,
     }"
     :style="{ height: height + 'px' }"
+    :data-drop-path="dropRootPath"
     @mousemove="onExplorerMove"
     @mouseleave="onExplorerLeave"
     @mousedown="onExplorerDown"
   >
+    <div v-if="fileDragActive" class="drop-overlay">
+      <div class="drop-overlay-card">
+        <strong>{{ t("explorer.dropUpload") }}</strong>
+        <span>{{ fileDragTargetPath || "/" }}</span>
+      </div>
+    </div>
+
     <div class="toolbar">
       <button
         type="button"
@@ -1052,7 +1143,9 @@ onBeforeUnmount(() => {
           :class="{
             selected: selectedPath === row.entry.path,
             dir: row.entry.isDir,
+            'drop-target': fileDragActive && fileDragTargetPath === (row.entry.isDir ? row.entry.path : parentPath(row.entry.path)),
           }"
+          :data-drop-path="row.entry.isDir ? row.entry.path : parentPath(row.entry.path)"
           :style="{ paddingLeft: 8 + row.depth * 14 + 'px' }"
           @click="onTreeClick(row.entry)"
           @contextmenu.prevent="onEntryContextMenu(row.entry, $event)"
@@ -1106,7 +1199,11 @@ onBeforeUnmount(() => {
             :key="entry.path"
             type="button"
             class="attr-row"
-            :class="{ dir: entry.isDir }"
+            :class="{
+              dir: entry.isDir,
+              'drop-target': fileDragActive && fileDragTargetPath === (entry.isDir ? entry.path : parentPath(entry.path)),
+            }"
+            :data-drop-path="entry.isDir ? entry.path : parentPath(entry.path)"
             :style="attrGridStyle"
             @click="onRightEntryClick(entry)"
             @contextmenu.prevent.stop="onEntryContextMenu(entry, $event)"
@@ -1266,6 +1363,44 @@ onBeforeUnmount(() => {
   flex-direction: column;
   min-height: 0;
   position: relative;
+}
+
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background: var(--accent-dim);
+  border: 2px dashed var(--accent-border);
+}
+
+.drop-overlay-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--bg-panel);
+  border: 1px solid var(--accent-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.drop-overlay-card strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.drop-overlay-card span {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .explorer.dragging {
@@ -1593,6 +1728,12 @@ onBeforeUnmount(() => {
 .tree-row.selected {
   background: var(--accent-dim);
   color: var(--accent);
+}
+
+.tree-row.drop-target,
+.attr-row.drop-target {
+  outline: 1px solid var(--accent-border);
+  background: var(--accent-dim);
 }
 
 .twist {

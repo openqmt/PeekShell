@@ -103,6 +103,7 @@ export const messages = {
         'explorer.working': '处理中…',
         'explorer.downloadDone': '下载完成',
         'explorer.uploadDone': '上传完成',
+        'explorer.dropUpload': '松开以上传到',
 
         'transfers.title': '上传 / 下载',
         'transfers.empty': '暂无传输任务',
@@ -310,6 +311,7 @@ export const messages = {
         'explorer.working': 'Working…',
         'explorer.downloadDone': 'Download complete',
         'explorer.uploadDone': 'Upload complete',
+        'explorer.dropUpload': 'Drop to upload into',
 
         'transfers.title': 'Transfers',
         'transfers.empty': 'No transfers yet',
