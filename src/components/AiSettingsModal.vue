@@ -14,22 +14,23 @@ const { providers, activeProviderId } = storeToRefs(ai);
 const saving = ref(false);
 const error = ref("");
 const selectedId = ref<string | null>(null);
+const modelDraft = ref("");
 
-const defaults: Record<AiProviderKind, { name: string; baseUrl: string; model: string }> = {
+const defaults: Record<AiProviderKind, { name: string; baseUrl: string; models: string[] }> = {
   openAiCompatible: {
     name: "OpenAI",
     baseUrl: "https://api.openai.com/v1",
-    model: "gpt-4.1-mini",
+    models: ["gpt-4.1-mini", "gpt-4.1"],
   },
   anthropic: {
     name: "Anthropic",
     baseUrl: "https://api.anthropic.com",
-    model: "claude-sonnet-4-20250514",
+    models: ["claude-sonnet-4-20250514"],
   },
   ollama: {
     name: "Ollama",
     baseUrl: "http://localhost:11434/v1",
-    model: "qwen3",
+    models: ["qwen3"],
   },
 };
 
@@ -37,7 +38,8 @@ const form = reactive({
   name: "",
   kind: "openAiCompatible" as AiProviderKind,
   baseUrl: "",
-  model: "",
+  models: [] as string[],
+  activeModel: "",
   apiKey: "",
   clearApiKey: false,
   hasApiKey: false,
@@ -49,16 +51,24 @@ const kindOptions = computed(() => [
   { value: "ollama", label: t("aiSettings.kindOllama") },
 ]);
 
+function modelsSummary(provider: AiProviderRecord) {
+  if (!provider.models.length) return provider.activeModel;
+  if (provider.models.length === 1) return provider.models[0];
+  return `${provider.activeModel} · +${provider.models.length - 1}`;
+}
+
 function newProvider(kind: AiProviderKind = "openAiCompatible") {
   selectedId.value = null;
   const preset = defaults[kind];
   form.name = preset.name;
   form.kind = kind;
   form.baseUrl = preset.baseUrl;
-  form.model = preset.model;
+  form.models = [...preset.models];
+  form.activeModel = preset.models[0] ?? "";
   form.apiKey = "";
   form.clearApiKey = false;
   form.hasApiKey = false;
+  modelDraft.value = "";
   error.value = "";
 }
 
@@ -67,22 +77,53 @@ function editProvider(provider: AiProviderRecord) {
   form.name = provider.name;
   form.kind = provider.kind;
   form.baseUrl = provider.baseUrl;
-  form.model = provider.model;
+  form.models = [...provider.models];
+  form.activeModel = provider.activeModel;
   form.apiKey = "";
   form.clearApiKey = false;
   form.hasApiKey = provider.hasApiKey;
+  modelDraft.value = "";
   error.value = "";
 }
 
 function onKindChange() {
   const preset = defaults[form.kind];
   form.baseUrl = preset.baseUrl;
-  form.model = preset.model;
+  form.models = [...preset.models];
+  form.activeModel = preset.models[0] ?? "";
   if (!selectedId.value) form.name = preset.name;
+}
+
+function addModel() {
+  const model = modelDraft.value.trim();
+  if (!model) return;
+  if (!form.models.includes(model)) {
+    form.models.push(model);
+  }
+  if (!form.activeModel) form.activeModel = model;
+  modelDraft.value = "";
+}
+
+function removeModel(model: string) {
+  form.models = form.models.filter((item) => item !== model);
+  if (form.activeModel === model) {
+    form.activeModel = form.models[0] ?? "";
+  }
+}
+
+function onModelDraftKey(ev: KeyboardEvent) {
+  if (ev.key === "Enter") {
+    ev.preventDefault();
+    addModel();
+  }
 }
 
 async function save() {
   error.value = "";
+  if (!form.models.length) {
+    error.value = t("aiSettings.modelsRequired");
+    return;
+  }
   saving.value = true;
   try {
     const payload: AiProviderUpsert = {
@@ -90,7 +131,8 @@ async function save() {
       name: form.name,
       kind: form.kind,
       baseUrl: form.baseUrl,
-      model: form.model,
+      models: [...form.models],
+      activeModel: form.activeModel || form.models[0],
       clearApiKey: form.clearApiKey,
     };
     if (form.apiKey) payload.apiKey = form.apiKey;
@@ -158,7 +200,7 @@ else newProvider();
             @click="editProvider(provider)"
           >
             <span class="provider-name">{{ provider.name }}</span>
-            <span class="provider-model">{{ provider.model }}</span>
+            <span class="provider-model">{{ modelsSummary(provider) }}</span>
             <span v-if="activeProviderId === provider.id" class="active-mark">{{ t("aiSettings.current") }}</span>
           </button>
           <div v-if="!providers.length" class="empty">{{ t("aiSettings.empty") }}</div>
@@ -185,8 +227,36 @@ else newProvider();
               <input v-model="form.baseUrl" type="url" placeholder="https://api.example.com/v1" />
             </div>
             <div class="field full">
-              <label>{{ t("aiSettings.model") }}<span class="req">*</span></label>
-              <input v-model="form.model" type="text" :placeholder="t('aiSettings.modelPlaceholder')" />
+              <label>{{ t("aiSettings.models") }}<span class="req">*</span></label>
+              <div class="model-editor">
+                <div v-if="form.models.length" class="model-chips">
+                  <div v-for="model in form.models" :key="model" class="model-chip" :class="{ active: form.activeModel === model }">
+                    <button type="button" class="model-pick" @click="form.activeModel = model">
+                      {{ model }}
+                      <span v-if="form.activeModel === model" class="default-mark">{{ t("aiSettings.defaultModel") }}</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="model-remove"
+                      :title="t('common.delete')"
+                      :aria-label="t('common.delete')"
+                      @click="removeModel(model)"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+                <div class="model-add-row">
+                  <input
+                    v-model="modelDraft"
+                    type="text"
+                    :placeholder="t('aiSettings.modelPlaceholder')"
+                    @keydown="onModelDraftKey"
+                  />
+                  <button type="button" class="btn ghost md" @click="addModel">{{ t("aiSettings.addModel") }}</button>
+                </div>
+                <div class="model-hint">{{ t("aiSettings.modelsHint") }}</div>
+              </div>
             </div>
             <div class="field full">
               <label>{{ form.kind === "ollama" ? t("aiSettings.apiKeyOptional") : t("aiSettings.apiKey") }}</label>
@@ -269,6 +339,54 @@ else newProvider();
 }
 .empty { padding: 18px 4px; color: var(--text-dim); font-size: 11px; text-align: center; }
 .provider-form { padding: 18px; overflow: auto; }
+.model-editor { display: flex; flex-direction: column; gap: 8px; }
+.model-chips { display: flex; flex-direction: column; gap: 6px; }
+.model-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-root);
+  overflow: hidden;
+}
+.model-chip.active {
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+}
+.model-pick {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  padding: 7px 10px;
+  font: 12px var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.default-mark {
+  font: 10px/1 var(--font-sans, inherit);
+  color: var(--accent);
+  font-family: inherit;
+}
+.model-remove {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+.model-remove:hover { color: var(--danger); background: var(--bg-hover); }
+.model-add-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+.model-hint { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
 .clear-key {
   display: flex;
   align-items: center;

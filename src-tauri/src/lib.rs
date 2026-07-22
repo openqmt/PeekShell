@@ -75,6 +75,11 @@ fn set_active_ai_provider(id: String) -> AppResult<()> {
 }
 
 #[tauri::command]
+fn set_active_ai_model(model: String) -> AppResult<AiProviderRecord> {
+    ai_config::set_active_model(&model)
+}
+
+#[tauri::command]
 async fn ai_chat(
     app: tauri::AppHandle,
     agent: tauri::State<'_, Arc<AgentState>>,
@@ -281,6 +286,7 @@ pub fn run() {
             upsert_ai_provider,
             delete_ai_provider,
             set_active_ai_provider,
+            set_active_ai_model,
             ai_chat,
             execute_approved_command,
             reject_agent_command,

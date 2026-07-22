@@ -18,7 +18,8 @@ export interface AiProviderRecord {
   name: string;
   kind: AiProviderKind;
   baseUrl: string;
-  model: string;
+  models: string[];
+  activeModel: string;
   hasApiKey: boolean;
 }
 
@@ -27,7 +28,8 @@ export interface AiProviderUpsert {
   name: string;
   kind: AiProviderKind;
   baseUrl: string;
-  model: string;
+  models: string[];
+  activeModel?: string;
   apiKey?: string;
   clearApiKey?: boolean;
 }

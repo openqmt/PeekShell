@@ -39,6 +39,10 @@ export function setActiveAiProvider(id: string): Promise<void> {
   return invoke("set_active_ai_provider", { id });
 }
 
+export function setActiveAiModel(model: string): Promise<AiProviderRecord> {
+  return invoke("set_active_ai_model", { model });
+}
+
 export function aiChat(payload: {
   sessionId: string;
   message: string;

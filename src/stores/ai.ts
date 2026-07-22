@@ -46,6 +46,12 @@ export const useAiStore = defineStore("ai", () => {
     () => providers.value.find((provider) => provider.id === activeProviderId.value) ?? null
   );
 
+  const activeModel = computed(() => activeProvider.value?.activeModel ?? "");
+
+  const modelOptions = computed(() =>
+    (activeProvider.value?.models ?? []).map((model) => ({ value: model, label: model }))
+  );
+
   watch(execMode, (mode) => {
     localStorage.setItem(EXEC_MODE_KEY, mode);
   });
@@ -78,6 +84,13 @@ export const useAiStore = defineStore("ai", () => {
   async function activate(id: string) {
     await api.setActiveAiProvider(id);
     activeProviderId.value = id;
+  }
+
+  async function setActiveModel(model: string) {
+    const saved = await api.setActiveAiModel(model);
+    const idx = providers.value.findIndex((p) => p.id === saved.id);
+    if (idx >= 0) providers.value[idx] = saved;
+    else await refresh();
   }
 
   function clearChat() {
@@ -208,6 +221,8 @@ export const useAiStore = defineStore("ai", () => {
     providers,
     activeProviderId,
     activeProvider,
+    activeModel,
+    modelOptions,
     loading,
     sending,
     error,
@@ -217,6 +232,7 @@ export const useAiStore = defineStore("ai", () => {
     upsert,
     remove,
     activate,
+    setActiveModel,
     clearChat,
     send,
     approve,

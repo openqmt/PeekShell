@@ -17,15 +17,14 @@ const ui = useUiStore();
 const sessions = useSessionsStore();
 const { t } = useI18n();
 const { aiCollapsed, aiPanelWidth } = storeToRefs(ui);
-const { activeProvider, messages, sending, execMode, error } = storeToRefs(ai);
+const { activeProvider, activeModel, modelOptions, messages, sending, execMode, error } =
+  storeToRefs(ai);
 const { activeSessionId } = storeToRefs(sessions);
 
 const draft = ref("");
 const chatEl = ref<HTMLElement | null>(null);
 const approvingId = ref<string | null>(null);
 const resizing = ref(false);
-
-const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfigured"));
 
 const canCompose = computed(() => !!activeProvider.value);
 
@@ -48,6 +47,15 @@ const sessionHint = computed(() => {
   if (activeProvider.value && !activeSessionId.value) return t("ai.hint.noSession");
   return "";
 });
+
+async function onModelChange(value: string) {
+  if (!value || value === activeModel.value) return;
+  try {
+    await ai.setActiveModel(value);
+  } catch (e) {
+    error.value = String(e);
+  }
+}
 
 const errorText = computed(() => {
   if (error.value === "noProvider") return t("ai.err.noProvider");
@@ -148,7 +156,16 @@ onBeforeUnmount(() => {
         <h2>{{ t("ai.title") }}</h2>
       </div>
       <div class="ai-head-right">
-        <span class="model-tag" :title="activeProvider?.name">{{ modelLabel }}</span>
+        <AppSelect
+          v-if="activeProvider"
+          class="model-select"
+          :model-value="activeModel"
+          :options="modelOptions"
+          :disabled="sending || modelOptions.length <= 1"
+          :placeholder="t('ai.notConfigured')"
+          @update:model-value="onModelChange"
+        />
+        <span v-else class="model-tag">{{ t("ai.notConfigured") }}</span>
         <div class="ai-head-actions">
           <button
             class="icon-btn"
@@ -192,7 +209,7 @@ onBeforeUnmount(() => {
             <div class="role">PeekShell Agent</div>
             <div class="content">
               <template v-if="activeProvider">
-                {{ t("ai.ready", { name: activeProvider.name, model: activeProvider.model }) }}
+                {{ t("ai.ready", { name: activeProvider.name, model: activeModel }) }}
               </template>
               <template v-else>
                 {{ t("ai.setup") }}
@@ -327,7 +344,7 @@ onBeforeUnmount(() => {
 }
 
 .model-tag {
-  max-width: 120px;
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -337,6 +354,19 @@ onBeforeUnmount(() => {
   border: 1px solid var(--border);
   padding: 3px 7px;
   border-radius: 4px;
+}
+
+.model-select {
+  width: min(160px, 42vw);
+  flex-shrink: 1;
+}
+
+.model-select :deep(.app-select-trigger) {
+  min-height: 26px;
+  height: 26px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
 }
 
 .ai-rail {
