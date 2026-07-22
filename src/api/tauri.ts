@@ -125,15 +125,17 @@ export function remoteChmod(sessionId: string, path: string, mode: string): Prom
 export function remoteDownload(
   sessionId: string,
   remotePath: string,
-  localPath: string
+  localPath: string,
+  transferId: string
 ): Promise<void> {
-  return invoke("remote_download", { sessionId, remotePath, localPath });
+  return invoke("remote_download", { sessionId, remotePath, localPath, transferId });
 }
 
 export function remoteUpload(
   sessionId: string,
   localPath: string,
-  remotePath: string
+  remotePath: string,
+  transferId: string
 ): Promise<void> {
-  return invoke("remote_upload", { sessionId, localPath, remotePath });
+  return invoke("remote_upload", { sessionId, localPath, remotePath, transferId });
 }

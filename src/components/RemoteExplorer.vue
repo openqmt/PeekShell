@@ -9,6 +9,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import * as api from "../api/tauri";
 import { useI18n } from "../i18n";
 import { useSessionsStore } from "../stores/sessions";
+import { useTransfersStore } from "../stores/transfers";
 import { useUiStore } from "../stores/ui";
 import type { RemoteEntry, RemoteFileContent } from "../types/host";
 
@@ -81,8 +82,11 @@ function joinPath(dir: string, name: string) {
 
 const sessions = useSessionsStore();
 const ui = useUiStore();
+const transfers = useTransfersStore();
 const { activeSessionId } = storeToRefs(sessions);
 const { displayPrefs } = storeToRefs(ui);
+const { items: transferItems, panelOpen: transfersPanelOpen, defaultDownloadDir, activeCount } =
+  storeToRefs(transfers);
 
 const visibleAttrCols = computed(() =>
   ATTR_COL_ORDER.filter((key) => displayPrefs.value.explorer[key])
@@ -574,33 +578,78 @@ async function copyPath(entry: RemoteEntry) {
   }
 }
 
+function joinLocalPath(dir: string, name: string) {
+  const base = dir.replace(/[/\\]+$/, "");
+  const sep = dir.includes("\\") ? "\\" : "/";
+  return `${base}${sep}${name}`;
+}
+
+function formatBytes(n: number) {
+  if (!n || n < 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  let value = n;
+  let i = 0;
+  while (value >= 1024 && i < units.length - 1) {
+    value /= 1024;
+    i += 1;
+  }
+  return `${value >= 10 || i === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[i]}`;
+}
+
+function transferPercent(item: { transferred: number; total: number; status: string }) {
+  if (item.total > 0) return Math.min(100, Math.round((item.transferred / item.total) * 100));
+  if (item.status === "done") return 100;
+  return 0;
+}
+
+async function pickDefaultDownloadDir() {
+  const selected = await open({
+    title: t("transfers.pickDownloadDir"),
+    directory: true,
+    multiple: false,
+  });
+  if (typeof selected === "string" && selected) {
+    transfers.setDefaultDownloadDir(selected);
+  }
+}
+
 async function downloadEntry(entry: RemoteEntry) {
   closeCtxMenu();
-  if (!activeSessionId.value || actionBusy.value) return;
+  if (!activeSessionId.value) return;
   const defaultName = entry.isDir ? `${basenameOf(entry.path)}.tar.gz` : basenameOf(entry.path);
-  const localPath = await save({
-    title: t("explorer.downloadTitle"),
-    defaultPath: defaultName,
-  });
-  if (typeof localPath !== "string" || !localPath) return;
+  let localPath: string | null = null;
+  if (defaultDownloadDir.value) {
+    localPath = joinLocalPath(defaultDownloadDir.value, defaultName);
+  } else {
+    const picked = await save({
+      title: t("explorer.downloadTitle"),
+      defaultPath: defaultName,
+    });
+    if (typeof picked === "string" && picked) localPath = picked;
+  }
+  if (!localPath) return;
 
-  actionBusy.value = true;
+  const transferId = transfers.startTransfer({
+    kind: "download",
+    name: defaultName,
+    remotePath: entry.path,
+    localPath,
+  });
   statusMsg.value = t("explorer.working");
   error.value = "";
   try {
-    await api.remoteDownload(activeSessionId.value, entry.path, localPath);
+    await api.remoteDownload(activeSessionId.value, entry.path, localPath, transferId);
     statusMsg.value = t("explorer.downloadDone");
   } catch (e) {
+    transfers.markError(transferId, String(e));
     statusMsg.value = "";
     error.value = String(e);
-  } finally {
-    actionBusy.value = false;
   }
 }
 
 async function uploadInto(entry: RemoteEntry) {
   closeCtxMenu();
-  if (!activeSessionId.value || actionBusy.value) return;
+  if (!activeSessionId.value) return;
   const selected = await open({
     title: t("explorer.uploadTitle"),
     multiple: true,
@@ -610,22 +659,30 @@ async function uploadInto(entry: RemoteEntry) {
   const files = Array.isArray(selected) ? selected : [selected];
   if (!files.length) return;
 
-  actionBusy.value = true;
   statusMsg.value = t("explorer.working");
   error.value = "";
   try {
     for (const localPath of files) {
       const name = localPath.split(/[/\\]/).pop() || "upload.bin";
       const remotePath = joinPath(entry.path, name);
-      await api.remoteUpload(activeSessionId.value, localPath, remotePath);
+      const transferId = transfers.startTransfer({
+        kind: "upload",
+        name,
+        remotePath,
+        localPath,
+      });
+      try {
+        await api.remoteUpload(activeSessionId.value, localPath, remotePath, transferId);
+      } catch (e) {
+        transfers.markError(transferId, String(e));
+        throw e;
+      }
     }
     await refreshAfterMutation(entry.path);
     statusMsg.value = t("explorer.uploadDone");
   } catch (e) {
     statusMsg.value = "";
     error.value = String(e);
-  } finally {
-    actionBusy.value = false;
   }
 }
 
@@ -697,10 +754,17 @@ async function submitPrompt() {
 }
 
 function onGlobalPointerDown(event: PointerEvent) {
-  if (!ctxMenu.value) return;
   const target = event.target as HTMLElement | null;
-  if (target?.closest?.(".ctx-menu")) return;
-  closeCtxMenu();
+  if (ctxMenu.value && !target?.closest?.(".ctx-menu")) {
+    closeCtxMenu();
+  }
+  if (
+    transfersPanelOpen.value &&
+    !target?.closest?.(".transfers-panel") &&
+    !target?.closest?.(".transfers-btn")
+  ) {
+    transfers.togglePanel(false);
+  }
 }
 
 watch(
@@ -713,6 +777,7 @@ watch(
 
 onMounted(() => {
   window.addEventListener("pointerdown", onGlobalPointerDown, true);
+  void transfers.ensureListening();
 });
 
 onBeforeUnmount(() => {
@@ -803,6 +868,105 @@ onBeforeUnmount(() => {
           />
         </svg>
       </button>
+      <div class="transfers-wrap">
+        <button
+          type="button"
+          class="tool-icon transfers-btn"
+          :class="{ active: transfersPanelOpen || activeCount > 0 }"
+          :title="t('transfers.title')"
+          :aria-label="t('transfers.title')"
+          :aria-expanded="transfersPanelOpen"
+          @click="transfers.togglePanel()"
+        >
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+            <path
+              d="M5 3.5v9M5 3.5 2.5 6M5 3.5 7.5 6M11 12.5v-9M11 12.5 8.5 10M11 12.5 13.5 10"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span v-if="activeCount" class="transfers-badge">{{ activeCount }}</span>
+        </button>
+
+        <div v-if="transfersPanelOpen" class="transfers-panel" @mousedown.stop>
+          <div class="transfers-head">
+            <strong>{{ t("transfers.title") }}</strong>
+            <button
+              type="button"
+              class="btn ghost mini"
+              :disabled="!transferItems.some((i) => i.status !== 'running')"
+              @click="transfers.clearFinished()"
+            >
+              {{ t("transfers.clearFinished") }}
+            </button>
+          </div>
+
+          <div class="transfers-dir">
+            <div class="transfers-dir-label">{{ t("transfers.defaultDir") }}</div>
+            <div class="transfers-dir-row">
+              <span class="transfers-dir-path" :title="defaultDownloadDir || t('transfers.defaultDirHint')">
+                {{ defaultDownloadDir || t("transfers.defaultDirHint") }}
+              </span>
+              <button type="button" class="btn ghost mini" @click="pickDefaultDownloadDir">
+                {{ t("transfers.pickDir") }}
+              </button>
+              <button
+                type="button"
+                class="btn ghost mini"
+                :disabled="!defaultDownloadDir"
+                @click="transfers.clearDefaultDownloadDir()"
+              >
+                {{ t("transfers.clearDir") }}
+              </button>
+            </div>
+          </div>
+
+          <div v-if="!transferItems.length" class="transfers-empty">{{ t("transfers.empty") }}</div>
+          <div v-else class="transfers-list">
+            <div v-for="item in transferItems" :key="item.id" class="transfer-item">
+              <div class="transfer-top">
+                <span class="transfer-kind" :class="item.kind">
+                  {{ item.kind === "download" ? t("explorer.download") : t("explorer.upload") }}
+                </span>
+                <span class="transfer-name" :title="item.name">{{ item.name }}</span>
+                <span class="transfer-status" :class="item.status">
+                  {{
+                    item.status === "running"
+                      ? t("transfers.running")
+                      : item.status === "done"
+                        ? t("transfers.done")
+                        : t("transfers.failed")
+                  }}
+                </span>
+              </div>
+              <div class="transfer-bar">
+                <i
+                  :style="{
+                    width:
+                      item.total > 0 || item.status === 'done'
+                        ? transferPercent(item) + '%'
+                        : item.status === 'running'
+                          ? '35%'
+                          : '0%',
+                  }"
+                  :class="{ indeterminate: item.status === 'running' && !item.total }"
+                />
+              </div>
+              <div class="transfer-meta">
+                <span>
+                  {{ formatBytes(item.transferred) }}
+                  <template v-if="item.total"> / {{ formatBytes(item.total) }}</template>
+                </span>
+                <span v-if="item.total">{{ transferPercent(item) }}%</span>
+              </div>
+              <div v-if="item.error" class="transfer-error">{{ item.error }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div v-if="error" class="error-line">{{ error }}</div>
@@ -1048,6 +1212,213 @@ onBeforeUnmount(() => {
 .tool-icon:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.transfers-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.transfers-btn {
+  position: relative;
+}
+
+.transfers-btn.active {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+}
+
+.transfers-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #06140e;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+}
+
+:global([data-theme="light"]) .transfers-badge {
+  color: #ffffff;
+}
+
+.transfers-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  width: min(360px, 72vw);
+  max-height: min(360px, 50vh);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-panel);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.transfers-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.transfers-head strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.transfers-dir {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--bg-elevated);
+}
+
+.transfers-dir-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.transfers-dir-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.transfers-dir-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.transfers-empty {
+  padding: 18px 12px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.transfers-list {
+  flex: 1;
+  overflow: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.transfer-item {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-soft);
+  background: var(--bg-elevated);
+}
+
+.transfer-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.transfer-kind {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--border-soft);
+  color: var(--text-muted);
+}
+
+.transfer-kind.download {
+  color: var(--term-cyan);
+  border-color: rgba(110, 200, 212, 0.35);
+}
+
+.transfer-kind.upload {
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+.transfer-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.transfer-status {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.transfer-status.running { color: var(--term-cyan); }
+.transfer-status.done { color: var(--accent); }
+.transfer-status.error { color: var(--danger); }
+
+.transfer-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--bg-root);
+  overflow: hidden;
+  border: 1px solid var(--border-soft);
+}
+
+.transfer-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.15s ease;
+}
+
+.transfer-bar > i.indeterminate {
+  animation: transfer-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes transfer-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+.transfer-meta {
+  margin-top: 4px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+}
+
+.transfer-error {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--danger);
+  word-break: break-all;
 }
 
 .path-input {

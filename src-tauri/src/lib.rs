@@ -186,25 +186,29 @@ async fn remote_chmod(
 
 #[tauri::command]
 async fn remote_download(
+    app: tauri::AppHandle,
     state: tauri::State<'_, Arc<SessionManager>>,
     session_id: String,
     remote_path: String,
     local_path: String,
+    transfer_id: String,
 ) -> AppResult<()> {
     state
-        .download_path(&session_id, &remote_path, &local_path)
+        .download_path(app, &session_id, &remote_path, &local_path, &transfer_id)
         .await
 }
 
 #[tauri::command]
 async fn remote_upload(
+    app: tauri::AppHandle,
     state: tauri::State<'_, Arc<SessionManager>>,
     session_id: String,
     local_path: String,
     remote_path: String,
+    transfer_id: String,
 ) -> AppResult<()> {
     state
-        .upload_file(&session_id, &local_path, &remote_path)
+        .upload_file(app, &session_id, &local_path, &remote_path, &transfer_id)
         .await
 }
 

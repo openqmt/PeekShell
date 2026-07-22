@@ -10,9 +10,10 @@ use russh::ChannelMsg;
 use russh_keys::key::KeyPair;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::io::Write;
 use std::path::Path;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, Mutex};
 use uuid::Uuid;
@@ -276,22 +277,26 @@ impl SessionManager {
 
     pub async fn download_path(
         &self,
+        app: AppHandle,
         session_id: &str,
         remote_path: &str,
         local_path: &str,
+        transfer_id: &str,
     ) -> AppResult<()> {
         let host = self.host_for_session(session_id).await?;
-        remote_download(&host, remote_path, local_path).await
+        remote_download(&host, remote_path, local_path, &app, transfer_id).await
     }
 
     pub async fn upload_file(
         &self,
+        app: AppHandle,
         session_id: &str,
         local_path: &str,
         remote_path: &str,
+        transfer_id: &str,
     ) -> AppResult<()> {
         let host = self.host_for_session(session_id).await?;
-        remote_upload(&host, local_path, remote_path).await
+        remote_upload(&host, local_path, remote_path, &app, transfer_id).await
     }
 
     async fn host_for_session(&self, session_id: &str) -> AppResult<HostRecord> {
@@ -919,7 +924,27 @@ if chmod -- "$mode" "$path"; then echo OK; else echo ERR|修改权限失败; fi
     assert_ok_output(&run_exec(host, &script).await?, "修改权限失败")
 }
 
-async fn remote_download(host: &HostRecord, remote_path: &str, local_path: &str) -> AppResult<()> {
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TransferProgressPayload {
+    id: String,
+    transferred: u64,
+    total: u64,
+    status: &'static str,
+    error: Option<String>,
+}
+
+fn emit_transfer_progress(app: &AppHandle, payload: TransferProgressPayload) {
+    let _ = app.emit("transfer://progress", payload);
+}
+
+async fn remote_download(
+    host: &HostRecord,
+    remote_path: &str,
+    local_path: &str,
+    app: &AppHandle,
+    transfer_id: &str,
+) -> AppResult<()> {
     let remote_path = normalize_remote_path(remote_path)?;
     if local_path.trim().is_empty() {
         return Err(AppError::Message("本地路径无效".into()));
@@ -935,19 +960,34 @@ if [ -d "$path" ]; then echo DIR; else echo FILE; fi
     let kind = run_exec(host, &probe).await?;
     let kind = kind.lines().map(str::trim).find(|l| !l.is_empty()).unwrap_or("");
     if let Some(msg) = kind.strip_prefix("ERR|") {
+        emit_transfer_progress(
+            app,
+            TransferProgressPayload {
+                id: transfer_id.to_string(),
+                transferred: 0,
+                total: 0,
+                status: "error",
+                error: Some(msg.to_string()),
+            },
+        );
         return Err(AppError::Message(msg.into()));
     }
 
-    let bytes = if kind == "DIR" {
+    let (cmd, total) = if kind == "DIR" {
         let parent = parent_remote(&remote_path);
         let name = basename_remote(&remote_path);
         let parent_q = shell_quote(&parent);
         let name_q = shell_quote(&name);
-        let cmd = format!("tar czf - -C {parent_q} {name_q}");
-        run_exec_bytes(host, &cmd).await?
+        (format!("tar czf - -C {parent_q} {name_q}"), 0u64)
     } else if kind == "FILE" {
-        let cmd = format!("cat -- {quoted}");
-        run_exec_bytes(host, &cmd).await?
+        let size_raw = run_exec(host, &format!("stat -c%s -- {quoted} 2>/dev/null || wc -c < {quoted}")).await?;
+        let total = size_raw
+            .lines()
+            .map(str::trim)
+            .find(|l| !l.is_empty())
+            .and_then(|l| l.parse::<u64>().ok())
+            .unwrap_or(0);
+        (format!("cat -- {quoted}"), total)
     } else {
         return Err(AppError::Message("下载失败：无法识别路径类型".into()));
     };
@@ -956,9 +996,90 @@ if [ -d "$path" ]; then echo DIR; else echo FILE; fi
         std::fs::create_dir_all(parent)
             .map_err(|e| AppError::Message(format!("创建本地目录失败: {e}")))?;
     }
-    std::fs::write(local_path, bytes)
+
+    emit_transfer_progress(
+        app,
+        TransferProgressPayload {
+            id: transfer_id.to_string(),
+            transferred: 0,
+            total,
+            status: "running",
+            error: None,
+        },
+    );
+
+    match run_exec_to_file(host, &cmd, local_path, app, transfer_id, total).await {
+        Ok(transferred) => {
+            emit_transfer_progress(
+                app,
+                TransferProgressPayload {
+                    id: transfer_id.to_string(),
+                    transferred,
+                    total: if total > 0 { total } else { transferred },
+                    status: "done",
+                    error: None,
+                },
+            );
+            Ok(())
+        }
+        Err(e) => {
+            emit_transfer_progress(
+                app,
+                TransferProgressPayload {
+                    id: transfer_id.to_string(),
+                    transferred: 0,
+                    total,
+                    status: "error",
+                    error: Some(e.to_string()),
+                },
+            );
+            Err(e)
+        }
+    }
+}
+
+async fn run_exec_to_file(
+    host: &HostRecord,
+    command: &str,
+    local_path: &str,
+    app: &AppHandle,
+    transfer_id: &str,
+    total: u64,
+) -> AppResult<u64> {
+    let handle = open_authenticated_handle(host).await?;
+    let mut channel = handle.channel_open_session().await?;
+    channel.exec(true, command).await?;
+
+    let mut file = std::fs::File::create(local_path)
         .map_err(|e| AppError::Message(format!("写入本地文件失败: {e}")))?;
-    Ok(())
+    let mut transferred = 0u64;
+    let mut last_emit = Instant::now() - Duration::from_millis(200);
+
+    while let Some(msg) = channel.wait().await {
+        if let ChannelMsg::Data { ref data } = msg {
+            file.write_all(data)
+                .map_err(|e| AppError::Message(format!("写入本地文件失败: {e}")))?;
+            transferred += data.len() as u64;
+            if last_emit.elapsed() >= Duration::from_millis(120) {
+                emit_transfer_progress(
+                    app,
+                    TransferProgressPayload {
+                        id: transfer_id.to_string(),
+                        transferred,
+                        total,
+                        status: "running",
+                        error: None,
+                    },
+                );
+                last_emit = Instant::now();
+            }
+        }
+    }
+
+    let _ = handle
+        .disconnect(russh::Disconnect::ByApplication, "", "")
+        .await;
+    Ok(transferred)
 }
 
 async fn open_authenticated_handle(host: &HostRecord) -> AppResult<Handle<ClientHandler>> {
@@ -993,11 +1114,20 @@ async fn open_authenticated_handle(host: &HostRecord) -> AppResult<Handle<Client
     Ok(handle)
 }
 
-async fn remote_upload(host: &HostRecord, local_path: &str, remote_path: &str) -> AppResult<()> {
+async fn remote_upload(
+    host: &HostRecord,
+    local_path: &str,
+    remote_path: &str,
+    app: &AppHandle,
+    transfer_id: &str,
+) -> AppResult<()> {
     let remote_path = normalize_remote_path(remote_path)?;
     if remote_path == "/" {
         return Err(AppError::Message("远端路径无效".into()));
     }
+    let meta = std::fs::metadata(local_path)
+        .map_err(|e| AppError::Message(format!("读取本地文件失败: {e}")))?;
+    let total = meta.len();
     let data = std::fs::read(local_path)
         .map_err(|e| AppError::Message(format!("读取本地文件失败: {e}")))?;
 
@@ -1011,49 +1141,108 @@ mkdir -p -- "$parent" && echo OK || echo ERR|创建远端目录失败
     );
     assert_ok_output(&run_exec(host, &ensure).await?, "创建远端目录失败")?;
 
-    let handle = open_authenticated_handle(host).await?;
-    let mut channel = handle.channel_open_session().await?;
-    let cmd = format!("cat > {}", shell_quote(&remote_path));
-    channel.exec(true, cmd.as_str()).await?;
+    emit_transfer_progress(
+        app,
+        TransferProgressPayload {
+            id: transfer_id.to_string(),
+            transferred: 0,
+            total,
+            status: "running",
+            error: None,
+        },
+    );
 
-    const CHUNK: usize = 32 * 1024;
-    for chunk in data.chunks(CHUNK) {
+    let result = async {
+        let handle = open_authenticated_handle(host).await?;
+        let mut channel = handle.channel_open_session().await?;
+        let cmd = format!("cat > {}", shell_quote(&remote_path));
+        channel.exec(true, cmd.as_str()).await?;
+
+        const CHUNK: usize = 32 * 1024;
+        let mut transferred = 0u64;
+        let mut last_emit = Instant::now() - Duration::from_millis(200);
+        for chunk in data.chunks(CHUNK) {
+            channel
+                .data(chunk)
+                .await
+                .map_err(|e| AppError::Message(format!("上传失败: {e}")))?;
+            transferred += chunk.len() as u64;
+            if last_emit.elapsed() >= Duration::from_millis(120) {
+                emit_transfer_progress(
+                    app,
+                    TransferProgressPayload {
+                        id: transfer_id.to_string(),
+                        transferred,
+                        total,
+                        status: "running",
+                        error: None,
+                    },
+                );
+                last_emit = Instant::now();
+            }
+        }
         channel
-            .data(chunk)
+            .eof()
             .await
-            .map_err(|e| AppError::Message(format!("上传失败: {e}")))?;
-    }
-    channel
-        .eof()
-        .await
-        .map_err(|e| AppError::Message(format!("上传结束失败: {e}")))?;
+            .map_err(|e| AppError::Message(format!("上传结束失败: {e}")))?;
 
-    let mut stderr = String::new();
-    let mut code: Option<u32> = None;
-    while let Some(msg) = channel.wait().await {
-        match msg {
-            ChannelMsg::ExtendedData { ref data, .. } => {
-                stderr.push_str(&String::from_utf8_lossy(data));
+        let mut stderr = String::new();
+        let mut code: Option<u32> = None;
+        while let Some(msg) = channel.wait().await {
+            match msg {
+                ChannelMsg::ExtendedData { ref data, .. } => {
+                    stderr.push_str(&String::from_utf8_lossy(data));
+                }
+                ChannelMsg::ExitStatus { exit_status } => {
+                    code = Some(exit_status);
+                }
+                _ => {}
             }
-            ChannelMsg::ExitStatus { exit_status } => {
-                code = Some(exit_status);
+        }
+
+        let _ = handle
+            .disconnect(russh::Disconnect::ByApplication, "", "")
+            .await;
+
+        if code.unwrap_or(1) != 0 {
+            let msg = stderr.trim();
+            if msg.is_empty() {
+                return Err(AppError::Message("上传失败".into()));
             }
-            _ => {}
+            return Err(AppError::Message(format!("上传失败: {msg}")));
+        }
+        Ok(transferred)
+    }
+    .await;
+
+    match result {
+        Ok(transferred) => {
+            emit_transfer_progress(
+                app,
+                TransferProgressPayload {
+                    id: transfer_id.to_string(),
+                    transferred,
+                    total,
+                    status: "done",
+                    error: None,
+                },
+            );
+            Ok(())
+        }
+        Err(e) => {
+            emit_transfer_progress(
+                app,
+                TransferProgressPayload {
+                    id: transfer_id.to_string(),
+                    transferred: 0,
+                    total,
+                    status: "error",
+                    error: Some(e.to_string()),
+                },
+            );
+            Err(e)
         }
     }
-
-    let _ = handle
-        .disconnect(russh::Disconnect::ByApplication, "", "")
-        .await;
-
-    if code.unwrap_or(1) != 0 {
-        let msg = stderr.trim();
-        if msg.is_empty() {
-            return Err(AppError::Message("上传失败".into()));
-        }
-        return Err(AppError::Message(format!("上传失败: {msg}")));
-    }
-    Ok(())
 }
 
 fn parse_metrics(host: &HostRecord, raw: &str) -> HostMetrics {
