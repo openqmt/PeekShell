@@ -139,6 +139,16 @@ const actionBusy = ref(false);
 const fileDragActive = ref(false);
 const fileDragTargetPath = ref<string | null>(null);
 let unlistenDragDrop: UnlistenFn | null = null;
+let statusClearTimer: ReturnType<typeof setTimeout> | null = null;
+
+function flashStatus(message: string, ms = 1600) {
+  statusMsg.value = message;
+  if (statusClearTimer) clearTimeout(statusClearTimer);
+  statusClearTimer = setTimeout(() => {
+    if (statusMsg.value === message) statusMsg.value = "";
+    statusClearTimer = null;
+  }, ms);
+}
 
 type CtxMenuVariant = "entry" | "blank";
 type CtxMenu = { x: number; y: number; variant: CtxMenuVariant; entry: RemoteEntry };
@@ -685,7 +695,7 @@ async function copyPath(entry: RemoteEntry) {
   closeCtxMenu();
   try {
     await navigator.clipboard.writeText(entry.path);
-    statusMsg.value = t("explorer.copied");
+    flashStatus(t("explorer.copied"));
     error.value = "";
   } catch (e) {
     error.value = String(e);
@@ -753,7 +763,7 @@ async function downloadEntry(entry: RemoteEntry) {
   error.value = "";
   try {
     await api.remoteDownload(activeSessionId.value, entry.path, localPath, transferId);
-    statusMsg.value = t("explorer.downloadDone");
+    flashStatus(t("explorer.downloadDone"));
   } catch (e) {
     transfers.markError(transferId, String(e));
     statusMsg.value = "";
@@ -790,7 +800,7 @@ async function uploadLocalPaths(remoteDirPath: string, localPaths: string[]) {
       }
     }
     await refreshAfterMutation(remoteDirPath);
-    statusMsg.value = t("explorer.uploadDone");
+    flashStatus(t("explorer.uploadDone"));
   } catch (e) {
     statusMsg.value = "";
     error.value = String(e);
@@ -928,6 +938,10 @@ onMounted(() => {
 onBeforeUnmount(() => {
   draggingHeight.value = false;
   draggingWidth.value = false;
+  if (statusClearTimer) {
+    clearTimeout(statusClearTimer);
+    statusClearTimer = null;
+  }
   window.removeEventListener("pointerdown", onGlobalPointerDown, true);
   if (unlistenDragDrop) {
     unlistenDragDrop();
