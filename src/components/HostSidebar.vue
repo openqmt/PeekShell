@@ -293,7 +293,7 @@ function hostMeta() {
 
 .lang-btn {
   font-size: 11px;
-  font-weight: 700;
+  /* font-weight: 700; */
   letter-spacing: 0.02em;
 }
 

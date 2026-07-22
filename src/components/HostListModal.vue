@@ -368,36 +368,72 @@ function onBackdrop(e: MouseEvent) {
                                     <div class="row-actions" @click.stop>
                                         <button
                                             type="button"
-                                            class="btn ghost mini"
+                                            class="row-icon-btn"
+                                            :title="t('common.edit')"
+                                            :aria-label="t('common.edit')"
                                             :disabled="!!connectingHostId"
                                             @click="ui.openConnectModal(host)"
                                         >
-                                            {{ t('common.edit') }}
+                                            <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                                                <path
+                                                    d="M9.2 3.6 12.4 6.8M3.5 12.5l1.1-3.9L11.2 2l3.1 3.1-6.6 6.6-3.9 1.1z"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="1.4"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                />
+                                            </svg>
                                         </button>
                                         <button
                                             type="button"
-                                            class="btn primary mini"
-                                            :disabled="!!connectingHostId"
-                                            @click="connect(host.id)"
-                                        >
-                                            {{
+                                            class="row-icon-btn primary"
+                                            :class="{ busy: connectingHostId === host.id }"
+                                            :title="
                                                 connectingHostId === host.id
                                                     ? t('common.connecting')
                                                     : t('common.connect')
-                                            }}
+                                            "
+                                            :aria-label="
+                                                connectingHostId === host.id
+                                                    ? t('common.connecting')
+                                                    : t('common.connect')
+                                            "
+                                            :disabled="!!connectingHostId"
+                                            @click="connect(host.id)"
+                                        >
+                                            <svg
+                                                v-if="connectingHostId !== host.id"
+                                                viewBox="0 0 16 16"
+                                                width="13"
+                                                height="13"
+                                                aria-hidden="true"
+                                            >
+                                                <path
+                                                    d="M5.5 3.2 12.2 8 5.5 12.8Z"
+                                                    fill="currentColor"
+                                                />
+                                            </svg>
+                                            <span v-else class="row-spin" aria-hidden="true" />
                                         </button>
                                         <button
                                             type="button"
-                                            class="btn danger mini"
+                                            class="row-icon-btn danger"
+                                            :title="t('common.delete')"
+                                            :aria-label="t('common.delete')"
                                             :disabled="!!connectingHostId"
-                                            @click="
-                                                openRemoveHost(
-                                                    host.id,
-                                                    host.name
-                                                )
-                                            "
+                                            @click="openRemoveHost(host.id, host.name)"
                                         >
-                                            {{ t('common.delete') }}
+                                            <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                                                <path
+                                                    d="M3.5 5h9M6 5V3.8h4V5M5.2 5l.5 7.2h4.6L10.8 5"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="1.4"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                />
+                                            </svg>
                                         </button>
                                     </div>
                                 </div>
@@ -700,8 +736,60 @@ function onBackdrop(e: MouseEvent) {
 
 .row-actions {
     display: flex;
+    align-items: center;
     gap: 2px;
 }
+
+.row-icon-btn {
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-dim);
+    display: grid;
+    place-items: center;
+}
+
+.row-icon-btn:hover:not(:disabled) {
+    color: var(--text);
+    background: var(--bg-active);
+}
+
+.row-icon-btn.primary {
+    color: var(--accent);
+}
+
+.row-icon-btn.primary:hover:not(:disabled) {
+    color: var(--accent);
+    background: var(--accent-dim);
+}
+
+.row-icon-btn.danger:hover:not(:disabled) {
+    color: var(--danger);
+    background: var(--danger-dim);
+}
+
+.row-icon-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.row-spin {
+    width: 11px;
+    height: 11px;
+    border: 1.5px solid var(--accent-border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: host-row-spin 0.7s linear infinite;
+}
+
+@keyframes host-row-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 .empty {
     color: var(--text-muted);
     font-size: 13px;

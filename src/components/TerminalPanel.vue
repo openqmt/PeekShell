@@ -13,6 +13,7 @@ import * as api from "../api/tauri";
 import { useI18n } from "../i18n";
 import { useSessionsStore } from "../stores/sessions";
 import { useUiStore } from "../stores/ui";
+import QuickCommandsPanel from "./QuickCommandsPanel.vue";
 import RemoteExplorer from "./RemoteExplorer.vue";
 
 const sessions = useSessionsStore();
@@ -23,6 +24,7 @@ const { theme, displayPrefs } = storeToRefs(ui);
 
 const hostEl = ref<HTMLElement | null>(null);
 const terms = new Map<string, { term: Terminal; fit: FitAddon; unlisten: UnlistenFn }>();
+const quickCommandsOpen = ref(false);
 
 /** 从当前 CSS 变量读取终端配色，保证与 UI 主题一致。 */
 function readTermTheme() {
@@ -257,7 +259,38 @@ onBeforeUnmount(() => {
         <span>{{ s.title }}</span>
         <span class="x" @click="onClose(s.sessionId, $event)">×</span>
       </button>
-      <button type="button" class="tab-add" :title="t('terminal.openFromHosts')" @click="ui.openHostsModal()">＋</button>
+      <span class="tabs-spacer" />
+      <div class="tabs-tools">
+        <button
+          type="button"
+          class="tab-tool quick-commands-btn"
+          :class="{ active: quickCommandsOpen }"
+          :title="t('quickCommands.title')"
+          :aria-label="t('quickCommands.title')"
+          :aria-expanded="quickCommandsOpen"
+          @click="quickCommandsOpen = !quickCommandsOpen"
+        >
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+            <path
+              d="M3 4.5 6.5 8 3 11.5M8 11.5h5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="tab-tool"
+          :title="t('terminal.openFromHosts')"
+          @click="ui.openHostsModal()"
+        >
+          ＋
+        </button>
+        <QuickCommandsPanel v-model:open="quickCommandsOpen" />
+      </div>
     </div>
 
     <div ref="hostEl" class="term-host">
@@ -289,6 +322,44 @@ onBeforeUnmount(() => {
   align-items: stretch;
   padding: 0 2px;
   gap: 1px;
+  position: relative;
+}
+
+.tabs-spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
+.tabs-tools {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px 0 2px;
+  flex-shrink: 0;
+}
+
+.tab-tool {
+  width: 28px;
+  height: 26px;
+  margin-top: 2px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 16px;
+  display: grid;
+  place-items: center;
+}
+
+.tab-tool:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.tab-tool.active {
+  color: var(--accent);
+  background: var(--accent-dim);
 }
 
 .tab {
@@ -321,15 +392,6 @@ onBeforeUnmount(() => {
 
 .x { margin-left: 4px; opacity: 0.5; }
 .x:hover { opacity: 1; color: var(--danger); }
-
-.tab-add {
-  width: 28px;
-  border: none;
-  background: transparent;
-  color: var(--text-dim);
-  font-size: 16px;
-  margin-top: 2px;
-}
 
 .term-host {
   flex: 1;
