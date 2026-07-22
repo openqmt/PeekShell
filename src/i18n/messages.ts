@@ -139,6 +139,7 @@ export const messages = {
         'transfers.defaultDir': '默认下载目录',
         'transfers.defaultDirHint': '未设置（每次询问保存位置）',
         'transfers.pickDir': '选择',
+        'transfers.openDir': '打开',
         'transfers.clearDir': '清除',
         'transfers.pickDownloadDir': '选择默认下载目录',
 
@@ -400,6 +401,7 @@ export const messages = {
         'transfers.defaultDir': 'Default download folder',
         'transfers.defaultDirHint': 'Not set (ask each time)',
         'transfers.pickDir': 'Choose',
+        'transfers.openDir': 'Open',
         'transfers.clearDir': 'Clear',
         'transfers.pickDownloadDir': 'Choose default download folder',
 

@@ -6,6 +6,7 @@
 import { storeToRefs } from "pinia";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import * as api from "../api/tauri";
@@ -737,6 +738,16 @@ async function pickDefaultDownloadDir() {
   }
 }
 
+async function openDefaultDownloadDir() {
+  const dir = defaultDownloadDir.value;
+  if (!dir) return;
+  try {
+    await openPath(dir);
+  } catch (e) {
+    flashStatus(String(e));
+  }
+}
+
 async function downloadEntry(entry: RemoteEntry) {
   closeCtxMenu();
   if (!activeSessionId.value) return;
@@ -1084,6 +1095,14 @@ onBeforeUnmount(() => {
               </span>
               <button type="button" class="btn ghost mini" @click="pickDefaultDownloadDir">
                 {{ t("transfers.pickDir") }}
+              </button>
+              <button
+                v-if="defaultDownloadDir"
+                type="button"
+                class="btn ghost mini"
+                @click="openDefaultDownloadDir"
+              >
+                {{ t("transfers.openDir") }}
               </button>
               <button
                 type="button"
