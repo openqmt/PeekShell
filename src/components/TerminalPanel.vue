@@ -1,33 +1,72 @@
 <script setup lang="ts">
 /**
  * 多标签 xterm：每个会话一个 Terminal 实例，按 activeSessionId 切换显示。
+ * 右键菜单区分选区 / 空白；支持查找与终端偏好（字体、配色、背景）。
  */
 import { FitAddon } from "@xterm/addon-fit";
+import { SearchAddon } from "@xterm/addon-search";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import * as api from "../api/tauri";
 import { useI18n } from "../i18n";
 import { useSessionsStore } from "../stores/sessions";
+import { matchShortcut, useTerminalPrefsStore } from "../stores/terminalPrefs";
 import { useUiStore } from "../stores/ui";
 import QuickCommandsPanel from "./QuickCommandsPanel.vue";
 import RemoteExplorer from "./RemoteExplorer.vue";
 
+type TermEntry = {
+  term: Terminal;
+  fit: FitAddon;
+  search: SearchAddon;
+  unlisten: UnlistenFn;
+};
+
+type CtxMenuState = {
+  x: number;
+  y: number;
+  hasSelection: boolean;
+};
+
 const sessions = useSessionsStore();
 const ui = useUiStore();
+const termPrefsStore = useTerminalPrefsStore();
 const { t } = useI18n();
 const { sessions: sessionList, activeSessionId } = storeToRefs(sessions);
 const { theme, displayPrefs } = storeToRefs(ui);
+const { prefs: termPrefs } = storeToRefs(termPrefsStore);
 
 const hostEl = ref<HTMLElement | null>(null);
-const terms = new Map<string, { term: Terminal; fit: FitAddon; unlisten: UnlistenFn }>();
+const findInputEl = ref<HTMLInputElement | null>(null);
+const terms = new Map<string, TermEntry>();
 const quickCommandsOpen = ref(false);
+const ctxMenu = ref<CtxMenuState | null>(null);
+const findOpen = ref(false);
+const findQuery = ref("");
 
-/** 从当前 CSS 变量读取终端配色，保证与 UI 主题一致。 */
-function readTermTheme() {
+const hostSurfaceStyle = computed(() => {
+  const img = termPrefs.value.backgroundImage.trim();
+  if (!img) return undefined;
+  const safe = img.replace(/\\/g, "/").replace(/"/g, '\\"');
+  return {
+    backgroundImage: `url("${safe}")`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+  };
+});
+
+const hostOverlayStyle = computed(() => {
+  const img = termPrefs.value.backgroundImage.trim();
+  if (!img) return undefined;
+  const opacity = 1 - termPrefs.value.backgroundOpacity;
+  return { backgroundColor: `rgba(0, 0, 0, ${opacity})` };
+});
+
+function themeColorsFromCss() {
   const styles = getComputedStyle(document.documentElement);
   const isLight = document.documentElement.getAttribute("data-theme") === "light";
   return {
@@ -39,15 +78,72 @@ function readTermTheme() {
   };
 }
 
+function readTermTheme() {
+  const scheme = termPrefs.value.colorScheme;
+  const hasBgImage = !!termPrefs.value.backgroundImage.trim();
+  let base =
+    scheme === "custom"
+      ? {
+          background: termPrefs.value.customColors.background,
+          foreground: termPrefs.value.customColors.foreground,
+          cursor: termPrefs.value.customColors.cursor,
+          selectionBackground: "rgba(62, 207, 142, 0.4)",
+          selectionInactiveBackground: "rgba(62, 207, 142, 0.22)",
+        }
+      : scheme === "dark"
+        ? {
+            background: "#0a0d10",
+            foreground: "#d6dde6",
+            cursor: "#3ecf8e",
+            selectionBackground: "rgba(62, 207, 142, 0.4)",
+            selectionInactiveBackground: "rgba(62, 207, 142, 0.22)",
+          }
+        : scheme === "light"
+          ? {
+              background: "#fbfcfd",
+              foreground: "#1a2330",
+              cursor: "#1f9d63",
+              selectionBackground: "rgba(31, 157, 99, 0.38)",
+              selectionInactiveBackground: "rgba(31, 157, 99, 0.22)",
+            }
+          : themeColorsFromCss();
+
+  if (hasBgImage) {
+    base = { ...base, background: "transparent" };
+  }
+  return base;
+}
+
 function applyTermTheme() {
   const next = readTermTheme();
   for (const [, entry] of terms) {
     entry.term.options.theme = next;
-    // 同步滚动视口背景（xterm.css 默认写死为 #000）
     const viewport = entry.term.element?.querySelector(".xterm-viewport") as HTMLElement | null;
     if (viewport) viewport.style.backgroundColor = next.background;
     entry.term.refresh(0, entry.term.rows - 1);
   }
+}
+
+function applyTermFont() {
+  for (const [, entry] of terms) {
+    entry.term.options.fontFamily = termPrefs.value.fontFamily;
+    entry.term.options.fontSize = termPrefs.value.fontSize;
+    entry.fit.fit();
+  }
+  if (activeSessionId.value) {
+    const active = terms.get(activeSessionId.value);
+    if (active) void sessions.resize(active.term.cols, active.term.rows);
+  }
+}
+
+function applyTermPrefs() {
+  applyTermTheme();
+  applyTermFont();
+}
+
+function activeEntry(): TermEntry | null {
+  if (!activeSessionId.value) return null;
+  return terms.get(activeSessionId.value) ?? null;
 }
 
 async function readClipboardText(): Promise<string> {
@@ -78,7 +174,6 @@ async function writeClipboardText(text: string) {
 async function pasteIntoSession(term: Terminal) {
   const text = await readClipboardText();
   if (!text) return;
-  // 走 xterm.paste，统一换行 / bracketed-paste；最终仍由 onData → ptyWrite
   term.paste(text);
 }
 
@@ -90,27 +185,113 @@ function copyTermSelection(term: Terminal): boolean {
   return true;
 }
 
+function clearActiveBuffer() {
+  const entry = activeEntry();
+  if (!entry) return;
+  entry.term.clear();
+}
+
+function openFind(seed = "") {
+  findOpen.value = true;
+  if (seed) findQuery.value = seed;
+  void nextTick(() => findInputEl.value?.focus());
+  if (findQuery.value) findNext();
+}
+
+function closeFind() {
+  findOpen.value = false;
+  const entry = activeEntry();
+  entry?.search.clearDecorations();
+}
+
+function findNext() {
+  const entry = activeEntry();
+  if (!entry || !findQuery.value) return;
+  entry.search.findNext(findQuery.value);
+}
+
+function findPrev() {
+  const entry = activeEntry();
+  if (!entry || !findQuery.value) return;
+  entry.search.findPrevious(findQuery.value);
+}
+
+function closeCtxMenu() {
+  ctxMenu.value = null;
+}
+
+function onTermContextMenu(ev: MouseEvent) {
+  if (!activeSessionId.value) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  const entry = activeEntry();
+  const hasSelection = !!entry?.term.hasSelection() && !!entry.term.getSelection();
+  const pad = 8;
+  const menuW = 180;
+  const menuH = hasSelection ? 180 : 120;
+  const x = Math.min(ev.clientX, window.innerWidth - menuW - pad);
+  const y = Math.min(ev.clientY, window.innerHeight - menuH - pad);
+  ctxMenu.value = { x: Math.max(pad, x), y: Math.max(pad, y), hasSelection };
+}
+
+function ctxCopy() {
+  const entry = activeEntry();
+  if (entry) copyTermSelection(entry.term);
+  closeCtxMenu();
+}
+
+function ctxPaste() {
+  const entry = activeEntry();
+  if (entry) void pasteIntoSession(entry.term);
+  closeCtxMenu();
+}
+
+function ctxFind() {
+  const entry = activeEntry();
+  const seed = entry?.term.hasSelection() ? entry.term.getSelection() : "";
+  closeCtxMenu();
+  openFind(seed.trim());
+}
+
+function ctxClear() {
+  clearActiveBuffer();
+  closeCtxMenu();
+}
+
+function ctxMore() {
+  closeCtxMenu();
+  ui.openTerminalSettingsModal();
+}
+
+function onGlobalPointerDown(ev: PointerEvent) {
+  const target = ev.target as HTMLElement | null;
+  if (ctxMenu.value && !target?.closest?.(".term-ctx-menu")) {
+    closeCtxMenu();
+  }
+}
+
 async function ensureTerm(sessionId: string) {
   if (terms.has(sessionId) || !hostEl.value) return;
 
   const term = new Terminal({
     cursorBlink: true,
-    fontFamily: "IBM Plex Mono, ui-monospace, monospace",
-    fontSize: 13,
+    fontFamily: termPrefs.value.fontFamily,
+    fontSize: termPrefs.value.fontSize,
     theme: readTermTheme(),
-    rightClickSelectsWord: true,
+    // 避免右键自动选词，以便区分「选区菜单」与「空白菜单」
+    rightClickSelectsWord: false,
   });
   const fit = new FitAddon();
+  const search = new SearchAddon();
   term.loadAddon(fit);
+  term.loadAddon(search);
   term.open(hostEl.value);
   fit.fit();
 
   term.onData((data) => {
-    // 绑定到本会话，避免非当前标签的按键写入到 active 会话
     void api.ptyWrite(sessionId, data);
   });
 
-  // 快捷键粘贴后短时间内忽略原生 paste，避免粘贴两次
   let ignoreNativePasteUntil = 0;
   const onNativePaste = (ev: Event) => {
     if (performance.now() < ignoreNativePasteUntil) {
@@ -121,7 +302,6 @@ async function ensureTerm(sessionId: string) {
   term.textarea?.addEventListener("paste", onNativePaste, true);
   term.element?.addEventListener("paste", onNativePaste, true);
 
-  // WebView 里 clipboardData.setData 常无效，改走 Tauri 剪贴板
   const onNativeCopy = (ev: Event) => {
     if (!term.hasSelection()) return;
     ev.preventDefault();
@@ -131,22 +311,38 @@ async function ensureTerm(sessionId: string) {
   term.element?.addEventListener("copy", onNativeCopy, true);
   term.textarea?.addEventListener("copy", onNativeCopy, true);
 
-  // Ctrl/Cmd+C（有选区）/ Ctrl+Shift+C 复制；Ctrl/Cmd+V 粘贴
   term.attachCustomKeyEventHandler((ev) => {
     if (ev.type !== "keydown") return true;
-    const mod = ev.ctrlKey || ev.metaKey;
-    if (!mod || ev.altKey) return true;
+    const shortcuts = termPrefs.value.shortcuts;
 
-    const key = ev.key.toLowerCase();
-    if (key === "v" && !ev.shiftKey) {
+    if (matchShortcut(ev, shortcuts.paste)) {
       ev.preventDefault();
       ev.stopPropagation();
       ignoreNativePasteUntil = performance.now() + 500;
       void pasteIntoSession(term);
       return false;
     }
-    // Ctrl+C 有选区时复制；Ctrl+Shift+C 始终尝试复制选区
-    if (key === "c" && (ev.shiftKey || term.hasSelection())) {
+    if (matchShortcut(ev, shortcuts.copy)) {
+      if (copyTermSelection(term)) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        return false;
+      }
+    }
+    if (matchShortcut(ev, shortcuts.find)) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      openFind(term.hasSelection() ? term.getSelection() : findQuery.value);
+      return false;
+    }
+    if (matchShortcut(ev, shortcuts.clear)) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      term.clear();
+      return false;
+    }
+    // 兼容：有选区时 Ctrl/Cmd+C 仍可复制
+    if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && !ev.shiftKey && ev.key.toLowerCase() === "c") {
       if (copyTermSelection(term)) {
         ev.preventDefault();
         ev.stopPropagation();
@@ -160,7 +356,7 @@ async function ensureTerm(sessionId: string) {
     term.write(event.payload);
   });
 
-  terms.set(sessionId, { term, fit, unlisten });
+  terms.set(sessionId, { term, fit, search, unlisten });
   showOnly(sessionId);
   void sessions.resize(term.cols, term.rows);
 }
@@ -213,10 +409,17 @@ watch(
 );
 
 watch(theme, async () => {
-  // 等 <html data-theme> 与 CSS 变量落定后再读色
   await nextTick();
   applyTermTheme();
 });
+
+watch(
+  termPrefs,
+  () => {
+    applyTermPrefs();
+  },
+  { deep: true }
+);
 
 watch(
   () => displayPrefs.value.explorer.show,
@@ -228,6 +431,7 @@ watch(
 
 onMounted(async () => {
   window.addEventListener("resize", onResize);
+  window.addEventListener("pointerdown", onGlobalPointerDown, true);
   await nextTick();
   for (const s of sessionList.value) {
     await ensureTerm(s.sessionId);
@@ -236,6 +440,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("resize", onResize);
+  window.removeEventListener("pointerdown", onGlobalPointerDown, true);
   for (const [, entry] of terms) {
     entry.unlisten();
     entry.term.dispose();
@@ -293,13 +498,60 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div ref="hostEl" class="term-host">
+    <div
+      ref="hostEl"
+      class="term-host"
+      :class="{ 'has-bg-image': !!termPrefs.backgroundImage.trim() }"
+      :style="hostSurfaceStyle"
+      @contextmenu="onTermContextMenu"
+    >
+      <div v-if="termPrefs.backgroundImage.trim()" class="term-bg-overlay" :style="hostOverlayStyle" />
+      <div v-if="findOpen" class="term-find" @mousedown.stop @contextmenu.stop>
+        <input
+          ref="findInputEl"
+          v-model="findQuery"
+          type="text"
+          class="term-find-input"
+          :placeholder="t('terminal.findPlaceholder')"
+          @keydown.enter.exact.prevent="findNext"
+          @keydown.enter.shift.prevent="findPrev"
+          @keydown.esc.prevent="closeFind"
+        />
+        <button type="button" class="term-find-btn" :title="t('terminal.findPrev')" @click="findPrev">
+          ↑
+        </button>
+        <button type="button" class="term-find-btn" :title="t('terminal.findNext')" @click="findNext">
+          ↓
+        </button>
+        <button type="button" class="term-find-btn" :title="t('terminal.findClose')" @click="closeFind">
+          ✕
+        </button>
+      </div>
       <div v-if="!sessionList.length" class="empty">
         {{ t("terminal.empty") }}
       </div>
     </div>
 
     <RemoteExplorer v-if="displayPrefs.explorer.show" @resized="onResize" />
+
+    <Teleport to="body">
+      <div
+        v-if="ctxMenu"
+        class="term-ctx-menu"
+        :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
+        @contextmenu.prevent
+      >
+        <template v-if="ctxMenu.hasSelection">
+          <button type="button" class="ctx-item" @click="ctxCopy">{{ t("terminal.ctxCopy") }}</button>
+          <button type="button" class="ctx-item" @click="ctxPaste">{{ t("terminal.ctxPaste") }}</button>
+          <div class="ctx-sep" />
+        </template>
+        <button type="button" class="ctx-item" @click="ctxFind">{{ t("terminal.ctxFind") }}</button>
+        <button type="button" class="ctx-item" @click="ctxClear">{{ t("terminal.ctxClear") }}</button>
+        <div class="ctx-sep" />
+        <button type="button" class="ctx-item" @click="ctxMore">{{ t("terminal.ctxMore") }}</button>
+      </div>
+    </Teleport>
   </section>
 </template>
 
@@ -400,13 +652,32 @@ onBeforeUnmount(() => {
   position: relative;
 }
 
-.term-host :deep(.xterm) { height: 100%; }
+.term-host.has-bg-image {
+  background-color: transparent;
+}
+
+.term-bg-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.term-host :deep(.xterm) {
+  height: 100%;
+  position: relative;
+  z-index: 1;
+}
+
 .term-host :deep(.xterm-viewport) {
   overflow-y: auto !important;
-  /* 覆盖 @xterm/xterm 默认的 #000，跟随 UI 主题 */
   background-color: var(--term-bg) !important;
 }
-/* xterm 自定义滚动条贴右侧 */
+
+.term-host.has-bg-image :deep(.xterm-viewport) {
+  background-color: transparent !important;
+}
+
 .term-host :deep(.xterm-scrollable-element > .scrollbar.vertical) {
   width: 6px !important;
   right: 0 !important;
@@ -421,6 +692,47 @@ onBeforeUnmount(() => {
   background: var(--scrollbar-thumb-hover) !important;
 }
 
+.term-find {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.term-find-input {
+  width: 180px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  background: var(--bg-root);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.term-find-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.term-find-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
 .empty {
   position: absolute;
   inset: 0;
@@ -430,5 +742,45 @@ onBeforeUnmount(() => {
   font-size: 13px;
   padding: 24px;
   text-align: center;
+  z-index: 1;
+}
+</style>
+
+<style>
+/* Teleport 到 body，不能用 scoped */
+.term-ctx-menu {
+  position: fixed;
+  z-index: 100;
+  min-width: 168px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.term-ctx-menu .ctx-item {
+  height: 28px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.term-ctx-menu .ctx-item:hover {
+  background: var(--bg-hover);
+}
+
+.term-ctx-menu .ctx-sep {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--border-soft);
 }
 </style>

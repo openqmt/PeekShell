@@ -8,6 +8,7 @@ import DisplaySettingsModal from "./components/DisplaySettingsModal.vue";
 import HostListModal from "./components/HostListModal.vue";
 import HostSidebar from "./components/HostSidebar.vue";
 import TerminalPanel from "./components/TerminalPanel.vue";
+import TerminalSettingsModal from "./components/TerminalSettingsModal.vue";
 import { useAiStore } from "./stores/ai";
 import { useHostsStore } from "./stores/hosts";
 import { useUiStore } from "./stores/ui";
@@ -24,6 +25,7 @@ const {
   connectModalOpen,
   aiSettingsModalOpen,
   displaySettingsModalOpen,
+  terminalSettingsModalOpen,
   displayPrefs,
 } = storeToRefs(ui);
 
@@ -64,5 +66,6 @@ const workspaceStyle = computed(() => {
     <ConnectModal v-if="connectModalOpen" />
     <AiSettingsModal v-if="aiSettingsModalOpen" />
     <DisplaySettingsModal v-if="displaySettingsModalOpen" />
+    <TerminalSettingsModal v-if="terminalSettingsModalOpen" />
   </div>
 </template>
