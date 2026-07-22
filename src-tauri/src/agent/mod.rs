@@ -580,7 +580,8 @@ fn truncate(s: &str, max: usize) -> String {
     }
 }
 
-/// 把 Agent 执行过程回显到 xterm（只显示，不写入远端 shell）。
+/// 把 Agent 执行过程回显到 xterm（只显示，不写入远端 shell），
+/// 随后向交互式 PTY 发送 Ctrl+U + Enter，让 shell 重新打出提示符。
 async fn echo_exec_to_terminal(
     app: &AppHandle,
     sessions: &SessionManager,
@@ -590,7 +591,10 @@ async fn echo_exec_to_terminal(
     error: Option<&str>,
 ) -> AppResult<()> {
     let text = format_terminal_echo(command, result, error);
-    sessions.mirror_display_output(app, session_id, &text).await
+    sessions.mirror_display_output(app, session_id, &text).await?;
+    // \x15 = Ctrl+U 清空当前输入行，避免误提交用户半成品输入；\n 触发新提示符
+    let _ = sessions.write(session_id, "\x15\n").await;
+    Ok(())
 }
 
 fn format_terminal_echo(command: &str, result: Option<&ExecResult>, error: Option<&str>) -> String {
