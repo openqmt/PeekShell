@@ -357,7 +357,7 @@ onBeforeUnmount(() => {
 }
 
 .model-select {
-  width: min(160px, 42vw);
+  width: min(120px, 36vw);
   flex-shrink: 1;
 }
 
