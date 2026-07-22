@@ -15,7 +15,7 @@ const hosts = useHostsStore();
 const ui = useUiStore();
 const { t, locale, toggleLocale, groupLabel } = useI18n();
 const { metrics, activeSession, connecting } = storeToRefs(sessions);
-const { sidebarCollapsed, theme } = storeToRefs(ui);
+const { sidebarCollapsed, theme, displayPrefs } = storeToRefs(ui);
 
 const METRICS_INTERVAL_MS = 1000;
 let metricsTimer: ReturnType<typeof setInterval> | null = null;
@@ -90,6 +90,14 @@ function hostMeta() {
         <button
           class="icon-btn"
           type="button"
+          :title="t('sidebar.settings')"
+          @click="ui.openDisplaySettingsModal()"
+        >
+          ⚙
+        </button>
+        <button
+          class="icon-btn"
+          type="button"
           :title="theme === 'dark' ? t('sidebar.themeToLight') : t('sidebar.themeToDark')"
           @click="ui.toggleTheme()"
         >
@@ -108,6 +116,14 @@ function hostMeta() {
         @click="toggleLocale()"
       >
         {{ locale === "zh" ? "EN" : "中" }}
+      </button>
+      <button
+        class="icon-btn"
+        type="button"
+        :title="t('sidebar.settings')"
+        @click="ui.openDisplaySettingsModal()"
+      >
+        ⚙
       </button>
       <button
         class="icon-btn"
@@ -146,7 +162,7 @@ function hostMeta() {
           {{ connecting ? t("sidebar.connecting") : t("sidebar.connectHint") }}
         </div>
         <template v-else>
-          <div class="info-card">
+          <div v-if="displayPrefs.sidebar.system" class="info-card">
             <h3>{{ t("sidebar.system") }}</h3>
             <dl class="kv">
               <dt>IP</dt><dd>{{ metrics.ip }}</dd>
@@ -157,7 +173,7 @@ function hostMeta() {
             </dl>
           </div>
 
-          <div class="info-card">
+          <div v-if="displayPrefs.sidebar.resources" class="info-card">
             <h3>{{ t("sidebar.resources") }}</h3>
             <div class="metric">
               <span class="label">CPU</span>
@@ -189,7 +205,7 @@ function hostMeta() {
             </div>
           </div>
 
-          <div class="info-card">
+          <div v-if="displayPrefs.sidebar.processes" class="info-card">
             <h3>{{ t("sidebar.processes") }}</h3>
             <div v-if="metrics.topProcesses.length" class="process-table">
               <div class="process-head">
@@ -210,7 +226,7 @@ function hostMeta() {
             <div v-else class="process-empty">{{ t("sidebar.noProcesses") }}</div>
           </div>
 
-          <div class="info-card">
+          <div v-if="displayPrefs.sidebar.network" class="info-card">
             <h3>{{ t("sidebar.network", { iface: metrics.netIface }) }}</h3>
             <div class="net-row">
               <span class="dir">↓ RX</span>
@@ -222,6 +238,18 @@ function hostMeta() {
               <span class="rate">{{ metrics.netTxKBs.toFixed(0) }} KB/s</span>
               <span class="total">{{ t("sidebar.totalGb", { n: metrics.netTxTotalGB.toFixed(0) }) }}</span>
             </div>
+          </div>
+
+          <div
+            v-if="
+              !displayPrefs.sidebar.system &&
+              !displayPrefs.sidebar.resources &&
+              !displayPrefs.sidebar.processes &&
+              !displayPrefs.sidebar.network
+            "
+            class="info-card muted"
+          >
+            {{ t("displaySettings.sidebarEmpty") }}
           </div>
         </template>
       </div>

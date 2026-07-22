@@ -1,14 +1,54 @@
 /** 侧栏折叠、主题、语言与弹窗显隐等纯 UI 状态。 */
 import { setTheme as setTauriTheme } from "@tauri-apps/api/app";
 import { defineStore } from "pinia";
-import { ref, watch } from "vue";
+import { reactive, ref, watch } from "vue";
 import type { Locale } from "../i18n/messages";
 import type { HostRecord } from "../types/host";
 
 export type ThemeMode = "dark" | "light";
 
+/** 各区域功能显隐偏好（持久化到 localStorage）。 */
+export interface DisplayPrefs {
+  sidebar: {
+    system: boolean;
+    resources: boolean;
+    processes: boolean;
+    network: boolean;
+  };
+  explorer: {
+    show: boolean;
+    colName: boolean;
+    colSize: boolean;
+    colType: boolean;
+    colModified: boolean;
+    colPermissions: boolean;
+    colGroup: boolean;
+  };
+  aiPanel: boolean;
+}
+
 const THEME_KEY = "peekshell.theme";
 const LOCALE_KEY = "peekshell.locale";
+const DISPLAY_PREFS_KEY = "peekshell.displayPrefs";
+
+export const DEFAULT_DISPLAY_PREFS: DisplayPrefs = {
+  sidebar: {
+    system: true,
+    resources: true,
+    processes: true,
+    network: true,
+  },
+  explorer: {
+    show: true,
+    colName: true,
+    colSize: true,
+    colType: true,
+    colModified: true,
+    colPermissions: true,
+    colGroup: true,
+  },
+  aiPanel: true,
+};
 
 function readStoredTheme(): ThemeMode {
   const raw = localStorage.getItem(THEME_KEY);
@@ -18,6 +58,21 @@ function readStoredTheme(): ThemeMode {
 function readStoredLocale(): Locale {
   const raw = localStorage.getItem(LOCALE_KEY);
   return raw === "en" ? "en" : "zh";
+}
+
+function readStoredDisplayPrefs(): DisplayPrefs {
+  try {
+    const raw = localStorage.getItem(DISPLAY_PREFS_KEY);
+    if (!raw) return structuredClone(DEFAULT_DISPLAY_PREFS);
+    const parsed = JSON.parse(raw) as Partial<DisplayPrefs>;
+    return {
+      sidebar: { ...DEFAULT_DISPLAY_PREFS.sidebar, ...parsed.sidebar },
+      explorer: { ...DEFAULT_DISPLAY_PREFS.explorer, ...parsed.explorer },
+      aiPanel: typeof parsed.aiPanel === "boolean" ? parsed.aiPanel : DEFAULT_DISPLAY_PREFS.aiPanel,
+    };
+  } catch {
+    return structuredClone(DEFAULT_DISPLAY_PREFS);
+  }
 }
 
 /** 把主题写到 <html data-theme>，供全局 CSS 变量切换。 */
@@ -44,11 +99,13 @@ export async function syncTauriTheme(mode: ThemeMode) {
 export const useUiStore = defineStore("ui", () => {
   const theme = ref<ThemeMode>(readStoredTheme());
   const locale = ref<Locale>(readStoredLocale());
+  const displayPrefs = reactive<DisplayPrefs>(readStoredDisplayPrefs());
   const sidebarCollapsed = ref(false);
   const aiCollapsed = ref(false);
   const hostsModalOpen = ref(false);
   const connectModalOpen = ref(false);
   const aiSettingsModalOpen = ref(false);
+  const displaySettingsModalOpen = ref(false);
   /** 编辑时带入；新增时为 null */
   const editingHost = ref<HostRecord | null>(null);
 
@@ -66,6 +123,14 @@ export const useUiStore = defineStore("ui", () => {
     applyLocale(value);
     localStorage.setItem(LOCALE_KEY, value);
   });
+
+  watch(
+    displayPrefs,
+    (value) => {
+      localStorage.setItem(DISPLAY_PREFS_KEY, JSON.stringify(value));
+    },
+    { deep: true }
+  );
 
   function setTheme(mode: ThemeMode) {
     theme.value = mode;
@@ -109,14 +174,30 @@ export const useUiStore = defineStore("ui", () => {
     aiSettingsModalOpen.value = false;
   }
 
+  function openDisplaySettingsModal() {
+    displaySettingsModalOpen.value = true;
+  }
+
+  function closeDisplaySettingsModal() {
+    displaySettingsModalOpen.value = false;
+  }
+
+  function resetDisplayPrefs() {
+    Object.assign(displayPrefs.sidebar, DEFAULT_DISPLAY_PREFS.sidebar);
+    Object.assign(displayPrefs.explorer, DEFAULT_DISPLAY_PREFS.explorer);
+    displayPrefs.aiPanel = DEFAULT_DISPLAY_PREFS.aiPanel;
+  }
+
   return {
     theme,
     locale,
+    displayPrefs,
     sidebarCollapsed,
     aiCollapsed,
     hostsModalOpen,
     connectModalOpen,
     aiSettingsModalOpen,
+    displaySettingsModalOpen,
     editingHost,
     setTheme,
     toggleTheme,
@@ -128,5 +209,8 @@ export const useUiStore = defineStore("ui", () => {
     closeConnectModal,
     openAiSettingsModal,
     closeAiSettingsModal,
+    openDisplaySettingsModal,
+    closeDisplaySettingsModal,
+    resetDisplayPrefs,
   };
 });

@@ -127,6 +127,8 @@ button { cursor: pointer; }
 .workspace.sidebar-collapsed { grid-template-columns: 44px 1fr 320px; }
 .workspace.ai-collapsed { grid-template-columns: 260px 1fr 44px; }
 .workspace.sidebar-collapsed.ai-collapsed { grid-template-columns: 44px 1fr 44px; }
+.workspace.ai-hidden { grid-template-columns: 260px 1fr; }
+.workspace.sidebar-collapsed.ai-hidden { grid-template-columns: 44px 1fr; }
 
 .icon-btn {
   width: 28px;

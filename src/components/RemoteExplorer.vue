@@ -9,6 +9,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import * as api from "../api/tauri";
 import { useI18n } from "../i18n";
 import { useSessionsStore } from "../stores/sessions";
+import { useUiStore } from "../stores/ui";
 import type { RemoteEntry, RemoteFileContent } from "../types/host";
 
 const emit = defineEmits<{ resized: [] }>();
@@ -24,6 +25,32 @@ const MAX_ENTRIES_WIDTH = 560;
 const DEFAULT_ENTRIES_WIDTH = 220;
 const EDGE_PX = 6;
 const ROOT_PATH = "/";
+
+type AttrColKey =
+  | "colName"
+  | "colSize"
+  | "colType"
+  | "colModified"
+  | "colPermissions"
+  | "colGroup";
+
+const ATTR_COL_WIDTHS: Record<AttrColKey, string> = {
+  colName: "minmax(120px, 1.6fr)",
+  colSize: "72px",
+  colType: "88px",
+  colModified: "118px",
+  colPermissions: "88px",
+  colGroup: "72px",
+};
+
+const ATTR_COL_ORDER: AttrColKey[] = [
+  "colName",
+  "colSize",
+  "colType",
+  "colModified",
+  "colPermissions",
+  "colGroup",
+];
 
 interface TreeRow {
   entry: RemoteEntry;
@@ -53,7 +80,34 @@ function joinPath(dir: string, name: string) {
 }
 
 const sessions = useSessionsStore();
+const ui = useUiStore();
 const { activeSessionId } = storeToRefs(sessions);
+const { displayPrefs } = storeToRefs(ui);
+
+const visibleAttrCols = computed(() =>
+  ATTR_COL_ORDER.filter((key) => displayPrefs.value.explorer[key])
+);
+
+const attrGridStyle = computed(() => ({
+  gridTemplateColumns: visibleAttrCols.value.map((key) => ATTR_COL_WIDTHS[key]).join(" ") || "1fr",
+}));
+
+function attrCell(entry: Pick<RemoteEntry, "name" | "size" | "isDir" | "fileType" | "modified" | "permissions" | "group">, key: AttrColKey) {
+  switch (key) {
+    case "colName":
+      return entry.name;
+    case "colSize":
+      return entry.isDir ? "—" : formatSize(entry.size);
+    case "colType":
+      return formatType({ isDir: entry.isDir, fileType: entry.fileType });
+    case "colModified":
+      return entry.modified || "—";
+    case "colPermissions":
+      return entry.permissions || "—";
+    case "colGroup":
+      return entry.group || "—";
+  }
+}
 
 const explorerEl = ref<HTMLElement | null>(null);
 const entriesEl = ref<HTMLElement | null>(null);
@@ -133,6 +187,18 @@ function formatType(entry: Pick<RemoteEntry, "isDir" | "fileType">) {
   if (raw.includes("link") || raw === "l" || raw === "symlink") return t("explorer.typeSymlink");
   if (raw === "f" || raw === "file" || raw.includes("regular")) return t("explorer.typeFile");
   return entry.fileType || t("explorer.typeFile");
+}
+
+function previewAsEntry(file: RemoteFileContent) {
+  return {
+    name: file.name,
+    size: file.size,
+    isDir: false,
+    fileType: file.fileType,
+    modified: file.modified,
+    permissions: file.permissions,
+    group: file.group,
+  };
 }
 
 function clampHeight(value: number) {
@@ -768,13 +834,8 @@ onBeforeUnmount(() => {
         <div v-else-if="!selectedPath" class="placeholder">{{ t("explorer.selectItem") }}</div>
 
         <template v-else-if="selectedIsDir">
-          <div class="attr-head">
-            <span>{{ t("explorer.colName") }}</span>
-            <span>{{ t("explorer.colSize") }}</span>
-            <span>{{ t("explorer.colType") }}</span>
-            <span>{{ t("explorer.colModified") }}</span>
-            <span>{{ t("explorer.colPermissions") }}</span>
-            <span>{{ t("explorer.colGroup") }}</span>
+          <div v-if="visibleAttrCols.length" class="attr-head" :style="attrGridStyle">
+            <span v-for="col in visibleAttrCols" :key="col">{{ t(`explorer.${col}`) }}</span>
           </div>
           <div v-if="!folderEntries.length" class="placeholder">{{ t("explorer.emptyDir") }}</div>
           <button
@@ -783,34 +844,30 @@ onBeforeUnmount(() => {
             type="button"
             class="attr-row"
             :class="{ dir: entry.isDir }"
+            :style="attrGridStyle"
             @click="onRightEntryClick(entry)"
             @contextmenu.prevent="entry.isDir && onDirContextMenu(entry, $event)"
           >
-            <span class="name" :title="entry.name">{{ entry.name }}</span>
-            <span>{{ entry.isDir ? "—" : formatSize(entry.size) }}</span>
-            <span>{{ formatType(entry) }}</span>
-            <span :title="entry.modified">{{ entry.modified || "—" }}</span>
-            <span class="mono">{{ entry.permissions || "—" }}</span>
-            <span>{{ entry.group || "—" }}</span>
+            <span
+              v-for="col in visibleAttrCols"
+              :key="col"
+              :class="{ name: col === 'colName', mono: col === 'colPermissions' }"
+              :title="col === 'colName' || col === 'colModified' ? attrCell(entry, col) : undefined"
+            >{{ attrCell(entry, col) }}</span>
           </button>
         </template>
 
         <template v-else-if="preview">
-          <div class="attr-head">
-            <span>{{ t("explorer.colName") }}</span>
-            <span>{{ t("explorer.colSize") }}</span>
-            <span>{{ t("explorer.colType") }}</span>
-            <span>{{ t("explorer.colModified") }}</span>
-            <span>{{ t("explorer.colPermissions") }}</span>
-            <span>{{ t("explorer.colGroup") }}</span>
+          <div v-if="visibleAttrCols.length" class="attr-head" :style="attrGridStyle">
+            <span v-for="col in visibleAttrCols" :key="col">{{ t(`explorer.${col}`) }}</span>
           </div>
-          <div class="attr-row file-meta">
-            <span class="name" :title="preview.name">{{ preview.name }}</span>
-            <span>{{ formatSize(preview.size) }}</span>
-            <span>{{ formatType({ isDir: false, fileType: preview.fileType }) }}</span>
-            <span :title="preview.modified">{{ preview.modified || "—" }}</span>
-            <span class="mono">{{ preview.permissions || "—" }}</span>
-            <span>{{ preview.group || "—" }}</span>
+          <div class="attr-row file-meta" :style="attrGridStyle">
+            <span
+              v-for="col in visibleAttrCols"
+              :key="col"
+              :class="{ name: col === 'colName', mono: col === 'colPermissions' }"
+              :title="col === 'colName' || col === 'colModified' ? attrCell(previewAsEntry(preview), col) : undefined"
+            >{{ attrCell(previewAsEntry(preview), col) }}</span>
           </div>
           <div v-if="preview.truncated" class="trunc-banner">{{ t("explorer.truncated") }}</div>
           <pre v-if="preview.binary" class="preview-body muted">{{ t("explorer.binary") }}</pre>
@@ -1085,7 +1142,6 @@ onBeforeUnmount(() => {
 .attr-head,
 .attr-row {
   display: grid;
-  grid-template-columns: minmax(120px, 1.6fr) 72px 88px 118px 88px 72px;
   gap: 8px;
   align-items: center;
   padding: 5px 10px;

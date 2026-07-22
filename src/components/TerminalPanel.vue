@@ -18,7 +18,7 @@ const sessions = useSessionsStore();
 const ui = useUiStore();
 const { t } = useI18n();
 const { sessions: sessionList, activeSessionId } = storeToRefs(sessions);
-const { theme } = storeToRefs(ui);
+const { theme, displayPrefs } = storeToRefs(ui);
 
 const hostEl = ref<HTMLElement | null>(null);
 const terms = new Map<string, { term: Terminal; fit: FitAddon; unlisten: UnlistenFn }>();
@@ -119,6 +119,14 @@ watch(theme, () => {
   applyTermTheme();
 });
 
+watch(
+  () => displayPrefs.value.explorer.show,
+  async () => {
+    await nextTick();
+    onResize();
+  }
+);
+
 onMounted(async () => {
   window.addEventListener("resize", onResize);
   await nextTick();
@@ -161,7 +169,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <RemoteExplorer @resized="onResize" />
+    <RemoteExplorer v-if="displayPrefs.explorer.show" @resized="onResize" />
   </section>
 </template>
 
