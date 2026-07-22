@@ -33,10 +33,23 @@ impl client::Handler for ClientHandler {
     }
 }
 
+/// 交互式终端滚动缓冲上限（字符），供 AI 上下文截取。
+const MAX_PTY_BUFFER_CHARS: usize = 24_000;
+
 struct LiveSession {
     handle: Handle<ClientHandler>,
     writer: mpsc::Sender<PtyCmd>,
     host_id: String,
+    /// 与 PTY 读任务共享，记录最近终端输出。
+    output_buf: Arc<Mutex<String>>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecResult {
+    pub stdout: String,
+    pub stderr: String,
+    pub exit_code: Option<u32>,
 }
 
 enum PtyCmd {
@@ -138,10 +151,12 @@ impl SessionManager {
         let session_id = Uuid::new_v4().to_string();
         let (writer_tx, mut writer_rx) = mpsc::channel::<PtyCmd>(64);
         let event_name = format!("pty://{session_id}");
+        let output_buf = Arc::new(Mutex::new(String::new()));
 
-        // 读远端输出 → 前端；同时消费本地写入与窗口大小变更
+        // 读远端输出 → 前端 + ring buffer；同时消费本地写入与窗口大小变更
         let app_read = app.clone();
         let event_read = event_name.clone();
+        let buf_read = output_buf.clone();
         tokio::spawn(async move {
             let mut channel = channel;
             loop {
@@ -150,10 +165,12 @@ impl SessionManager {
                         match msg {
                             Some(ChannelMsg::Data { ref data }) => {
                                 let text = String::from_utf8_lossy(data).to_string();
+                                append_pty_buffer(&buf_read, &text).await;
                                 let _ = app_read.emit(&event_read, text);
                             }
                             Some(ChannelMsg::ExtendedData { ref data, .. }) => {
                                 let text = String::from_utf8_lossy(data).to_string();
+                                append_pty_buffer(&buf_read, &text).await;
                                 let _ = app_read.emit(&event_read, text);
                             }
                             None => {
@@ -192,6 +209,7 @@ impl SessionManager {
                 handle,
                 writer: writer_tx,
                 host_id: host.id,
+                output_buf,
             },
         );
 
@@ -299,6 +317,32 @@ impl SessionManager {
         remote_upload(&host, local_path, remote_path, &app, transfer_id).await
     }
 
+    /// 返回会话最近终端输出尾部（已剥离部分 ANSI，供 AI 上下文）。
+    pub async fn pty_output_tail(&self, session_id: &str, max_chars: usize) -> AppResult<String> {
+        let map = self.inner.lock().await;
+        let session = map
+            .get(session_id)
+            .ok_or_else(|| AppError::Message("会话不存在".into()))?;
+        let buf = session.output_buf.lock().await;
+        let raw = if buf.len() > max_chars {
+            buf[buf.len() - max_chars..].to_string()
+        } else {
+            buf.clone()
+        };
+        Ok(strip_ansi_light(&raw))
+    }
+
+    /// 在已连接主机上开非交互 exec，捕获 stdout/stderr/exit（不写入交互式 PTY）。
+    /// 使用与指标采集相同的独立 SSH 通道，避免占用交互式 shell。
+    pub async fn exec_command(&self, session_id: &str, command: &str) -> AppResult<ExecResult> {
+        let host = self.host_for_session(session_id).await?;
+        run_exec_result(&host, command).await
+    }
+
+    pub async fn host_record_for_session(&self, session_id: &str) -> AppResult<HostRecord> {
+        self.host_for_session(session_id).await
+    }
+
     async fn host_for_session(&self, session_id: &str) -> AppResult<HostRecord> {
         let host_id = {
             let map = self.inner.lock().await;
@@ -308,6 +352,36 @@ impl SessionManager {
         };
         hosts::get_host(&host_id)
     }
+}
+
+async fn append_pty_buffer(buf: &Arc<Mutex<String>>, text: &str) {
+    let mut guard = buf.lock().await;
+    guard.push_str(text);
+    if guard.len() > MAX_PTY_BUFFER_CHARS {
+        let drain = guard.len() - MAX_PTY_BUFFER_CHARS;
+        guard.drain(..drain);
+    }
+}
+
+/// 粗略去掉 CSI 序列，避免把颜色码塞进模型上下文。
+fn strip_ansi_light(input: &str) -> String {
+    let mut out = String::with_capacity(input.len());
+    let mut chars = input.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\u{1b}' {
+            if chars.peek() == Some(&'[') {
+                chars.next();
+                while let Some(n) = chars.next() {
+                    if n.is_ascii_alphabetic() {
+                        break;
+                    }
+                }
+            }
+            continue;
+        }
+        out.push(c);
+    }
+    out
 }
 
 async fn open_shell(
@@ -503,6 +577,11 @@ LC_ALL=C ps -eo comm=,rss=,pcpu= --sort=-rss 2>/dev/null | head -n 5 | awk '{
 }
 
 async fn run_exec(host: &HostRecord, command: &str) -> AppResult<String> {
+    let result = run_exec_result(host, command).await?;
+    Ok(result.stdout)
+}
+
+async fn run_exec_result(host: &HostRecord, command: &str) -> AppResult<ExecResult> {
     let config = Arc::new(client::Config::default());
     let mut handle =
         client::connect(config, (host.host.as_str(), host.port), ClientHandler).await?;
@@ -534,13 +613,28 @@ async fn run_exec(host: &HostRecord, command: &str) -> AppResult<String> {
 
     let mut channel = handle.channel_open_session().await?;
     channel.exec(true, command).await?;
-    let mut buf = String::new();
+    let mut stdout = String::new();
+    let mut stderr = String::new();
+    let mut exit_code = None;
     while let Some(msg) = channel.wait().await {
-        if let ChannelMsg::Data { ref data } = msg {
-            buf.push_str(&String::from_utf8_lossy(data));
+        match msg {
+            ChannelMsg::Data { ref data } => {
+                stdout.push_str(&String::from_utf8_lossy(data));
+            }
+            ChannelMsg::ExtendedData { ref data, .. } => {
+                stderr.push_str(&String::from_utf8_lossy(data));
+            }
+            ChannelMsg::ExitStatus { exit_status } => {
+                exit_code = Some(exit_status);
+            }
+            _ => {}
         }
     }
-    Ok(buf)
+    Ok(ExecResult {
+        stdout,
+        stderr,
+        exit_code,
+    })
 }
 
 async fn run_exec_bytes(host: &HostRecord, command: &str) -> AppResult<Vec<u8>> {

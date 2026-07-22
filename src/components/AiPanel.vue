@@ -1,20 +1,103 @@
 <script setup lang="ts">
 /**
- * AI 助手面板（MVP 占位）：交互壳已就绪，Agent 闭环在 Phase 2 接入。
+ * AI 助手面板：自然语言提问 → 按执行模式自动/确认执行命令。
  */
 import { storeToRefs } from "pinia";
-import { computed, ref } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "../i18n";
 import { useAiStore } from "../stores/ai";
+import { useSessionsStore } from "../stores/sessions";
 import { useUiStore } from "../stores/ui";
+import type { ExecMode } from "../types/ai";
+import AppSelect from "./AppSelect.vue";
+import CommandApproveCard from "./CommandApproveCard.vue";
 
 const ai = useAiStore();
 const ui = useUiStore();
+const sessions = useSessionsStore();
 const { t } = useI18n();
 const { aiCollapsed } = storeToRefs(ui);
-const { activeProvider } = storeToRefs(ai);
+const { activeProvider, messages, sending, execMode, error } = storeToRefs(ai);
+const { activeSessionId } = storeToRefs(sessions);
+
 const draft = ref("");
+const chatEl = ref<HTMLElement | null>(null);
+const approvingId = ref<string | null>(null);
+
 const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfigured"));
+
+const canCompose = computed(() => !!activeProvider.value);
+
+const canSend = computed(
+  () => canCompose.value && !!draft.value.trim() && !sending.value
+);
+
+const modeOptions = computed(() => [
+  { value: "confirm", label: t("ai.mode.confirm") },
+  { value: "smart", label: t("ai.mode.smart") },
+  { value: "auto", label: t("ai.mode.auto") },
+]);
+
+const blockerText = computed(() => {
+  if (!activeProvider.value) return t("ai.err.noProvider");
+  return "";
+});
+
+const sessionHint = computed(() => {
+  if (activeProvider.value && !activeSessionId.value) return t("ai.hint.noSession");
+  return "";
+});
+
+const errorText = computed(() => {
+  if (error.value === "noProvider") return t("ai.err.noProvider");
+  if (error.value) return error.value;
+  return "";
+});
+
+watch(
+  messages,
+  async () => {
+    await nextTick();
+    if (chatEl.value) chatEl.value.scrollTop = chatEl.value.scrollHeight;
+  },
+  { deep: true }
+);
+
+async function onSend() {
+  const text = draft.value;
+  if (!canSend.value) return;
+  draft.value = "";
+  await ai.send(text);
+}
+
+function onKeydown(ev: KeyboardEvent) {
+  if (ev.key === "Enter" && !ev.shiftKey) {
+    ev.preventDefault();
+    void onSend();
+  }
+}
+
+async function onApprove(id: string) {
+  approvingId.value = id;
+  try {
+    await ai.approve(id);
+  } finally {
+    approvingId.value = null;
+  }
+}
+
+async function onReject(id: string) {
+  approvingId.value = id;
+  try {
+    await ai.reject(id);
+  } finally {
+    approvingId.value = null;
+  }
+}
+
+function onModeChange(value: string) {
+  execMode.value = value as ExecMode;
+}
 </script>
 
 <template>
@@ -26,8 +109,31 @@ const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfig
       <div class="ai-head-right">
         <span class="model-tag" :title="activeProvider?.name">{{ modelLabel }}</span>
         <div class="ai-head-actions">
-          <button class="icon-btn" type="button" :title="t('ai.configure')" @click="ui.openAiSettingsModal()">⚙</button>
-          <button class="icon-btn" type="button" :title="t('ai.collapse')" @click="aiCollapsed = true">»</button>
+          <button
+            class="icon-btn"
+            type="button"
+            :title="t('ai.clear')"
+            :aria-label="t('ai.clear')"
+            :disabled="!messages.length"
+            @click="ai.clearChat()"
+          >
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+              <path
+                d="M3.5 5h9M6 5V3.8h4V5M5.2 5l.5 7.2h4.6L10.8 5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" :title="t('ai.configure')" @click="ui.openAiSettingsModal()">
+            ⚙
+          </button>
+          <button class="icon-btn" type="button" :title="t('ai.collapse')" @click="aiCollapsed = true">
+            »
+          </button>
         </div>
       </div>
     </div>
@@ -39,8 +145,8 @@ const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfig
     </div>
 
     <div v-else class="ai-body">
-      <div class="chat">
-        <div class="msg assistant">
+      <div ref="chatEl" class="chat">
+        <div v-if="!messages.length" class="msg assistant">
           <div class="role">PeekShell Agent</div>
           <div>
             <template v-if="activeProvider">
@@ -51,13 +157,61 @@ const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfig
             </template>
           </div>
         </div>
-      </div>
-      <div class="composer">
-        <textarea v-model="draft" class="composer-box" rows="3" :placeholder="t('ai.placeholder')" disabled />
-        <div class="composer-bar">
-          <span class="hint">{{ t("ai.context") }}</span>
-          <button class="send" type="button" disabled>{{ t("ai.send") }}</button>
+
+        <div
+          v-for="msg in messages"
+          :key="msg.id"
+          class="msg"
+          :class="msg.role"
+        >
+          <div class="role">{{ msg.role === "user" ? t("ai.you") : "PeekShell Agent" }}</div>
+          <div class="content">{{ msg.content }}</div>
+          <CommandApproveCard
+            v-for="cmd in msg.commands || []"
+            :key="cmd.id"
+            :command="cmd"
+            :busy="approvingId === cmd.id || sending"
+            @approve="onApprove(cmd.id)"
+            @reject="onReject(cmd.id)"
+          />
         </div>
+
+        <div v-if="sending" class="msg assistant thinking">
+          <div class="role">PeekShell Agent</div>
+          <div>{{ t("ai.thinking") }}</div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <p v-if="errorText || blockerText" class="err">{{ errorText || blockerText }}</p>
+        <p v-else-if="sessionHint" class="hint-warn">{{ sessionHint }}</p>
+        <textarea
+          v-model="draft"
+          class="composer-box"
+          rows="3"
+          :placeholder="t('ai.placeholder')"
+          :disabled="!canCompose || sending"
+          @keydown="onKeydown"
+        />
+        <div class="composer-bar">
+          <AppSelect
+            v-model="execMode"
+            class="mode-select"
+            :options="modeOptions"
+            :disabled="sending"
+            @change="onModeChange"
+          />
+          <button
+            class="send"
+            type="button"
+            :disabled="!canSend"
+            :title="blockerText || undefined"
+            @click="onSend"
+          >
+            {{ sending ? t("ai.sending") : t("ai.send") }}
+          </button>
+        </div>
+        <span class="hint">{{ t("ai.context") }}</span>
       </div>
     </div>
   </aside>
@@ -83,7 +237,12 @@ const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfig
   gap: 6px;
 }
 
-.ai-head-left, .ai-head-right { display: flex; align-items: center; gap: 6px; }
+.ai-head-left,
+.ai-head-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 
 .ai-head-actions {
   display: flex;
@@ -160,7 +319,25 @@ const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfig
   padding: 8px 10px;
 }
 
-.msg.assistant { color: var(--text-muted); font-size: 12.5px; line-height: 1.5; }
+.msg {
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.msg.assistant {
+  color: var(--text-muted);
+}
+
+.msg.user .content {
+  color: var(--text);
+}
+
+.msg.thinking {
+  opacity: 0.75;
+}
+
 .role {
   font-size: 10px;
   font-weight: 600;
@@ -170,12 +347,34 @@ const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfig
   margin-bottom: 4px;
 }
 
+.msg.user .role {
+  color: var(--text-dim);
+}
+
+.content {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .composer {
   border-top: 1px solid var(--border-soft);
   padding: 8px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.err {
+  margin: 0;
+  font-size: 11px;
+  color: #c45c5c;
+}
+
+.hint-warn {
+  margin: 0;
+  font-size: 11px;
+  color: #c4a035;
+  line-height: 1.4;
 }
 
 .composer-box {
@@ -189,15 +388,26 @@ const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfig
   resize: none;
 }
 
-.composer-box:disabled { color: var(--text-dim); }
+.composer-box:disabled {
+  color: var(--text-dim);
+}
 
 .composer-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
-.hint { font-size: 10px; color: var(--text-dim); }
+.mode-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.hint {
+  font-size: 10px;
+  color: var(--text-dim);
+}
 
 .send {
   height: 28px;
@@ -208,11 +418,15 @@ const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfig
   color: #06140e;
   font-size: 12px;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 :global([data-theme="light"]) .send {
   color: #ffffff;
 }
 
-.send:disabled { opacity: 0.5; cursor: not-allowed; }
+.send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 </style>

@@ -56,3 +56,9 @@ impl From<russh_keys::Error> for AppError {
         AppError::Message(value.to_string())
     }
 }
+
+impl From<reqwest::Error> for AppError {
+    fn from(value: reqwest::Error) -> Self {
+        AppError::Message(value.to_string())
+    }
+}

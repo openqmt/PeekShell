@@ -3,7 +3,15 @@
  * 业务逻辑留在 store / 组件，这里只做 invoke 与类型对齐。
  */
 import { invoke } from "@tauri-apps/api/core";
-import type { AiProviderRecord, AiProviderUpsert, AiSettings } from "../types/ai";
+import type {
+  AiChatResponse,
+  AiProviderRecord,
+  AiProviderUpsert,
+  AiSettings,
+  AgentCommand,
+  ExecuteCommandResponse,
+  ExecMode,
+} from "../types/ai";
 import type {
   AuthType,
   HostMetrics,
@@ -29,6 +37,26 @@ export function deleteAiProvider(id: string): Promise<void> {
 
 export function setActiveAiProvider(id: string): Promise<void> {
   return invoke("set_active_ai_provider", { id });
+}
+
+export function aiChat(payload: {
+  sessionId: string;
+  message: string;
+  execMode: ExecMode;
+  history: { role: string; content: string }[];
+}): Promise<AiChatResponse> {
+  return invoke("ai_chat", { payload });
+}
+
+export function executeApprovedCommand(
+  sessionId: string,
+  commandId: string
+): Promise<ExecuteCommandResponse> {
+  return invoke("execute_approved_command", { sessionId, commandId });
+}
+
+export function rejectAgentCommand(sessionId: string, commandId: string): Promise<AgentCommand> {
+  return invoke("reject_agent_command", { sessionId, commandId });
 }
 
 export function listHosts(): Promise<HostRecord[]> {

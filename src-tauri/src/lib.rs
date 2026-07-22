@@ -1,3 +1,4 @@
+mod agent;
 mod ai_config;
 mod credentials;
 mod error;
@@ -5,6 +6,8 @@ mod hosts;
 mod local_fs;
 mod ssh;
 
+use agent::schema::{AgentCommandView, AiChatRequest, AiChatResponse};
+use agent::{AgentState, ExecuteCommandResponse};
 use ai_config::{AiProviderRecord, AiProviderUpsert, AiSettings};
 use error::AppResult;
 use hosts::{HostRecord, HostUpsert};
@@ -69,6 +72,34 @@ fn delete_ai_provider(id: String) -> AppResult<()> {
 #[tauri::command]
 fn set_active_ai_provider(id: String) -> AppResult<()> {
     ai_config::set_active_provider(&id)
+}
+
+#[tauri::command]
+async fn ai_chat(
+    agent: tauri::State<'_, Arc<AgentState>>,
+    sessions: tauri::State<'_, Arc<SessionManager>>,
+    payload: AiChatRequest,
+) -> AppResult<AiChatResponse> {
+    agent::chat(agent.inner(), sessions.inner(), payload).await
+}
+
+#[tauri::command]
+async fn execute_approved_command(
+    agent: tauri::State<'_, Arc<AgentState>>,
+    sessions: tauri::State<'_, Arc<SessionManager>>,
+    session_id: String,
+    command_id: String,
+) -> AppResult<ExecuteCommandResponse> {
+    agent::execute_approved(agent.inner(), sessions.inner(), &session_id, &command_id).await
+}
+
+#[tauri::command]
+async fn reject_agent_command(
+    agent: tauri::State<'_, Arc<AgentState>>,
+    session_id: String,
+    command_id: String,
+) -> AppResult<AgentCommandView> {
+    agent::reject_command(agent.inner(), &session_id, &command_id).await
 }
 
 #[tauri::command]
@@ -221,12 +252,14 @@ async fn remote_upload(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let sessions = Arc::new(SessionManager::new());
+    let agent = Arc::new(AgentState::new());
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .manage(sessions)
+        .manage(agent)
         .invoke_handler(tauri::generate_handler![
             list_hosts,
             list_groups,
@@ -239,6 +272,9 @@ pub fn run() {
             upsert_ai_provider,
             delete_ai_provider,
             set_active_ai_provider,
+            ai_chat,
+            execute_approved_command,
+            reject_agent_command,
             connect_host,
             test_host_connection,
             disconnect_session,

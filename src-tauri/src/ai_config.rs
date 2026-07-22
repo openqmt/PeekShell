@@ -184,3 +184,37 @@ pub fn set_active_provider(id: &str) -> AppResult<()> {
     file.active_provider_id = Some(id.to_string());
     save_file(&file)
 }
+
+/// Runtime credentials for the active provider (API key from keychain).
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct ActiveProviderRuntime {
+    pub id: String,
+    pub name: String,
+    pub kind: AiProviderKind,
+    pub base_url: String,
+    pub model: String,
+    pub api_key: Option<String>,
+}
+
+pub fn resolve_active_provider() -> AppResult<ActiveProviderRuntime> {
+    let file = load_file()?;
+    let active_id = file
+        .active_provider_id
+        .as_ref()
+        .ok_or_else(|| AppError::Message("请先在设置中配置并选择 AI 提供商".into()))?;
+    let provider = file
+        .providers
+        .into_iter()
+        .find(|p| &p.id == active_id)
+        .ok_or_else(|| AppError::Message("当前 AI 提供商不存在，请重新选择".into()))?;
+    let api_key = credentials::get_secret(&secret_id(&provider.id), API_KEY_KIND)?;
+    Ok(ActiveProviderRuntime {
+        id: provider.id,
+        name: provider.name,
+        kind: provider.kind,
+        base_url: provider.base_url,
+        model: provider.model,
+        api_key,
+    })
+}
