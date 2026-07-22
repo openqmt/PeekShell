@@ -4,18 +4,33 @@
  * 有活动会话时每秒刷新一次主机指标。
  */
 import { storeToRefs } from "pinia";
-import { onBeforeUnmount, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "../i18n";
 import { useSessionsStore } from "../stores/sessions";
 import { useUiStore, SIDEBAR_WIDTH_MAX, SIDEBAR_WIDTH_MIN } from "../stores/ui";
 import { useHostsStore } from "../stores/hosts";
+
+const QUICK_HOST_LIMIT = 10;
 
 const sessions = useSessionsStore();
 const hosts = useHostsStore();
 const ui = useUiStore();
 const { t, locale, toggleLocale, groupLabel } = useI18n();
 const { metrics, activeSession, connecting } = storeToRefs(sessions);
+const { hosts: hostList } = storeToRefs(hosts);
 const { sidebarCollapsed, sidebarWidth, theme, displayPrefs } = storeToRefs(ui);
+
+/** First N hosts for one-click connect when the sidebar has no live metrics. */
+const quickHosts = computed(() => hostList.value.slice(0, QUICK_HOST_LIMIT));
+
+async function quickConnect(hostId: string) {
+  if (connecting.value) return;
+  try {
+    await sessions.connect(hostId);
+  } catch {
+    // sessions store already records error; keep sidebar quiet
+  }
+}
 
 const METRICS_INTERVAL_MS = 1000;
 let metricsTimer: ReturnType<typeof setInterval> | null = null;
@@ -205,7 +220,52 @@ onBeforeUnmount(() => {
 
       <div class="info-scroll">
         <div v-if="!activeSession || !metrics" class="info-card muted">
-          {{ connecting ? t("sidebar.connecting") : t("sidebar.connectHint") }}
+          <template v-if="connecting">
+            {{ t("sidebar.connecting") }}
+          </template>
+          <div v-else-if="quickHosts.length" class="quick-hosts">
+            <button
+              v-for="host in quickHosts"
+              :key="host.id"
+              type="button"
+              class="quick-host"
+              :title="`${host.host}:${host.port}`"
+              :disabled="connecting"
+              @click="quickConnect(host.id)"
+            >
+              <span class="quick-host-main">
+                <svg
+                  class="quick-host-icon"
+                  viewBox="0 0 16 16"
+                  width="14"
+                  height="14"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <rect
+                    x="2.5"
+                    y="2.5"
+                    width="11"
+                    height="8"
+                    rx="1.5"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                  />
+                  <path
+                    d="M6 13.5h4M8 10.5v3"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                <span class="quick-host-name">{{ host.name }}</span>
+              </span>
+              <span class="quick-host-user">{{ host.username }}</span>
+            </button>
+          </div>
+          <template v-else>
+            {{ t("displaySettings.sidebarEmpty") }}
+          </template>
         </div>
         <template v-else>
           <div v-if="displayPrefs.sidebar.system" class="info-card">
@@ -476,6 +536,76 @@ onBeforeUnmount(() => {
   color: var(--text-muted);
   font-size: 12px;
   line-height: 1.4;
+}
+
+.quick-hosts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quick-host {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.quick-host-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.quick-host-icon {
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.quick-host-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-host-user {
+  flex-shrink: 0;
+  max-width: 42%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.quick-host:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--accent);
+}
+
+.quick-host:hover:not(:disabled) .quick-host-icon,
+.quick-host:hover:not(:disabled) .quick-host-user {
+  color: var(--accent);
+}
+
+.quick-host:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
 .info-card h3 {
