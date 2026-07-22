@@ -15,6 +15,7 @@ import { useSessionsStore } from "../stores/sessions";
 import { useTransfersStore } from "../stores/transfers";
 import { useUiStore } from "../stores/ui";
 import type { RemoteEntry, RemoteFileContent } from "../types/host";
+import PreviewCodeEditor from "./PreviewCodeEditor.vue";
 
 const emit = defineEmits<{ resized: [] }>();
 const { t } = useI18n();
@@ -132,6 +133,12 @@ const loadingDirs = ref<Record<string, boolean>>({});
 const selectedPath = ref<string | null>(null);
 const selectedIsDir = ref(false);
 const preview = ref<RemoteFileContent | null>(null);
+const editBuffer = ref("");
+const savedBaseline = ref("");
+const previewSaving = ref(false);
+/** Large-file workflow: local path paired with a remote file for external edit + sync. */
+const localEdit = ref<{ remotePath: string; localPath: string } | null>(null);
+const syncingLocal = ref(false);
 const treeLoading = ref(false);
 const previewLoading = ref(false);
 const error = ref("");
@@ -188,6 +195,26 @@ const folderEntries = computed(() => {
   if (!selectedPath.value || !selectedIsDir.value) return [];
   return childrenMap.value[selectedPath.value] ?? [];
 });
+
+const canEditOnline = computed(
+  () => !!preview.value && !preview.value.binary && !preview.value.truncated
+);
+
+const isDirty = computed(
+  () => canEditOnline.value && editBuffer.value !== savedBaseline.value
+);
+
+const previewEditorText = computed(() => {
+  if (!preview.value || preview.value.binary) return "";
+  return canEditOnline.value ? editBuffer.value : preview.value.content;
+});
+
+const hasLocalEditForPreview = computed(
+  () =>
+    !!localEdit.value &&
+    !!preview.value &&
+    localEdit.value.remotePath === preview.value.path
+);
 
 function formatSize(bytes: number) {
   if (!Number.isFinite(bytes) || bytes < 0) return "—";
@@ -397,13 +424,36 @@ function onExplorerDown(event: MouseEvent) {
   }
 }
 
+function resetPreviewEditState() {
+  editBuffer.value = "";
+  savedBaseline.value = "";
+  previewSaving.value = false;
+}
+
+function applyPreviewContent(file: RemoteFileContent | null) {
+  preview.value = file;
+  if (file && !file.binary && !file.truncated) {
+    editBuffer.value = file.content;
+    savedBaseline.value = file.content;
+  } else {
+    editBuffer.value = "";
+    savedBaseline.value = "";
+  }
+}
+
+function confirmDiscardIfDirty(): boolean {
+  if (!isDirty.value) return true;
+  return window.confirm(t("explorer.unsavedConfirm"));
+}
+
 function resetTree() {
   childrenMap.value = {};
   expanded.value = { [ROOT_PATH]: true };
   loadingDirs.value = {};
   selectedPath.value = null;
   selectedIsDir.value = false;
-  preview.value = null;
+  applyPreviewContent(null);
+  resetPreviewEditState();
   pathInput.value = ROOT_PATH;
   error.value = "";
 }
@@ -436,10 +486,11 @@ async function ensureAncestorsExpanded(path: string) {
   }
 }
 
-async function selectFolder(path: string, expand = true) {
+async function selectFolder(path: string, expand = true, skipDirtyCheck = false) {
   if (!activeSessionId.value) return;
+  if (!skipDirtyCheck && !confirmDiscardIfDirty()) return;
   error.value = "";
-  preview.value = null;
+  applyPreviewContent(null);
   selectedPath.value = path;
   selectedIsDir.value = true;
   pathInput.value = path;
@@ -455,19 +506,133 @@ async function selectFolder(path: string, expand = true) {
 
 async function selectFile(entry: RemoteEntry) {
   if (!activeSessionId.value) return;
+  if (selectedPath.value === entry.path && !selectedIsDir.value) return;
+  if (!confirmDiscardIfDirty()) return;
   error.value = "";
   selectedPath.value = entry.path;
   selectedIsDir.value = false;
   pathInput.value = parentPath(entry.path);
   previewLoading.value = true;
   try {
-    preview.value = await api.readRemoteFile(activeSessionId.value, entry.path);
+    const file = await api.readRemoteFile(activeSessionId.value, entry.path);
+    applyPreviewContent(file);
   } catch (e) {
-    preview.value = null;
+    applyPreviewContent(null);
     error.value = String(e);
   } finally {
     previewLoading.value = false;
   }
+}
+
+async function savePreview() {
+  if (!activeSessionId.value || !preview.value || !canEditOnline.value || !isDirty.value) return;
+  if (previewSaving.value) return;
+  previewSaving.value = true;
+  error.value = "";
+  statusMsg.value = t("explorer.saving");
+  try {
+    await api.writeRemoteFile(activeSessionId.value, preview.value.path, editBuffer.value);
+    const file = await api.readRemoteFile(activeSessionId.value, preview.value.path);
+    applyPreviewContent(file);
+    const parent = parentPath(file.path);
+    const next = { ...childrenMap.value };
+    delete next[parent];
+    childrenMap.value = next;
+    await fetchDir(parent, true);
+    flashStatus(t("explorer.saved"));
+  } catch (e) {
+    statusMsg.value = "";
+    error.value = String(e);
+  } finally {
+    previewSaving.value = false;
+  }
+}
+
+async function downloadAndEditLocally() {
+  if (!activeSessionId.value || !preview.value || preview.value.binary) return;
+  const entry = previewAsEntry(preview.value);
+  const defaultName = basenameOf(entry.path);
+  let localPath: string | null = null;
+  if (defaultDownloadDir.value) {
+    localPath = joinLocalPath(defaultDownloadDir.value, defaultName);
+  } else {
+    const picked = await save({
+      title: t("explorer.downloadTitle"),
+      defaultPath: defaultName,
+    });
+    if (typeof picked === "string" && picked) localPath = picked;
+  }
+  if (!localPath) return;
+
+  const transferId = transfers.startTransfer({
+    kind: "download",
+    name: defaultName,
+    remotePath: entry.path,
+    localPath,
+  });
+  statusMsg.value = t("explorer.working");
+  error.value = "";
+  try {
+    await api.remoteDownload(activeSessionId.value, entry.path, localPath, transferId);
+    localEdit.value = { remotePath: entry.path, localPath };
+    try {
+      await openPath(localPath);
+    } catch (e) {
+      flashStatus(String(e));
+    }
+    flashStatus(t("explorer.localEditReady"), 2800);
+  } catch (e) {
+    transfers.markError(transferId, String(e));
+    statusMsg.value = "";
+    error.value = String(e);
+  }
+}
+
+async function openLocalEditFile() {
+  if (!localEdit.value) return;
+  try {
+    await openPath(localEdit.value.localPath);
+  } catch (e) {
+    flashStatus(String(e));
+  }
+}
+
+async function syncLocalEdit() {
+  if (!activeSessionId.value || !localEdit.value || syncingLocal.value) return;
+  const { remotePath, localPath } = localEdit.value;
+  syncingLocal.value = true;
+  statusMsg.value = t("explorer.syncing");
+  error.value = "";
+  const name = basenameOf(remotePath);
+  const transferId = transfers.startTransfer({
+    kind: "upload",
+    name,
+    remotePath,
+    localPath,
+  });
+  try {
+    await api.remoteUpload(activeSessionId.value, localPath, remotePath, transferId);
+    if (preview.value?.path === remotePath) {
+      const file = await api.readRemoteFile(activeSessionId.value, remotePath);
+      applyPreviewContent(file);
+    }
+    const parent = parentPath(remotePath);
+    const next = { ...childrenMap.value };
+    delete next[parent];
+    childrenMap.value = next;
+    await fetchDir(parent, true);
+    flashStatus(t("explorer.synced"));
+  } catch (e) {
+    transfers.markError(transferId, String(e));
+    statusMsg.value = "";
+    error.value = String(e);
+  } finally {
+    syncingLocal.value = false;
+  }
+}
+
+function onPreviewEditorInput(value: string) {
+  if (canEditOnline.value) editBuffer.value = value;
 }
 
 async function toggleExpand(entry: RemoteEntry, event?: Event) {
@@ -516,14 +681,16 @@ async function onRightEntryClick(entry: RemoteEntry) {
 
 async function bootstrap() {
   if (!activeSessionId.value) {
+    if (!confirmDiscardIfDirty()) return;
     resetTree();
     return;
   }
+  if (!confirmDiscardIfDirty()) return;
   treeLoading.value = true;
   error.value = "";
   try {
     resetTree();
-    await selectFolder(ROOT_PATH, true);
+    await selectFolder(ROOT_PATH, true, true);
   } catch (e) {
     error.value = String(e);
   } finally {
@@ -1250,9 +1417,6 @@ onBeforeUnmount(() => {
         </template>
 
         <template v-else-if="preview">
-          <div v-if="visibleAttrCols.length" class="attr-head" :style="attrGridStyle">
-            <span v-for="col in visibleAttrCols" :key="col">{{ t(`explorer.${col}`) }}</span>
-          </div>
           <div
             class="attr-row file-meta"
             :style="attrGridStyle"
@@ -1262,25 +1426,66 @@ onBeforeUnmount(() => {
               v-for="col in visibleAttrCols"
               :key="col"
               :class="{ name: col === 'colName', mono: col === 'colPermissions' }"
-            >{{ attrCell(previewAsEntry(preview), col) }}</span>
+            >
+              <template v-if="col === 'colName' && canEditOnline && isDirty">
+                <span class="preview-dirty" :title="t('explorer.save')">●</span>
+              </template>
+              {{ attrCell(previewAsEntry(preview), col) }}
+            </span>
           </div>
+
+          <div
+            v-if="preview.truncated && !preview.binary"
+            class="preview-toolbar"
+          >
+            <button
+              type="button"
+              class="preview-tool-btn"
+              :disabled="actionBusy || syncingLocal"
+              @click="downloadAndEditLocally"
+            >
+              {{ t("explorer.editLocally") }}
+            </button>
+            <template v-if="hasLocalEditForPreview">
+              <button type="button" class="preview-tool-btn" @click="openLocalEditFile">
+                {{ t("explorer.openLocalEdit") }}
+              </button>
+              <button
+                type="button"
+                class="preview-tool-btn primary"
+                :disabled="syncingLocal"
+                @click="syncLocalEdit"
+              >
+                {{ syncingLocal ? t("explorer.syncing") : t("explorer.syncLocalEdit") }}
+              </button>
+            </template>
+          </div>
+
           <div
             v-if="preview.truncated"
             class="trunc-banner"
             @contextmenu.prevent.stop="onEntryContextMenu(previewAsEntry(preview), $event)"
           >
-            {{ t("explorer.truncated") }}
+            {{ t("explorer.truncated") }} — {{ t("explorer.truncatedReadonly") }}
           </div>
-          <pre
-            v-if="preview.binary"
-            class="preview-body muted"
-            @contextmenu.prevent.stop="onEntryContextMenu(previewAsEntry(preview), $event)"
-          >{{ t("explorer.binary") }}</pre>
-          <pre
-            v-else
-            class="preview-body"
-            @contextmenu.prevent.stop="onEntryContextMenu(previewAsEntry(preview), $event)"
-          >{{ preview.content || t("explorer.emptyFile") }}</pre>
+
+          <div class="preview-content-wrap">
+            <pre
+              v-if="preview.binary"
+              class="preview-body muted"
+              @contextmenu.prevent.stop="onEntryContextMenu(previewAsEntry(preview), $event)"
+            >{{ t("explorer.binary") }}</pre>
+            <PreviewCodeEditor
+              v-else
+              :model-value="previewEditorText"
+              :filename="preview.name"
+              :readonly="!canEditOnline"
+              :placeholder-text="t('explorer.emptyFile')"
+              @update:model-value="onPreviewEditorInput"
+              @save="savePreview"
+              @contextmenu="onEntryContextMenu(previewAsEntry(preview), $event)"
+            />
+          </div>
         </template>
       </div>
     </div>
@@ -1913,15 +2118,75 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid var(--border-soft);
 }
 
+.preview-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--bg-elevated);
+}
+
+.preview-tool-btn {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  background: var(--bg-root);
+  color: var(--text);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.preview-tool-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.preview-tool-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.preview-tool-btn.primary {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.preview-dirty {
+  display: inline-block;
+  margin-right: 4px;
+  color: var(--warn);
+  font-size: 12px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.preview-content-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .preview-body {
   margin: 0;
   padding: 10px;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  resize: none;
   font-size: 11.5px;
   line-height: 1.45;
   font-family: var(--font-mono);
   white-space: pre-wrap;
   word-break: break-word;
   color: var(--text);
+  background: transparent;
+  outline: none;
 }
 
 .preview-body.muted {

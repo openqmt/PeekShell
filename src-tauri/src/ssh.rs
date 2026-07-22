@@ -268,6 +268,12 @@ impl SessionManager {
         read_remote_file(&host, path).await
     }
 
+    /// Overwrite a remote text file with UTF-8 content (preview-sized payloads only).
+    pub async fn write_file(&self, session_id: &str, path: &str, content: &str) -> AppResult<()> {
+        let host = self.host_for_session(session_id).await?;
+        write_remote_file(&host, path, content).await
+    }
+
     pub async fn mkdir(&self, session_id: &str, path: &str) -> AppResult<()> {
         let host = self.host_for_session(session_id).await?;
         remote_mkdir(&host, path).await
@@ -884,6 +890,65 @@ head -c "$max" "$path"
         content,
         binary,
     })
+}
+
+/// Write UTF-8 content via `cat > path` on an SSH channel (same transport as upload).
+async fn write_remote_file(host: &HostRecord, path: &str, content: &str) -> AppResult<()> {
+    let path = normalize_remote_path(path)?;
+    if path == "/" {
+        return Err(AppError::Message("远端路径无效".into()));
+    }
+    let data = content.as_bytes();
+    if data.len() as u64 > MAX_PREVIEW_BYTES {
+        return Err(AppError::Message(format!(
+            "内容超过 {}KB 上限，请改用本地下载编辑后同步",
+            MAX_PREVIEW_BYTES / 1024
+        )));
+    }
+
+    let handle = open_authenticated_handle(host).await?;
+    let mut channel = handle.channel_open_session().await?;
+    let cmd = format!("cat > {}", shell_quote(&path));
+    channel.exec(true, cmd.as_str()).await?;
+
+    const CHUNK: usize = 32 * 1024;
+    for chunk in data.chunks(CHUNK) {
+        channel
+            .data(chunk)
+            .await
+            .map_err(|e| AppError::Message(format!("写入失败: {e}")))?;
+    }
+    channel
+        .eof()
+        .await
+        .map_err(|e| AppError::Message(format!("写入结束失败: {e}")))?;
+
+    let mut stderr = String::new();
+    let mut code: Option<u32> = None;
+    while let Some(msg) = channel.wait().await {
+        match msg {
+            ChannelMsg::ExtendedData { ref data, .. } => {
+                stderr.push_str(&String::from_utf8_lossy(data));
+            }
+            ChannelMsg::ExitStatus { exit_status } => {
+                code = Some(exit_status);
+            }
+            _ => {}
+        }
+    }
+
+    let _ = handle
+        .disconnect(russh::Disconnect::ByApplication, "", "")
+        .await;
+
+    if code.unwrap_or(1) != 0 {
+        let msg = stderr.trim();
+        if msg.is_empty() {
+            return Err(AppError::Message("写入失败".into()));
+        }
+        return Err(AppError::Message(format!("写入失败: {msg}")));
+    }
+    Ok(())
 }
 
 fn parent_remote(path: &str) -> String {

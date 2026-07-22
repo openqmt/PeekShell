@@ -185,6 +185,16 @@ async fn read_remote_file(
 }
 
 #[tauri::command]
+async fn write_remote_file(
+    state: tauri::State<'_, Arc<SessionManager>>,
+    session_id: String,
+    path: String,
+    content: String,
+) -> AppResult<()> {
+    state.write_file(&session_id, &path, &content).await
+}
+
+#[tauri::command]
 async fn remote_mkdir(
     state: tauri::State<'_, Arc<SessionManager>>,
     session_id: String,
@@ -308,6 +318,7 @@ pub fn run() {
             fetch_host_metrics,
             list_remote_dir,
             read_remote_file,
+            write_remote_file,
             remote_mkdir,
             remote_create_file,
             remote_rename,

@@ -136,6 +136,10 @@ export function readRemoteFile(sessionId: string, path: string): Promise<RemoteF
   return invoke("read_remote_file", { sessionId, path });
 }
 
+export function writeRemoteFile(sessionId: string, path: string, content: string): Promise<void> {
+  return invoke("write_remote_file", { sessionId, path, content });
+}
+
 export function remoteMkdir(sessionId: string, path: string): Promise<void> {
   return invoke("remote_mkdir", { sessionId, path });
 }
