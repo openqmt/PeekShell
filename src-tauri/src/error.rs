@@ -39,12 +39,6 @@ impl From<uuid::Error> for AppError {
     }
 }
 
-impl From<keyring::Error> for AppError {
-    fn from(value: keyring::Error) -> Self {
-        AppError::Message(value.to_string())
-    }
-}
-
 impl From<russh::Error> for AppError {
     fn from(value: russh::Error) -> Self {
         AppError::Message(value.to_string())

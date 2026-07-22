@@ -464,7 +464,7 @@ pub struct ConnectionTestRequest {
     pub password: Option<String>,
     pub private_key_path: Option<String>,
     pub passphrase: Option<String>,
-    /// 编辑已有主机时：表单未填密码/口令则回退到钥匙串。
+    /// 编辑已有主机时：表单未填密码/口令则回退到已保存的密钥。
     pub host_id: Option<String>,
 }
 

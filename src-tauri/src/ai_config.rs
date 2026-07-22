@@ -1,4 +1,4 @@
-//! AI provider configuration. API keys live in the OS keychain, never in JSON.
+//! AI provider configuration. API keys live in `secrets.json`, not provider JSON.
 //! 每个提供商可配置多个模型；当前选用的模型写在提供商的 `active_model` 上。
 
 use crate::credentials;
@@ -292,7 +292,7 @@ pub fn set_active_model(model: &str) -> AppResult<AiProviderRecord> {
     to_record(saved)
 }
 
-/// Runtime credentials for the active provider (API key from keychain).
+/// Runtime credentials for the active provider (API key from secrets store).
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct ActiveProviderRuntime {

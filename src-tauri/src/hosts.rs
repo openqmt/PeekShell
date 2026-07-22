@@ -27,7 +27,7 @@ pub struct HostRecord {
     pub auth_type: AuthType,
     #[serde(default)]
     pub private_key_path: Option<String>,
-    /// 是否已在钥匙串中保存对应密钥（密码或私钥口令可选，密码模式必须有）
+    /// Whether a secret is stored (password required for password auth; passphrase optional).
     pub has_secret: bool,
 }
 

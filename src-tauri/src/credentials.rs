@@ -1,36 +1,60 @@
-//! 凭证存系统钥匙串，主机 JSON 中不落明文密码/口令。
+//! Secrets (host passwords, key passphrases, AI API keys) live in app-data
+//! `secrets.json` instead of the OS keychain — avoids keychain access prompts.
 
 use crate::error::{AppError, AppResult};
-use keyring::Entry;
+use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
 
-const SERVICE: &str = "PeekShell";
-
-fn entry(host_id: &str, kind: &str) -> AppResult<Entry> {
-    Ok(Entry::new(SERVICE, &format!("{host_id}/{kind}"))?)
+fn data_dir() -> AppResult<PathBuf> {
+    let base = dirs::data_dir().ok_or_else(|| AppError::Message("无法定位数据目录".into()))?;
+    let dir = base.join("PeekShell");
+    fs::create_dir_all(&dir)?;
+    Ok(dir)
 }
 
-pub fn set_secret(host_id: &str, kind: &str, value: &str) -> AppResult<()> {
-    entry(host_id, kind)?.set_password(value)?;
+fn store_path() -> AppResult<PathBuf> {
+    Ok(data_dir()?.join("secrets.json"))
+}
+
+fn secret_key(id: &str, kind: &str) -> String {
+    format!("{id}/{kind}")
+}
+
+fn load() -> AppResult<HashMap<String, String>> {
+    let path = store_path()?;
+    if !path.exists() {
+        return Ok(HashMap::new());
+    }
+    let raw = fs::read_to_string(path)?;
+    Ok(serde_json::from_str(&raw)?)
+}
+
+fn save(map: &HashMap<String, String>) -> AppResult<()> {
+    let path = store_path()?;
+    let raw = serde_json::to_string_pretty(map)?;
+    fs::write(path, raw)?;
     Ok(())
 }
 
-pub fn get_secret(host_id: &str, kind: &str) -> AppResult<Option<String>> {
-    match entry(host_id, kind)?.get_password() {
-        Ok(v) => Ok(Some(v)),
-        Err(keyring::Error::NoEntry) => Ok(None),
-        Err(e) => Err(AppError::from(e)),
-    }
+pub fn set_secret(id: &str, kind: &str, value: &str) -> AppResult<()> {
+    let mut map = load()?;
+    map.insert(secret_key(id, kind), value.to_string());
+    save(&map)
 }
 
-pub fn delete_secret(host_id: &str, kind: &str) -> AppResult<()> {
-    match entry(host_id, kind)?.delete_credential() {
-        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
-        Err(e) => Err(AppError::from(e)),
-    }
+pub fn get_secret(id: &str, kind: &str) -> AppResult<Option<String>> {
+    Ok(load()?.get(&secret_key(id, kind)).cloned())
 }
 
-pub fn delete_all_secrets(host_id: &str) -> AppResult<()> {
-    delete_secret(host_id, "password")?;
-    delete_secret(host_id, "passphrase")?;
+pub fn delete_secret(id: &str, kind: &str) -> AppResult<()> {
+    let mut map = load()?;
+    map.remove(&secret_key(id, kind));
+    save(&map)
+}
+
+pub fn delete_all_secrets(id: &str) -> AppResult<()> {
+    delete_secret(id, "password")?;
+    delete_secret(id, "passphrase")?;
     Ok(())
 }
