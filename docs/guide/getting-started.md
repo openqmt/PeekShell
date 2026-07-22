@@ -1,3 +1,8 @@
+---
+title: 快速开始
+description: 从源码安装并运行 PeekShell，配置 Node.js、Rust 与 Tauri 开发环境。
+---
+
 # 快速开始
 
 ## 环境要求

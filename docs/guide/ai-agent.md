@@ -1,3 +1,8 @@
+---
+title: AI 助手
+description: PeekShell 确认式 AI Agent：提议命令、风险展示、人工确认后再执行，保障远端安全。
+---
+
 # AI 助手
 
 PeekShell 的 AI Agent 设计原则是：**模型可以提议，但不能擅自执行**。

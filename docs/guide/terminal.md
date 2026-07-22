@@ -1,3 +1,8 @@
+---
+title: 终端
+description: 使用 PeekShell 多标签 SSH 终端，查看主机系统与资源概览，配置显示与主题。
+---
+
 # 终端
 
 PeekShell 使用 xterm.js 渲染 SSH PTY 会话。

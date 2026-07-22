@@ -2,7 +2,8 @@ import type { DefaultTheme, LocaleSpecificConfig } from 'vitepress'
 
 export const en: LocaleSpecificConfig<DefaultTheme.Config> = {
   lang: 'en-US',
-  description: 'Lightweight cross-platform SSH client with a confirmation-first AI agent',
+  description:
+    'PeekShell — lightweight cross-platform SSH client with host management, multi-tab terminal, remote files, and a confirmation-first AI agent.',
 
   themeConfig: {
     nav: [

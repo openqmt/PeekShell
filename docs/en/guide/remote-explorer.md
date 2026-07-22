@@ -1,3 +1,8 @@
+---
+title: Remote files
+description: Browse remote directories in PeekShell, upload and download files alongside your terminal workflow.
+---
+
 # Remote files
 
 After connecting, use the remote file explorer to browse the remote tree and transfer files.

@@ -1,3 +1,8 @@
+---
+title: Introduction
+description: Learn about PeekShell — a lightweight cross-platform SSH client with hosts, multi-tab terminal, remote files, and a confirmation-first AI agent.
+---
+
 # Introduction
 
 PeekShell is a lightweight cross-platform SSH client for Windows, macOS, and Linux. It focuses on host management, multi-tab terminals, remote file browsing, and an AI agent that follows a **propose → confirm → execute** loop.

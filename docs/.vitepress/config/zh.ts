@@ -2,7 +2,8 @@ import type { DefaultTheme, LocaleSpecificConfig } from 'vitepress'
 
 export const zh: LocaleSpecificConfig<DefaultTheme.Config> = {
   lang: 'zh-CN',
-  description: '轻量跨平台 SSH 客户端，内置确认式 AI Agent',
+  description:
+    'PeekShell — 轻量跨平台 SSH 客户端，支持主机管理、多标签终端、远程文件与确认式 AI Agent。',
 
   themeConfig: {
     nav: [

@@ -1,3 +1,8 @@
+---
+title: Terminal
+description: Use PeekShell multi-tab SSH terminals with host system overview, themes, and display settings.
+---
+
 # Terminal
 
 PeekShell renders SSH PTY sessions with xterm.js.

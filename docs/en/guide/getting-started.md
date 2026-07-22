@@ -1,3 +1,8 @@
+---
+title: Quick start
+description: Install and run PeekShell from source with Node.js, Rust, and Tauri prerequisites.
+---
+
 # Quick start
 
 ## Requirements

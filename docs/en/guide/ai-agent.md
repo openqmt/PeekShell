@@ -1,3 +1,8 @@
+---
+title: AI assistant
+description: PeekShell confirmation-first AI agent — propose commands, show risk, and only execute after you approve.
+---
+
 # AI assistant
 
 PeekShell’s AI agent rule is simple: **the model may propose; it must not execute on its own**.

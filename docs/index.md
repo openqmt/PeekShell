@@ -1,5 +1,8 @@
 ---
 layout: home
+title: PeekShell
+titleTemplate: 轻量跨平台 SSH 客户端
+description: PeekShell — 轻量跨平台 SSH 客户端，支持主机管理、多标签终端、远程文件与确认式 AI Agent。
 
 hero:
   name: PeekShell

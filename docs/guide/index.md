@@ -1,3 +1,8 @@
+---
+title: 介绍
+description: 了解 PeekShell：轻量跨平台 SSH 客户端，主机管理、多标签终端、远程文件与确认式 AI Agent。
+---
+
 # 介绍
 
 PeekShell 是一款轻量跨平台 SSH 客户端，面向 Windows / macOS / Linux，核心能力包括主机管理、多标签终端、远程文件浏览，以及「提议命令 → 用户确认 → 执行」的 AI Agent。

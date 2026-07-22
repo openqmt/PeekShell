@@ -1,3 +1,8 @@
+---
+title: Hosts
+description: Manage SSH hosts in PeekShell with groups, password or private-key auth, and secure credential storage.
+---
+
 # Hosts
 
 Open the host list from the sidebar to manage SSH connections by group.
