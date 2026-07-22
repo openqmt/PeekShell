@@ -185,26 +185,26 @@ onBeforeUnmount(() => {
 }
 
 .tabs {
-  height: 36px;
+  height: 32px;
   background: var(--bg-panel);
   border-bottom: 1px solid var(--border-soft);
   display: flex;
   align-items: stretch;
-  padding: 0 4px;
-  gap: 2px;
+  padding: 0 2px;
+  gap: 1px;
 }
 
 .tab {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 12px;
+  gap: 6px;
+  padding: 0 10px;
   font-size: 12px;
   color: var(--text-muted);
   border: none;
   background: transparent;
   border-radius: 6px 6px 0 0;
-  margin-top: 4px;
+  margin-top: 2px;
   max-width: 180px;
 }
 
@@ -226,18 +226,18 @@ onBeforeUnmount(() => {
 .x:hover { opacity: 1; color: var(--danger); }
 
 .tab-add {
-  width: 28px;
+  width: 32px;
   border: none;
   background: transparent;
   color: var(--text-dim);
-  font-size: 16px;
-  margin-top: 4px;
+  font-size: 18px;
+  margin-top: 2px;
 }
 
 .term-host {
   flex: 1;
   min-height: 0;
-  padding: 8px 0 8px 8px;
+  padding: 4px 0 4px 4px;
   position: relative;
 }
 

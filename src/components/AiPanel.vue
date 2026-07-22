@@ -74,20 +74,21 @@ const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfig
 }
 
 .ai-head {
-  padding: 10px 10px 10px 14px;
+  padding: 4px 6px 4px 10px;
+  min-height: 40px;
   border-bottom: 1px solid var(--border-soft);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 
-.ai-head-left, .ai-head-right { display: flex; align-items: center; gap: 8px; }
+.ai-head-left, .ai-head-right { display: flex; align-items: center; gap: 6px; }
 
 .ai-head-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 0;
 }
 
 .ai-head h2 {
@@ -95,7 +96,7 @@ const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfig
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .ai-head h2::before {
@@ -125,8 +126,8 @@ const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfig
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 0 12px;
-  gap: 12px;
+  padding: 6px 0 10px;
+  gap: 6px;
 }
 
 .rail-dot {
@@ -156,33 +157,33 @@ const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfig
 .chat {
   flex: 1;
   overflow: auto;
-  padding: 14px;
+  padding: 8px 10px;
 }
 
-.msg.assistant { color: var(--text-muted); font-size: 12.5px; line-height: 1.55; }
+.msg.assistant { color: var(--text-muted); font-size: 12.5px; line-height: 1.5; }
 .role {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .composer {
   border-top: 1px solid var(--border-soft);
-  padding: 12px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .composer-box {
-  min-height: 72px;
+  min-height: 56px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--bg-root);
-  padding: 10px 12px;
+  padding: 8px 10px;
   font-size: 12.5px;
   color: var(--text);
   resize: none;
@@ -199,13 +200,13 @@ const modelLabel = computed(() => activeProvider.value?.model ?? t("ai.notConfig
 .hint { font-size: 10px; color: var(--text-dim); }
 
 .send {
-  height: 28px;
-  padding: 0 14px;
+  height: 32px;
+  padding: 0 16px;
   border: none;
   border-radius: var(--radius);
   background: var(--accent);
   color: #06140e;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 

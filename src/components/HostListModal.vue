@@ -236,14 +236,14 @@ function onBackdrop(e: MouseEvent) {
                 <div class="modal-tools">
                     <button
                         type="button"
-                        class="btn primary md"
+                        class="btn primary"
                         @click="ui.openConnectModal(null)"
                     >
                         {{ t('hosts.addConnection') }}
                     </button>
                     <button
                         type="button"
-                        class="btn ghost md"
+                        class="btn ghost"
                         @click="openCreateGroup"
                     >
                         {{ t('hosts.addGroup') }}
@@ -513,10 +513,36 @@ function onBackdrop(e: MouseEvent) {
     width: min(560px, 100%);
 }
 
+.hosts-modal :deep(.modal-head) {
+    padding: 10px 12px;
+}
+
+.hosts-modal :deep(.modal-body) {
+    padding: 10px 12px;
+}
+
+.hosts-modal :deep(.modal-head h2) {
+    font-size: 14px;
+}
+
+.hosts-modal :deep(.modal-head .sub) {
+    margin-top: 1px;
+}
+
+.hosts-modal :deep(.modal-tools) {
+    gap: 4px;
+}
+
+.hosts-modal :deep(.modal-tools .btn) {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+}
+
 .mgr-group {
-    margin-bottom: 10px;
+    margin-bottom: 6px;
     border: 1px solid var(--border-soft);
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: hidden;
     background: var(--bg-elevated);
     transition: border-color 0.18s ease, box-shadow 0.18s ease;
@@ -530,11 +556,11 @@ function onBackdrop(e: MouseEvent) {
 .mgr-group-head {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
+    gap: 6px;
+    padding: 6px 8px;
     background: var(--bg-hover);
     border-bottom: 1px solid transparent;
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     user-select: none;
@@ -552,9 +578,9 @@ function onBackdrop(e: MouseEvent) {
 .chev {
     display: inline-grid;
     place-items: center;
-    width: 18px;
-    height: 18px;
-    border-radius: 5px;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
     color: var(--text-dim);
     background: var(--bg-root);
     border: 1px solid var(--border-soft);
@@ -579,15 +605,15 @@ function onBackdrop(e: MouseEvent) {
 }
 
 .count {
-    min-width: 22px;
-    height: 20px;
-    padding: 0 7px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
     border-radius: 999px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 11px;
+    font-size: 10px;
     color: var(--text-muted);
     font-family: var(--font-mono);
     background: var(--bg-root);
@@ -597,7 +623,7 @@ function onBackdrop(e: MouseEvent) {
 .group-actions {
     margin-left: auto;
     display: flex;
-    gap: 4px;
+    gap: 2px;
 }
 
 .mgr-panel {
@@ -621,7 +647,7 @@ function onBackdrop(e: MouseEvent) {
 }
 
 .mgr-empty {
-    padding: 12px;
+    padding: 8px;
     text-align: center;
     color: var(--text-dim);
     font-size: 12px;
@@ -629,12 +655,12 @@ function onBackdrop(e: MouseEvent) {
 
 .mgr-row {
     display: grid;
-    grid-template-columns: 18px 1fr auto;
-    gap: 10px;
+    grid-template-columns: 14px 1fr auto;
+    gap: 8px;
     align-items: center;
-    padding: 10px 12px;
+    padding: 6px 8px;
     border-top: 1px solid var(--border-soft);
-    font-size: 12.5px;
+    font-size: 12px;
     cursor: pointer;
     outline: none;
     transition: background 0.15s ease;
@@ -651,8 +677,8 @@ function onBackdrop(e: MouseEvent) {
 }
 
 .status {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: var(--text-dim);
 }
@@ -662,28 +688,30 @@ function onBackdrop(e: MouseEvent) {
 
 .meta strong {
     display: block;
-    font-size: 13px;
+    font-size: 12.5px;
+    line-height: 1.25;
 }
 .meta span {
-    font-size: 11px;
+    font-size: 10.5px;
+    line-height: 1.3;
     color: var(--text-muted);
     font-family: var(--font-mono);
 }
 .note {
     display: block;
-    margin-top: 2px;
+    margin-top: 1px;
     font-family: var(--font-ui) !important;
     color: var(--text-dim) !important;
 }
 
 .row-actions {
     display: flex;
-    gap: 4px;
+    gap: 2px;
 }
 .empty {
     color: var(--text-muted);
     font-size: 13px;
-    padding: 24px;
+    padding: 16px;
     text-align: center;
 }
 

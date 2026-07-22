@@ -216,7 +216,7 @@ function onBackdrop(e: MouseEvent) {
           </div>
         </div>
 
-        <div class="section-label" style="margin-top: 16px">{{ t("connect.auth") }}</div>
+        <div class="section-label auth-section">{{ t("connect.auth") }}</div>
         <div class="auth-tabs">
           <button
             type="button"
@@ -243,7 +243,7 @@ function onBackdrop(e: MouseEvent) {
           </div>
         </div>
 
-        <div v-if="form.authType === 'password'" class="form-grid" style="margin-top: 12px">
+        <div v-if="form.authType === 'password'" class="form-grid auth-fields">
           <div class="field full">
             <label>{{ t("connect.password") }}<span v-if="passwordRequired" class="req">*</span></label>
             <input
@@ -254,7 +254,7 @@ function onBackdrop(e: MouseEvent) {
           </div>
         </div>
 
-        <div v-else class="form-grid" style="margin-top: 12px">
+        <div v-else class="form-grid auth-fields">
           <div class="field full">
             <label>{{ t("connect.keyFile") }}<span class="req">*</span></label>
             <div class="file-pick">
@@ -292,30 +292,102 @@ function onBackdrop(e: MouseEvent) {
 </template>
 
 <style scoped>
+.modal.sm {
+  width: min(460px, 100%);
+  max-height: min(720px, calc(100vh - 48px));
+}
+
+.modal :deep(.modal-head) {
+  padding: 10px 12px;
+}
+
+.modal :deep(.modal-head h2) {
+  font-size: 14px;
+}
+
+.modal :deep(.modal-head .sub) {
+  margin-top: 1px;
+}
+
+.modal :deep(.modal-body) {
+  padding: 10px 12px;
+}
+
+.modal :deep(.modal-foot) {
+  padding: 8px 12px;
+  gap: 6px;
+}
+
+.modal :deep(.section-label) {
+  margin: 0 0 6px;
+}
+
+.modal :deep(.form-grid) {
+  gap: 8px;
+}
+
+.modal :deep(.field label) {
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.modal :deep(.field input),
+.modal :deep(.field select),
+.modal :deep(.field textarea) {
+  height: 30px;
+  padding: 0 8px;
+  font-size: 12.5px;
+}
+
+.modal :deep(.app-select-trigger) {
+  height: 30px;
+  padding: 0 8px 0 10px;
+  font-size: 12.5px;
+}
+
+.modal :deep(.field textarea) {
+  height: 52px;
+  padding: 6px 8px;
+  resize: vertical;
+}
+
+.modal :deep(.error-banner) {
+  margin-bottom: 8px;
+  padding: 6px 8px;
+}
+
 .ok-banner {
-  margin-bottom: 10px;
-  padding: 8px 10px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
   border-radius: 6px;
   background: var(--accent-dim);
   color: var(--accent);
   font-size: 12px;
 }
 
+.auth-section {
+  margin-top: 10px !important;
+}
+
+.auth-fields {
+  margin-top: 8px;
+}
+
 .auth-tabs {
   display: flex;
-  gap: 4px;
-  padding: 3px;
+  gap: 3px;
+  padding: 2px;
   background: var(--bg-root);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  margin-bottom: 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
 }
 
 .auth-tab {
   flex: 1;
-  height: 30px;
+  height: 28px;
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   background: transparent;
   color: var(--text-muted);
   font-size: 12px;
@@ -330,7 +402,7 @@ function onBackdrop(e: MouseEvent) {
 
 .file-pick {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
 }
 

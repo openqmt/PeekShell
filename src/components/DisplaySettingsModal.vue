@@ -110,17 +110,51 @@ function onBackdrop(e: MouseEvent) {
 </template>
 
 <style scoped>
+.modal.sm {
+  width: min(560px, 100%);
+}
+
+.modal :deep(.modal-head) {
+  padding: 10px 12px;
+}
+
+.modal :deep(.modal-head h2) {
+  font-size: 14px;
+}
+
+.modal :deep(.modal-head .sub) {
+  margin-top: 1px;
+}
+
+.modal :deep(.modal-body) {
+  padding: 10px 12px;
+}
+
+.modal :deep(.modal-foot) {
+  padding: 8px 12px;
+  gap: 6px;
+}
+
+.modal :deep(.section-label) {
+  margin: 2px 0 6px;
+  letter-spacing: 0.05em;
+}
+
+.modal :deep(.section-label:not(:first-child)) {
+  margin-top: 4px;
+}
+
 .check-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 12px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px 8px;
+  margin-bottom: 10px;
 }
 
 .check-grid.nested {
-  margin-top: 8px;
-  padding: 10px 12px;
-  border-radius: 8px;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
   border: 1px solid var(--border-soft);
   background: var(--bg-elevated);
 }
@@ -128,24 +162,34 @@ function onBackdrop(e: MouseEvent) {
 .section-hint {
   font-size: 11px;
   color: var(--text-dim);
-  margin: -6px 0 0;
+  margin: -4px 0 0;
+  line-height: 1.3;
 }
 
 .check {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 5px;
+  font-size: 12px;
   color: var(--text);
   cursor: pointer;
   user-select: none;
+  min-height: 26px;
+  min-width: 0;
+}
+
+.check span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .check input {
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
   accent-color: var(--accent);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .foot-spacer {
