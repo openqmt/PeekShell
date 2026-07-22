@@ -739,12 +739,22 @@ onBeforeUnmount(() => {
     <div class="toolbar">
       <button
         type="button"
-        class="btn ghost mini"
+        class="tool-icon"
         :title="t('explorer.parentTitle')"
+        :aria-label="t('explorer.parentTitle')"
         :disabled="!activeSessionId || !canGoUp || treeLoading"
         @click="goParent"
       >
-        {{ t("explorer.parent") }}
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path
+            d="M8 12.5V4.5M8 4.5 4.5 8M8 4.5 11.5 8"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
       </button>
       <input
         v-model="pathInput"
@@ -757,19 +767,41 @@ onBeforeUnmount(() => {
       />
       <button
         type="button"
-        class="btn ghost mini"
+        class="tool-icon"
+        :title="t('explorer.go')"
+        :aria-label="t('explorer.go')"
         :disabled="!activeSessionId || treeLoading"
         @click="goPath"
       >
-        {{ t("explorer.go") }}
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path
+            d="M3 8h9.5M12.5 8 9 4.5M12.5 8 9 11.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
       </button>
       <button
         type="button"
-        class="btn ghost mini"
+        class="tool-icon"
+        :title="t('common.refresh')"
+        :aria-label="t('common.refresh')"
         :disabled="!activeSessionId || treeLoading"
         @click="refresh"
       >
-        {{ t("common.refresh") }}
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path
+            d="M13 8a5 5 0 1 1-1.3-3.4M13 3.5V7H9.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
       </button>
     </div>
 
@@ -970,6 +1002,7 @@ onBeforeUnmount(() => {
 .explorer.resize-height,
 .explorer.resize-height .toolbar,
 .explorer.resize-height .path-input,
+.explorer.resize-height .tool-icon,
 .explorer.resize-height .btn,
 .explorer.resize-height .tree-row,
 .explorer.resize-height .attr-row {
@@ -989,9 +1022,32 @@ onBeforeUnmount(() => {
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   padding: 6px 8px;
   border-bottom: 1px solid var(--border-soft);
+}
+
+.tool-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+}
+
+.tool-icon:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+
+.tool-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .path-input {
