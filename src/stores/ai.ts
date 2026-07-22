@@ -1,3 +1,4 @@
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { defineStore } from "pinia";
 import { computed, ref, watch } from "vue";
 import * as api from "../api/tauri";
@@ -20,6 +21,16 @@ function loadExecMode(): ExecMode {
 
 function newId() {
   return crypto.randomUUID();
+}
+
+/** 流式过程中隐藏末尾 JSON，只展示给人看的说明。 */
+export function visibleStreamText(raw: string): string {
+  const lower = raw.toLowerCase();
+  const fence = lower.indexOf("```json");
+  if (fence >= 0) return raw.slice(0, fence).trimEnd();
+  const trimmed = raw.trimStart();
+  if (trimmed.startsWith("{")) return "";
+  return raw;
 }
 
 export const useAiStore = defineStore("ai", () => {
@@ -96,38 +107,62 @@ export const useAiStore = defineStore("ai", () => {
 
     const sessions = useSessionsStore();
     const sessionId = sessions.activeSessionId ?? "";
+    const requestId = newId();
+    const assistantId = newId();
 
     error.value = "";
     messages.value.push({ id: newId(), role: "user", content: text });
+    messages.value.push({
+      id: assistantId,
+      role: "assistant",
+      content: "",
+      streaming: true,
+    });
     sending.value = true;
 
     const history = messages.value
       .filter((m) => m.role === "user" || m.role === "assistant")
-      .slice(0, -1)
+      .slice(0, -2)
       .map((m) => ({ role: m.role, content: m.content }));
 
+    let unlisten: UnlistenFn | undefined;
     try {
+      unlisten = await listen<{ requestId: string; delta: string }>("ai://chunk", (event) => {
+        if (event.payload.requestId !== requestId) return;
+        const msg = messages.value.find((m) => m.id === assistantId);
+        if (!msg) return;
+        msg.content += event.payload.delta;
+      });
+
       const res = await api.aiChat({
         sessionId,
         message: text,
         execMode: execMode.value,
         history,
+        requestId,
       });
 
-      messages.value.push({
-        id: newId(),
-        role: "assistant",
-        content: res.explanation,
-        commands: res.commands,
-      });
+      const msg = messages.value.find((m) => m.id === assistantId);
+      if (msg) {
+        msg.content = res.explanation;
+        msg.commands = res.commands;
+        msg.streaming = false;
+      }
     } catch (e) {
       error.value = String(e);
-      messages.value.push({
-        id: newId(),
-        role: "assistant",
-        content: String(e),
-      });
+      const msg = messages.value.find((m) => m.id === assistantId);
+      if (msg) {
+        msg.content = msg.content.trim() || String(e);
+        msg.streaming = false;
+      } else {
+        messages.value.push({
+          id: newId(),
+          role: "assistant",
+          content: String(e),
+        });
+      }
     } finally {
+      if (unlisten) unlisten();
       sending.value = false;
     }
   }

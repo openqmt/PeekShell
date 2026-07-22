@@ -73,4 +73,6 @@ export interface ChatMessage {
   content: string;
   commands?: AgentCommand[];
   execResult?: ExecResult;
+  /** 流式输出中 */
+  streaming?: boolean;
 }

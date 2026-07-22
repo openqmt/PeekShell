@@ -44,6 +44,7 @@ export function aiChat(payload: {
   message: string;
   execMode: ExecMode;
   history: { role: string; content: string }[];
+  requestId: string;
 }): Promise<AiChatResponse> {
   return invoke("ai_chat", { payload });
 }

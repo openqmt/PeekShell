@@ -55,6 +55,9 @@ pub struct AiChatRequest {
     pub exec_mode: ExecMode,
     #[serde(default)]
     pub history: Vec<ChatHistoryMessage>,
+    /// 前端生成，用于关联 `ai://chunk` 流式事件。
+    #[serde(default)]
+    pub request_id: String,
 }
 
 #[derive(Debug, Clone, Serialize)]

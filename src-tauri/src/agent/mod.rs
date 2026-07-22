@@ -103,8 +103,14 @@ pub async fn chat(
         content: message.to_string(),
     });
 
-    let raw = llm::chat_completions(&provider, &messages).await?;
-    let parsed = parse_llm_json(&raw)?;
+    let request_id = if req.request_id.trim().is_empty() {
+        Uuid::new_v4().to_string()
+    } else {
+        req.request_id.trim().to_string()
+    };
+
+    let raw = llm::chat_completions_stream(app, &request_id, &provider, &messages).await?;
+    let parsed = parse_agent_reply(&raw)?;
 
     let mut commands = Vec::new();
     let mut auto_results = Vec::new();
@@ -385,14 +391,21 @@ fn command_view(cmd: &PendingCommand, auto_executed: bool) -> AgentCommandView {
 }
 
 fn system_prompt() -> String {
-    r#"You are PeekShell Agent, an SSH assistant. Reply with ONLY a single JSON object (no markdown fences):
+    r#"You are PeekShell Agent, an SSH assistant.
+
+Reply in this exact format:
+1) First write a clear natural-language explanation for the user (plain text / markdown). Do NOT start with JSON.
+2) Then append a JSON block for machine parsing, fenced like:
+
+```json
 {
-  "explanation": "brief explanation for the user",
   "needs_more_info": false,
   "commands": [
     { "command": "shell command", "risk": "low|medium|high", "rationale": "why this command" }
   ]
 }
+```
+
 Rules:
 - Prefer read-only diagnostics first. Never claim you already executed anything.
 - risk=low: safe read-only (ls, cat, df, free, systemctl status, journalctl without delete).
@@ -400,6 +413,7 @@ Rules:
 - risk=high: destructive or privilege/network-wide (rm -rf, mkfs, firewall flush, drop DB, write /etc).
 - If unclear, set needs_more_info=true and commands=[].
 - commands should be non-interactive; avoid editors/pagers (no vim/less). Use absolute paths when helpful.
+- The JSON must be valid. Keep the explanation outside the fence.
 "#
     .to_string()
 }
@@ -454,25 +468,80 @@ fn redact_secrets(text: &str) -> String {
     out
 }
 
-fn parse_llm_json(raw: &str) -> AppResult<LlmAgentReply> {
+fn parse_agent_reply(raw: &str) -> AppResult<LlmAgentReply> {
     let trimmed = raw.trim();
-    if let Ok(parsed) = serde_json::from_str::<LlmAgentReply>(trimmed) {
-        return Ok(parsed);
-    }
-    if let Some(start) = trimmed.find('{') {
-        if let Some(end) = trimmed.rfind('}') {
-            if end > start {
-                if let Ok(parsed) = serde_json::from_str::<LlmAgentReply>(&trimmed[start..=end]) {
-                    return Ok(parsed);
+
+    // 优先：说明文字 + ```json ... ```
+    if let Some((explanation, json_part)) = split_explanation_and_json(trimmed) {
+        if let Ok(mut parsed) = serde_json::from_str::<LlmAgentReply>(json_part) {
+            if parsed.explanation.trim().is_empty() {
+                parsed.explanation = explanation.trim().to_string();
+            }
+            return Ok(parsed);
+        }
+        if let Some(obj) = extract_json_object(json_part) {
+            if let Ok(mut parsed) = serde_json::from_str::<LlmAgentReply>(obj) {
+                if parsed.explanation.trim().is_empty() {
+                    parsed.explanation = explanation.trim().to_string();
                 }
+                return Ok(parsed);
             }
         }
     }
+
+    // 兼容旧格式：整段就是 JSON
+    if let Ok(parsed) = serde_json::from_str::<LlmAgentReply>(trimmed) {
+        return Ok(parsed);
+    }
+    if let Some(obj) = extract_json_object(trimmed) {
+        if let Ok(parsed) = serde_json::from_str::<LlmAgentReply>(obj) {
+            return Ok(parsed);
+        }
+    }
+
     Ok(LlmAgentReply {
-        explanation: trimmed.to_string(),
+        explanation: strip_json_fence_tail(trimmed),
         needs_more_info: false,
         commands: vec![],
     })
+}
+
+fn split_explanation_and_json(raw: &str) -> Option<(String, &str)> {
+    let lower = raw.to_ascii_lowercase();
+    let marker = "```json";
+    if let Some(idx) = lower.find(marker) {
+        let explanation = raw[..idx].to_string();
+        let after = &raw[idx + marker.len()..];
+        let json_body = after.split("```").next().unwrap_or(after).trim();
+        return Some((explanation, json_body));
+    }
+    // 无 fence：尝试最后一个 { ... }
+    if let Some(start) = raw.rfind('{') {
+        if let Some(end) = raw.rfind('}') {
+            if end > start {
+                return Some((raw[..start].to_string(), &raw[start..=end]));
+            }
+        }
+    }
+    None
+}
+
+fn extract_json_object(raw: &str) -> Option<&str> {
+    let start = raw.find('{')?;
+    let end = raw.rfind('}')?;
+    if end > start {
+        Some(&raw[start..=end])
+    } else {
+        None
+    }
+}
+
+fn strip_json_fence_tail(raw: &str) -> String {
+    let lower = raw.to_ascii_lowercase();
+    if let Some(idx) = lower.find("```json") {
+        return raw[..idx].trim().to_string();
+    }
+    raw.trim().to_string()
 }
 
 async fn feedback_after_runs(

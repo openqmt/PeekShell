@@ -5,7 +5,7 @@
 import { storeToRefs } from "pinia";
 import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "../i18n";
-import { useAiStore } from "../stores/ai";
+import { useAiStore, visibleStreamText } from "../stores/ai";
 import { useSessionsStore } from "../stores/sessions";
 import { useUiStore } from "../stores/ui";
 import type { ExecMode } from "../types/ai";
@@ -168,7 +168,15 @@ function onModeChange(value: string) {
         >
           <div class="msg-inner">
             <div v-if="msg.role !== 'user'" class="role">PeekShell Agent</div>
-            <div class="content">{{ msg.content }}</div>
+            <div class="content">
+              <template v-if="msg.streaming && !visibleStreamText(msg.content)">
+                {{ t("ai.thinking") }}
+              </template>
+              <template v-else>
+                {{ msg.streaming ? visibleStreamText(msg.content) : msg.content }}
+              </template>
+              <span v-if="msg.streaming" class="stream-caret" />
+            </div>
             <CommandApproveCard
               v-for="cmd in msg.commands || []"
               :key="cmd.id"
@@ -177,13 +185,6 @@ function onModeChange(value: string) {
               @approve="onApprove(cmd.id)"
               @reject="onReject(cmd.id)"
             />
-          </div>
-        </div>
-
-        <div v-if="sending" class="msg assistant thinking">
-          <div class="msg-inner">
-            <div class="role">PeekShell Agent</div>
-            <div class="content">{{ t("ai.thinking") }}</div>
           </div>
         </div>
       </div>
@@ -384,6 +385,22 @@ function onModeChange(value: string) {
   color: var(--text-muted);
 }
 
+.stream-caret {
+  display: inline-block;
+  width: 6px;
+  height: 12px;
+  margin-left: 2px;
+  vertical-align: -1px;
+  background: var(--accent);
+  animation: stream-blink 1s step-end infinite;
+}
+
+@keyframes stream-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
 .composer {
   border-top: 1px solid var(--border-soft);
   padding: 8px;
@@ -414,6 +431,11 @@ function onModeChange(value: string) {
   font-size: 12.5px;
   color: var(--text);
   resize: none;
+  outline: none;
+}
+
+.composer-box:focus {
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--border));
 }
 
 .composer-box:disabled {
