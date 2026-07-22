@@ -2,8 +2,6 @@
 /**
  * 终端更多设置：快捷键、配色、背景图、字体。
  */
-import { convertFileSrc } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
 import { storeToRefs } from "pinia";
 import { useI18n } from "../i18n";
 import { FONT_PRESETS, useTerminalPrefsStore } from "../stores/terminalPrefs";
@@ -18,13 +16,22 @@ function onBackdrop(e: MouseEvent) {
   if (e.target === e.currentTarget) ui.closeTerminalSettingsModal();
 }
 
-async function pickBackground() {
-  const selected = await open({
-    multiple: false,
-    filters: [{ name: "Image", extensions: ["png", "jpg", "jpeg", "webp", "gif", "bmp"] }],
-  });
-  if (!selected || Array.isArray(selected)) return;
-  prefs.value.backgroundImage = convertFileSrc(selected);
+/** Read image as data URL so the terminal can show it without asset:// scopes. */
+function pickBackground() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/png,image/jpeg,image/webp,image/gif,image/bmp";
+  input.onchange = () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result ?? "");
+      if (result.startsWith("data:")) prefs.value.backgroundImage = result;
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
 }
 
 function clearBackground() {

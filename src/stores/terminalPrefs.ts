@@ -39,7 +39,7 @@ export const DEFAULT_TERMINAL_PREFS: TerminalPrefs = {
     cursor: "#3ecf8e",
   },
   backgroundImage: "",
-  backgroundOpacity: 0.35,
+  backgroundOpacity: 0.7,
   shortcuts: {
     copy: "Ctrl+Shift+C",
     paste: "Ctrl+V",

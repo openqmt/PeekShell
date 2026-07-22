@@ -62,8 +62,9 @@ const hostSurfaceStyle = computed(() => {
 const hostOverlayStyle = computed(() => {
   const img = termPrefs.value.backgroundImage.trim();
   if (!img) return undefined;
-  const opacity = 1 - termPrefs.value.backgroundOpacity;
-  return { backgroundColor: `rgba(0, 0, 0, ${opacity})` };
+  // Dim the image slightly for text contrast; higher opacity = more visible image.
+  const dim = Math.min(0.85, Math.max(0, 1 - termPrefs.value.backgroundOpacity));
+  return { backgroundColor: `rgba(10, 13, 16, ${dim})` };
 });
 
 function themeColorsFromCss() {
@@ -108,18 +109,27 @@ function readTermTheme() {
             }
           : themeColorsFromCss();
 
+  // xterm needs a real transparent color + allowTransparency to show the host background image
   if (hasBgImage) {
-    base = { ...base, background: "transparent" };
+    base = { ...base, background: "rgba(0, 0, 0, 0)" };
   }
   return base;
 }
 
 function applyTermTheme() {
   const next = readTermTheme();
+  const hasBgImage = !!termPrefs.value.backgroundImage.trim();
   for (const [, entry] of terms) {
+    entry.term.options.allowTransparency = hasBgImage;
     entry.term.options.theme = next;
-    const viewport = entry.term.element?.querySelector(".xterm-viewport") as HTMLElement | null;
-    if (viewport) viewport.style.backgroundColor = next.background;
+    const root = entry.term.element;
+    if (root) {
+      root.style.backgroundColor = hasBgImage ? "transparent" : "";
+      const viewport = root.querySelector(".xterm-viewport") as HTMLElement | null;
+      if (viewport) viewport.style.backgroundColor = hasBgImage ? "transparent" : next.background;
+      const screen = root.querySelector(".xterm-screen") as HTMLElement | null;
+      if (screen) screen.style.backgroundColor = hasBgImage ? "transparent" : "";
+    }
     entry.term.refresh(0, entry.term.rows - 1);
   }
 }
@@ -278,6 +288,8 @@ async function ensureTerm(sessionId: string) {
     fontFamily: termPrefs.value.fontFamily,
     fontSize: termPrefs.value.fontSize,
     theme: readTermTheme(),
+    // Required for theme.background rgba(0,0,0,0) so the host background image shows through
+    allowTransparency: !!termPrefs.value.backgroundImage.trim(),
     // 避免右键自动选词，以便区分「选区菜单」与「空白菜单」
     rightClickSelectsWord: false,
   });
@@ -674,7 +686,11 @@ onBeforeUnmount(() => {
   background-color: var(--term-bg) !important;
 }
 
-.term-host.has-bg-image :deep(.xterm-viewport) {
+.term-host.has-bg-image :deep(.xterm),
+.term-host.has-bg-image :deep(.xterm-viewport),
+.term-host.has-bg-image :deep(.xterm-screen),
+.term-host.has-bg-image :deep(.xterm-helpers),
+.term-host.has-bg-image :deep(canvas) {
   background-color: transparent !important;
 }
 
