@@ -57,6 +57,14 @@ export const FONT_PRESETS = [
   "Courier New, monospace",
 ] as const;
 
+/** Common terminal font sizes shown in the settings dropdown. */
+export const FONT_SIZE_PRESETS = [10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, 28, 32] as const;
+
+export function clampFontSize(value: number): number {
+  if (!Number.isFinite(value)) return DEFAULT_TERMINAL_PREFS.fontSize;
+  return Math.min(32, Math.max(10, Math.round(value)));
+}
+
 function readStoredPrefs(): TerminalPrefs {
   try {
     const raw = localStorage.getItem(PREFS_KEY);
@@ -75,7 +83,7 @@ function readStoredPrefs(): TerminalPrefs {
       },
       fontSize:
         typeof parsed.fontSize === "number" && parsed.fontSize > 0
-          ? Math.min(32, Math.max(10, Math.round(parsed.fontSize)))
+          ? clampFontSize(parsed.fontSize)
           : DEFAULT_TERMINAL_PREFS.fontSize,
       backgroundOpacity:
         typeof parsed.backgroundOpacity === "number"
