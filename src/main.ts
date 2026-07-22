@@ -1,6 +1,7 @@
 import { createPinia } from "pinia";
 import { createApp } from "vue";
 import App from "./App.vue";
+import { installDisableNativeInputHints } from "./disableNativeInputHints";
 import { applyLocale, applyTheme } from "./stores/ui";
 import "./styles/app.css";
 
@@ -11,3 +12,5 @@ const storedLocale = localStorage.getItem("peekshell.locale");
 applyLocale(storedLocale === "en" ? "en" : "zh");
 
 createApp(App).use(createPinia()).mount("#app");
+// WebKit/macOS: turn off system autocomplete / autocorrect on all text fields
+installDisableNativeInputHints();
