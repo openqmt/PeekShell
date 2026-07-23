@@ -1486,27 +1486,55 @@ onBeforeUnmount(() => {
               <button
                 v-if="pendingCount > 0"
                 type="button"
-                class="btn ghost mini danger"
+                class="transfers-action-btn danger"
+                :title="t('transfers.stop')"
+                :aria-label="t('transfers.stop')"
                 @click="transfers.stopAll()"
               >
-                {{ t("transfers.stop") }}
+                <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                  <rect x="4.5" y="4.5" width="7" height="7" rx="1" fill="currentColor" />
+                </svg>
               </button>
               <button
                 v-else-if="canResume"
                 type="button"
-                class="btn ghost mini primary"
+                class="transfers-action-btn primary"
+                :title="resuming ? t('transfers.resuming') : t('transfers.continue')"
+                :aria-label="resuming ? t('transfers.resuming') : t('transfers.continue')"
                 :disabled="resuming || !activeSessionId"
                 @click="resumeTransfers"
               >
-                {{ resuming ? t("transfers.resuming") : t("transfers.continue") }}
+                <svg v-if="resuming" class="spinning" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                  <path
+                    d="M13 8a5 5 0 1 1-1.3-3.4"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                <svg v-else viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                  <path d="M5.5 3.8v8.4L12.2 8z" fill="currentColor" />
+                </svg>
               </button>
               <button
                 type="button"
-                class="btn ghost mini"
+                class="transfers-action-btn"
+                :title="t('transfers.clearFinished')"
+                :aria-label="t('transfers.clearFinished')"
                 :disabled="!transferItems.some((i) => i.status !== 'running' && i.status !== 'queued' && i.status !== 'paused')"
                 @click="transfers.clearFinished()"
               >
-                {{ t("transfers.clearFinished") }}
+                <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                  <path
+                    d="M3.5 5.5h9M6 5.5V4.2h4V5.5M5.2 5.5l.5 7.2h4.6l.5-7.2"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
               </button>
             </div>
           </div>
@@ -2076,8 +2104,58 @@ onBeforeUnmount(() => {
 .transfers-head-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   flex-shrink: 0;
+}
+
+.transfers-action-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-dim);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.transfers-action-btn:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.transfers-action-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.transfers-action-btn.danger {
+  color: var(--danger);
+}
+
+.transfers-action-btn.danger:hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--danger-dim);
+}
+
+.transfers-action-btn.primary {
+  color: var(--accent);
+}
+
+.transfers-action-btn.primary:hover:not(:disabled) {
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.transfers-action-btn svg.spinning {
+  animation: transfers-spin 0.9s linear infinite;
+}
+
+@keyframes transfers-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .transfers-head strong {
@@ -2199,14 +2277,6 @@ onBeforeUnmount(() => {
 .transfer-status.done { color: var(--accent); }
 .transfer-status.error { color: var(--danger); }
 .transfer-status.paused { color: var(--warn); }
-
-.transfers-head .btn.danger {
-  color: var(--danger);
-}
-
-.transfers-head .btn.primary {
-  color: var(--accent);
-}
 
 .transfer-bar {
   height: 4px;
