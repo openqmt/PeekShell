@@ -431,7 +431,7 @@ onBeforeUnmount(() => {
 
 .rail-status.on {
   background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .rail-status.connecting {
@@ -492,7 +492,7 @@ onBeforeUnmount(() => {
 
 .host-switcher.connected .status {
   background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .host-switcher.connecting .status {
