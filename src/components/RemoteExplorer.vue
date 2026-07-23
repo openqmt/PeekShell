@@ -1705,8 +1705,8 @@ onBeforeUnmount(() => {
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 8px;
+  gap: 3px;
+  padding: 3px;
   border-bottom: 1px solid var(--border-soft);
 }
 
