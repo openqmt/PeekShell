@@ -2,12 +2,12 @@
 import { defineStore } from "pinia";
 import { reactive, watch } from "vue";
 
-export type ExplorerKindDisplay = "text" | "icon";
+export type ExplorerKindDisplay = "text" | "icon" | "image";
 
 export interface ExplorerPrefs {
   /** Max bytes loaded for in-app file preview (default 512 KiB). */
   previewMaxKb: number;
-  /** Left tree kind column: DIR/FILE text or SVG icons. */
+  /** Left tree kind column: DIR/FILE text, outline icons, or colored image icons. */
   kindDisplay: ExplorerKindDisplay;
 }
 
@@ -39,7 +39,9 @@ function readStoredPrefs(): ExplorerPrefs {
     if (!raw) return structuredClone(DEFAULT_EXPLORER_PREFS);
     const parsed = JSON.parse(raw) as Partial<ExplorerPrefs>;
     const kindDisplay =
-      parsed.kindDisplay === "icon" || parsed.kindDisplay === "text"
+      parsed.kindDisplay === "icon" ||
+      parsed.kindDisplay === "text" ||
+      parsed.kindDisplay === "image"
         ? parsed.kindDisplay
         : DEFAULT_EXPLORER_PREFS.kindDisplay;
     return {

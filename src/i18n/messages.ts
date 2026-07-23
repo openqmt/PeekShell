@@ -111,9 +111,10 @@ export const messages = {
         'explorerSettings.previewMax': '预览文件大小',
         'explorerSettings.previewMaxHint': '超过此大小的文件仅能下载后查看或编辑',
         'explorerSettings.kindDisplay': '目录树类型显示',
-        'explorerSettings.kindDisplayHint': '左侧 entries 中文件类型用文字或图标表示',
+        'explorerSettings.kindDisplayHint': '左侧 entries 中文件类型用文字、线框图标或彩色图片图标表示',
         'explorerSettings.kindText': '文字（DIR / FILE）',
         'explorerSettings.kindIcon': '图标',
+        'explorerSettings.kindImage': '图片',
         'explorerSettings.reset': '恢复默认',
 
         'quickCommands.title': '快捷命令',
@@ -447,9 +448,10 @@ export const messages = {
         'explorerSettings.previewMax': 'Preview file size',
         'explorerSettings.previewMaxHint': 'Larger files can only be viewed or edited after download',
         'explorerSettings.kindDisplay': 'Tree kind display',
-        'explorerSettings.kindDisplayHint': 'Show file kinds in the left entries tree as text or icons',
+        'explorerSettings.kindDisplayHint': 'Show file kinds in the left entries tree as text, outline icons, or colored image icons',
         'explorerSettings.kindText': 'Text (DIR / FILE)',
         'explorerSettings.kindIcon': 'Icons',
+        'explorerSettings.kindImage': 'Images',
         'explorerSettings.reset': 'Reset defaults',
 
         'quickCommands.title': 'Quick commands',

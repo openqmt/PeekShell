@@ -1509,8 +1509,11 @@ onBeforeUnmount(() => {
             </svg>
             <span v-else-if="row.entry.isDir" class="twist-loading" aria-hidden="true" />
           </span>
-          <span v-if="kindDisplay === 'icon'" class="kind-slot">
-            <ExplorerKindIcon :entry="row.entry" />
+          <span v-if="kindDisplay === 'icon' || kindDisplay === 'image'" class="kind-slot">
+            <ExplorerKindIcon
+              :entry="row.entry"
+              :variant="kindDisplay === 'image' ? 'filled' : 'line'"
+            />
           </span>
           <span v-else class="kind">{{ row.entry.isDir ? "DIR" : "FILE" }}</span>
           <span class="name">{{ row.entry.name }}</span>
