@@ -55,6 +55,21 @@ export const shared = defineConfig({
     ['link', { rel: 'apple-touch-icon', href: '/logo.png' }],
     ['meta', { name: 'theme-color', content: '#0f766e' }],
     ['meta', { name: 'application-name', content: SITE_NAME }],
+    [
+      'script',
+      {
+        async: '',
+        src: 'https://www.googletagmanager.com/gtag/js?id=G-E74CLW7XHK',
+      },
+    ],
+    [
+      'script',
+      {},
+      `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-E74CLW7XHK');`,
+    ],
   ],
 
   transformHead(ctx) {
