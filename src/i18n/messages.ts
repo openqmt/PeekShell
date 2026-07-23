@@ -77,7 +77,8 @@ export const messages = {
         'terminalSettings.title': '终端设置',
         'terminalSettings.sub': '快捷键、配色、背景与字体',
         'terminalSettings.shortcuts': '快捷键',
-        'terminalSettings.shortcutsHint': '格式如 Ctrl+Shift+C；Ctrl 在 macOS 上也匹配 Cmd',
+        'terminalSettings.shortcutsHint':
+            '格式如 Ctrl+Shift+C；Ctrl 在 macOS 上也匹配 Cmd',
         'terminalSettings.colors': '配色',
         'terminalSettings.colorScheme': '配色方案',
         'terminalSettings.schemeTheme': '跟随界面主题',
@@ -109,9 +110,11 @@ export const messages = {
         'explorerSettings.title': '资源管理器设置',
         'explorerSettings.sub': '预览上限与目录树显示',
         'explorerSettings.previewMax': '预览文件大小',
-        'explorerSettings.previewMaxHint': '超过此大小的文件仅能下载后查看或编辑',
+        'explorerSettings.previewMaxHint':
+            '超过此大小的文件仅能下载后查看或编辑',
         'explorerSettings.kindDisplay': '目录树类型显示',
-        'explorerSettings.kindDisplayHint': '左侧 entries 中文件类型用文字、线框图标、Windows 或 macOS 风格图标表示',
+        'explorerSettings.kindDisplayHint':
+            '左侧 entries 中文件类型用文字、线框图标、Windows 或 macOS 风格图标表示',
         'explorerSettings.kindText': '文字（DIR / FILE）',
         'explorerSettings.kindIcon': '图标',
         'explorerSettings.kindWindows': 'Windows 风格',
@@ -163,7 +166,8 @@ export const messages = {
         'explorer.typeFile': '文件',
         'explorer.typeSymlink': '符号链接',
         'explorer.truncated': '已截断（最多 {n}KB）',
-        'explorer.truncatedReadonly': '文件过大，无法在线编辑。请下载到本地编辑后同步回服务器。',
+        'explorer.truncatedReadonly':
+            '文件过大，无法在线编辑。请下载到本地编辑后同步回服务器。',
         'explorer.binary': '二进制文件，无法预览文本内容',
         'explorer.imageTooLarge': '图片超过 {n}KB，无法预览。请下载后查看。',
         'explorer.emptyFile': '(空文件)',
@@ -180,7 +184,8 @@ export const messages = {
         'explorer.syncLocalEdit': '同步到服务器',
         'explorer.syncing': '同步中…',
         'explorer.synced': '已同步到服务器',
-        'explorer.localEditReady': '已下载，可用外部编辑器修改后点「同步到服务器」',
+        'explorer.localEditReady':
+            '已下载，可用外部编辑器修改后点「同步到服务器」',
         'explorer.copyPath': '复制路径',
         'explorer.ctxCopy': '复制',
         'explorer.ctxPaste': '粘贴',
@@ -278,7 +283,7 @@ export const messages = {
         'connect.testing': '测试中…',
         'connect.testOk': '连接成功，认证通过。',
 
-        'ai.title': 'AI Assist',
+        'ai.title': 'Assist',
         'ai.configure': '配置 AI 提供商',
         'ai.collapse': '折叠 AI 助手',
         'ai.expand': '展开 AI 助手',
@@ -304,7 +309,8 @@ export const messages = {
         'ai.rejected': '已拒绝',
         'ai.failed': '失败',
         'ai.suggested': '仅建议',
-        'ai.suggestedHint': '未连接主机，命令不会执行。连接后可再次提问以在远端运行。',
+        'ai.suggestedHint':
+            '未连接主机，命令不会执行。连接后可再次提问以在远端运行。',
         'ai.mode.auto': '自动执行',
         'ai.mode.confirm': '手动确认',
         'ai.mode.smart': '自主决策',
@@ -312,9 +318,10 @@ export const messages = {
         'ai.risk.medium': '中风险',
         'ai.risk.high': '高风险',
         'ai.err.noProvider': '请先配置并选择 AI 提供商。',
-        'ai.hint.noSession': '未连接主机：可正常对话，提议的命令不会在终端执行。',
+        'ai.hint.noSession':
+            '未连接主机：可正常对话，提议的命令不会在终端执行。',
 
-        'aiSettings.title': 'AI Assist 设置',
+        'aiSettings.title': 'Assist 设置',
         'aiSettings.aria': 'AI 提供商设置',
         'aiSettings.sub': '配置模型提供商；API Key 仅保存在系统钥匙串中',
         'aiSettings.add': '＋ 添加提供商',
@@ -330,7 +337,8 @@ export const messages = {
         'aiSettings.models': '模型列表',
         'aiSettings.addModel': '添加',
         'aiSettings.defaultModel': '默认',
-        'aiSettings.modelsHint': '可添加多个模型；点击设为默认。对话顶栏可快速切换。',
+        'aiSettings.modelsHint':
+            '可添加多个模型；点击设为默认。对话顶栏可快速切换。',
         'aiSettings.modelsRequired': '请至少添加一个模型。',
         'aiSettings.apiKey': 'API Key',
         'aiSettings.apiKeyOptional': 'API Key（可选）',
@@ -400,8 +408,8 @@ export const messages = {
         'displaySettings.coreSection': 'Main workspace',
         'displaySettings.explorer': 'Remote explorer',
         'displaySettings.attrColumns': 'Attribute columns (attr-head)',
-        'displaySettings.aiSection': 'Right AI assistant',
-        'displaySettings.aiPanel': 'Show AI assistant',
+        'displaySettings.aiSection': 'Right Assist',
+        'displaySettings.aiPanel': 'Show Assist',
         'displaySettings.reset': 'Reset defaults',
         'displaySettings.sidebarEmpty': 'Please add a host first',
 
@@ -454,9 +462,11 @@ export const messages = {
         'explorerSettings.title': 'Explorer settings',
         'explorerSettings.sub': 'Preview limit and tree kind display',
         'explorerSettings.previewMax': 'Preview file size',
-        'explorerSettings.previewMaxHint': 'Larger files can only be viewed or edited after download',
+        'explorerSettings.previewMaxHint':
+            'Larger files can only be viewed or edited after download',
         'explorerSettings.kindDisplay': 'Tree kind display',
-        'explorerSettings.kindDisplayHint': 'Show file kinds in the left entries tree as text, outline icons, Windows-style, or macOS-style icons',
+        'explorerSettings.kindDisplayHint':
+            'Show file kinds in the left entries tree as text, outline icons, Windows-style, or macOS-style icons',
         'explorerSettings.kindText': 'Text (DIR / FILE)',
         'explorerSettings.kindIcon': 'Icons',
         'explorerSettings.kindWindows': 'Windows style',
@@ -464,7 +474,8 @@ export const messages = {
         'explorerSettings.reset': 'Reset defaults',
 
         'quickCommands.title': 'Quick commands',
-        'quickCommands.sub': 'Save frequent commands and run them in the active terminal',
+        'quickCommands.sub':
+            'Save frequent commands and run them in the active terminal',
         'quickCommands.add': '+ Command',
         'quickCommands.addGroup': '+ Group',
         'quickCommands.edit': 'Edit command',
@@ -477,9 +488,11 @@ export const messages = {
         'quickCommands.copy': 'Copy',
         'quickCommands.renameGroup': 'Rename',
         'quickCommands.deleteGroup': 'Delete group',
-        'quickCommands.empty': 'No quick commands yet — add one from the top right',
+        'quickCommands.empty':
+            'No quick commands yet — add one from the top right',
         'quickCommands.emptyGroup': 'No commands in this group',
-        'quickCommands.needSession': 'Connect to a host before running commands',
+        'quickCommands.needSession':
+            'Connect to a host before running commands',
         'quickCommands.formInvalid': 'Name and command are required',
         'quickCommands.saved': 'Saved',
         'quickCommands.deleted': 'Deleted',
@@ -509,7 +522,8 @@ export const messages = {
         'explorer.typeFile': 'File',
         'explorer.typeSymlink': 'Symlink',
         'explorer.truncated': 'Truncated (max {n}KB)',
-        'explorer.truncatedReadonly': 'File is too large for in-app editing. Download, edit locally, then sync back.',
+        'explorer.truncatedReadonly':
+            'File is too large for in-app editing. Download, edit locally, then sync back.',
         'explorer.binary': 'Binary file — text preview unavailable',
         'explorer.imageTooLarge': 'Image exceeds {n}KB — download to view.',
         'explorer.emptyFile': '(empty file)',
@@ -526,7 +540,8 @@ export const messages = {
         'explorer.syncLocalEdit': 'Sync to server',
         'explorer.syncing': 'Syncing…',
         'explorer.synced': 'Synced to server',
-        'explorer.localEditReady': 'Downloaded. Edit in an external app, then click “Sync to server”.',
+        'explorer.localEditReady':
+            'Downloaded. Edit in an external app, then click “Sync to server”.',
         'explorer.copyPath': 'Copy path',
         'explorer.ctxCopy': 'Copy',
         'explorer.ctxPaste': 'Paste',
@@ -625,7 +640,7 @@ export const messages = {
         'connect.testing': 'Testing…',
         'connect.testOk': 'Connected — authentication succeeded.',
 
-        'ai.title': 'AI Assist',
+        'ai.title': 'Assist',
         'ai.configure': 'Configure AI providers',
         'ai.collapse': 'Collapse AI panel',
         'ai.expand': 'Expand AI panel',
@@ -651,7 +666,8 @@ export const messages = {
         'ai.rejected': 'Rejected',
         'ai.failed': 'Failed',
         'ai.suggested': 'Suggestion only',
-        'ai.suggestedHint': 'No host connected — commands will not run. Connect a host and ask again to execute.',
+        'ai.suggestedHint':
+            'No host connected — commands will not run. Connect a host and ask again to execute.',
         'ai.mode.auto': 'Auto run',
         'ai.mode.confirm': 'Confirm all',
         'ai.mode.smart': 'Smart',
@@ -659,9 +675,10 @@ export const messages = {
         'ai.risk.medium': 'Medium risk',
         'ai.risk.high': 'High risk',
         'ai.err.noProvider': 'Configure and select an AI provider first.',
-        'ai.hint.noSession': 'No host connected: you can chat; suggested commands will not run on a terminal.',
+        'ai.hint.noSession':
+            'No host connected: you can chat; suggested commands will not run on a terminal.',
 
-        'aiSettings.title': 'AI Assist settings',
+        'aiSettings.title': 'Assist settings',
         'aiSettings.aria': 'AI provider settings',
         'aiSettings.sub':
             'Configure providers; API keys stay in the OS keychain',
@@ -678,7 +695,8 @@ export const messages = {
         'aiSettings.models': 'Models',
         'aiSettings.addModel': 'Add',
         'aiSettings.defaultModel': 'Default',
-        'aiSettings.modelsHint': 'Add multiple models; click one to set default. Switch quickly from the chat header.',
+        'aiSettings.modelsHint':
+            'Add multiple models; click one to set default. Switch quickly from the chat header.',
         'aiSettings.modelsRequired': 'Add at least one model.',
         'aiSettings.apiKey': 'API Key',
         'aiSettings.apiKeyOptional': 'API Key (optional)',

@@ -217,6 +217,52 @@ function clearActiveBuffer() {
     entry.term.clear()
 }
 
+function isTermLightTheme(): boolean {
+    const scheme = termPrefs.value.colorScheme
+    if (scheme === 'light') return true
+    if (scheme === 'dark') return false
+    if (scheme === 'custom') {
+        const bg = termPrefs.value.customColors.background.trim()
+        // Rough luminance so custom dark backgrounds still get high-contrast finds
+        const hex = /^#([0-9a-f]{6})$/i.exec(bg)
+        if (hex) {
+            const n = parseInt(hex[1], 16)
+            const r = (n >> 16) & 0xff
+            const g = (n >> 8) & 0xff
+            const b = n & 0xff
+            return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.55
+        }
+        return false
+    }
+    return document.documentElement.getAttribute('data-theme') === 'light'
+}
+
+/** xterm search decorations require opaque #RRGGBB backgrounds; amber reads clearly on dark terminals. */
+function searchDecorations() {
+    if (isTermLightTheme()) {
+        return {
+            matchBackground: '#f0d78c',
+            matchBorder: '#c4841d',
+            matchOverviewRuler: '#c4841d',
+            activeMatchBackground: '#e6a23c',
+            activeMatchBorder: '#8a5a00',
+            activeMatchColorOverviewRuler: '#8a5a00',
+        }
+    }
+    return {
+        matchBackground: '#6b5420',
+        matchBorder: '#e6a23c',
+        matchOverviewRuler: '#e6a23c',
+        activeMatchBackground: '#e6a23c',
+        activeMatchBorder: '#ffd28a',
+        activeMatchColorOverviewRuler: '#ffd28a',
+    }
+}
+
+function searchOptions() {
+    return { decorations: searchDecorations() }
+}
+
 function openFind(seed = '') {
     findOpen.value = true
     if (seed) findQuery.value = seed
@@ -233,13 +279,13 @@ function closeFind() {
 function findNext() {
     const entry = activeEntry()
     if (!entry || !findQuery.value) return
-    entry.search.findNext(findQuery.value)
+    entry.search.findNext(findQuery.value, searchOptions())
 }
 
 function findPrev() {
     const entry = activeEntry()
     if (!entry || !findQuery.value) return
-    entry.search.findPrevious(findQuery.value)
+    entry.search.findPrevious(findQuery.value, searchOptions())
 }
 
 function closeCtxMenu() {
@@ -307,6 +353,8 @@ async function ensureTerm(sessionId: string) {
         theme: readTermTheme(),
         // Required for theme.background rgba(0,0,0,0) so the host background image shows through
         allowTransparency: !!termPrefs.value.backgroundImage.trim(),
+        // SearchAddon decorations use registerDecoration (still proposed in xterm 6)
+        allowProposedApi: true,
         // 避免右键自动选词，以便区分「选区菜单」与「空白菜单」
         rightClickSelectsWord: false,
     })
