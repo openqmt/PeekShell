@@ -8,6 +8,7 @@ export const zh: LocaleSpecificConfig<DefaultTheme.Config> = {
   themeConfig: {
     nav: [
       { text: '指南', link: '/guide/' },
+      { text: '赞助', link: '/sponsor' },
       { text: 'GitHub', link: 'https://github.com/openqmt/PeekShell' },
     ],
 

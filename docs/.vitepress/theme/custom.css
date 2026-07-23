@@ -72,3 +72,36 @@
     transition: none;
   }
 }
+
+/* Sponsor page QR cards */
+.sponsor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 220px));
+  gap: 20px;
+  margin: 1.25rem 0 1.75rem;
+}
+
+.sponsor-card {
+  margin: 0;
+  padding: 14px 14px 10px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  background: var(--vp-c-bg-soft);
+  text-align: center;
+}
+
+.sponsor-card img {
+  display: block;
+  width: 100%;
+  max-width: 180px;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.sponsor-card figcaption {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--vp-c-text-2);
+}

@@ -8,6 +8,7 @@ export const en: LocaleSpecificConfig<DefaultTheme.Config> = {
   themeConfig: {
     nav: [
       { text: 'Guide', link: '/en/guide/' },
+      { text: 'Sponsor', link: '/en/sponsor' },
       { text: 'GitHub', link: 'https://github.com/openqmt/PeekShell' },
     ],
 
