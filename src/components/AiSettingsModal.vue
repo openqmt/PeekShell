@@ -168,17 +168,13 @@ async function remove() {
   }
 }
 
-function onBackdrop(event: MouseEvent) {
-  if (event.target === event.currentTarget) ui.closeAiSettingsModal();
-}
-
 const initial = ai.activeProvider ?? providers.value[0];
 if (initial) editProvider(initial);
 else newProvider();
 </script>
 
 <template>
-  <div class="overlay" @click="onBackdrop">
+  <div class="overlay">
     <div class="modal ai-settings" role="dialog" :aria-label="t('aiSettings.aria')">
       <div class="modal-head">
         <div>

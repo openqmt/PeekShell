@@ -57,7 +57,7 @@ export const messages = {
         'displaySettings.aiSection': '右侧 AI 助手',
         'displaySettings.aiPanel': '展示 AI 助手',
         'displaySettings.reset': '恢复默认',
-        'displaySettings.sidebarEmpty': '已在设置中隐藏全部主机信息卡片',
+        'displaySettings.sidebarEmpty': '请先添加主机',
 
         'terminal.openFromHosts': '从主机列表连接',
         'terminal.empty': '打开主机列表，选择一台主机连接后即可使用终端。',
@@ -377,7 +377,7 @@ export const messages = {
         'displaySettings.aiSection': 'Right AI assistant',
         'displaySettings.aiPanel': 'Show AI assistant',
         'displaySettings.reset': 'Reset defaults',
-        'displaySettings.sidebarEmpty': 'All host info cards are hidden in settings',
+        'displaySettings.sidebarEmpty': 'Please add a host first',
 
         'terminal.openFromHosts': 'Connect from host list',
         'terminal.empty':

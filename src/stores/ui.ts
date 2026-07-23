@@ -33,7 +33,7 @@ const DISPLAY_PREFS_KEY = "peekshell.displayPrefs";
 const AI_PANEL_WIDTH_KEY = "peekshell.aiPanelWidth";
 const SIDEBAR_WIDTH_KEY = "peekshell.sidebarWidth";
 
-export const AI_PANEL_WIDTH_DEFAULT = 300;
+export const AI_PANEL_WIDTH_DEFAULT = 340;
 export const AI_PANEL_WIDTH_MIN = 240;
 export const AI_PANEL_WIDTH_MAX = 640;
 
