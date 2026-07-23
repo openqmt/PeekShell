@@ -15,7 +15,7 @@ const PREFS_KEY = "peekshell.explorerPrefs";
 
 export const DEFAULT_EXPLORER_PREFS: ExplorerPrefs = {
   previewMaxKb: 512,
-  kindDisplay: "text",
+  kindDisplay: "macos",
 };
 
 /** Presets shown in the settings modal (KiB). */
