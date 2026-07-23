@@ -158,11 +158,19 @@ function flashStatus(message: string, ms = 1600) {
   }, ms);
 }
 
-type CtxMenuVariant = "entry" | "blank";
-type CtxMenu = { x: number; y: number; variant: CtxMenuVariant; entry: RemoteEntry };
+type CtxMenu =
+  | { x: number; y: number; variant: "entry" | "blank"; entry: RemoteEntry }
+  | { x: number; y: number; variant: "editor"; hasSelection: boolean };
 type PromptKind = "rename" | "mkdir" | "mkfile" | "chmod" | "delete";
 
 const ctxMenu = ref<CtxMenu | null>(null);
+const previewEditorRef = ref<{
+  hasSelection: () => boolean;
+  copySelection: () => Promise<boolean>;
+  pasteClipboard: () => Promise<boolean>;
+  openFind: () => void;
+  focus: () => void;
+} | null>(null);
 const promptKind = ref<PromptKind | null>(null);
 const promptTarget = ref<RemoteEntry | null>(null);
 const promptInput = ref("");
@@ -775,13 +783,27 @@ function closeCtxMenu() {
   ctxMenu.value = null;
 }
 
-function openCtxMenu(event: MouseEvent, variant: CtxMenuVariant, entry: RemoteEntry) {
+function openCtxMenu(event: MouseEvent, variant: "entry" | "blank", entry: RemoteEntry) {
   const pad = 8;
   const menuW = 200;
   const menuH = variant === "blank" ? 160 : 320;
   const x = Math.min(event.clientX, window.innerWidth - menuW - pad);
   const y = Math.min(event.clientY, window.innerHeight - menuH - pad);
   ctxMenu.value = { x: Math.max(pad, x), y: Math.max(pad, y), variant, entry };
+}
+
+function openEditorCtxMenu(event: MouseEvent) {
+  const pad = 8;
+  const menuW = 180;
+  const menuH = 200;
+  const x = Math.min(event.clientX, window.innerWidth - menuW - pad);
+  const y = Math.min(event.clientY, window.innerHeight - menuH - pad);
+  ctxMenu.value = {
+    x: Math.max(pad, x),
+    y: Math.max(pad, y),
+    variant: "editor",
+    hasSelection: !!previewEditorRef.value?.hasSelection(),
+  };
 }
 
 function onEntryContextMenu(entry: RemoteEntry, event: MouseEvent) {
@@ -797,13 +819,45 @@ function onPreviewBlankContextMenu(event: MouseEvent) {
   openCtxMenu(event, "blank", container);
 }
 
+function onEditorContextMenu(event: MouseEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+  openEditorCtxMenu(event);
+}
+
+async function ctxEditorSave() {
+  closeCtxMenu();
+  await savePreview();
+}
+
+async function ctxEditorCopy() {
+  if (ctxMenu.value?.variant !== "editor" || !ctxMenu.value.hasSelection) return;
+  closeCtxMenu();
+  await previewEditorRef.value?.copySelection();
+}
+
+async function ctxEditorPaste() {
+  closeCtxMenu();
+  await previewEditorRef.value?.pasteClipboard();
+}
+
+function ctxEditorFind() {
+  closeCtxMenu();
+  previewEditorRef.value?.openFind();
+}
+
+function ctxEditorMore() {
+  closeCtxMenu();
+  ui.openEditorSettingsModal();
+}
+
 async function ctxRefresh() {
   closeCtxMenu();
   await refresh();
 }
 
 function ctxUpload() {
-  if (!ctxMenu.value) return;
+  if (!ctxMenu.value || ctxMenu.value.variant === "editor") return;
   const target =
     ctxMenu.value.variant === "blank"
       ? ctxMenu.value.entry
@@ -812,12 +866,12 @@ function ctxUpload() {
 }
 
 function ctxNewFolder() {
-  if (!ctxMenu.value) return;
+  if (!ctxMenu.value || ctxMenu.value.variant === "editor") return;
   openPrompt("mkdir", containerDir(ctxMenu.value.entry));
 }
 
 function ctxNewFile() {
-  if (!ctxMenu.value) return;
+  if (!ctxMenu.value || ctxMenu.value.variant === "editor") return;
   openPrompt("mkfile", containerDir(ctxMenu.value.entry));
 }
 
@@ -1516,13 +1570,14 @@ onBeforeUnmount(() => {
             >{{ t("explorer.binary") }}</pre>
             <PreviewCodeEditor
               v-else
+              ref="previewEditorRef"
               :model-value="previewEditorText"
               :filename="preview.name"
               :readonly="!canEditOnline"
               :placeholder-text="t('explorer.emptyFile')"
               @update:model-value="onPreviewEditorInput"
               @save="savePreview"
-              @contextmenu="onEntryContextMenu(previewAsEntry(preview), $event)"
+              @contextmenu="onEditorContextMenu"
             />
           </div>
         </template>
@@ -1549,6 +1604,34 @@ onBeforeUnmount(() => {
           </button>
           <button type="button" class="ctx-item" :disabled="actionBusy" @click="ctxNewFolder">
             {{ t("explorer.newFolder") }}
+          </button>
+        </template>
+        <template v-else-if="ctxMenu.variant === 'editor'">
+          <button
+            type="button"
+            class="ctx-item"
+            :disabled="!canEditOnline || previewSaving"
+            @click="ctxEditorSave"
+          >
+            {{ t("explorer.save") }}
+          </button>
+          <button
+            type="button"
+            class="ctx-item"
+            :disabled="!ctxMenu.hasSelection"
+            @click="ctxEditorCopy"
+          >
+            {{ t("explorer.ctxCopy") }}
+          </button>
+          <button type="button" class="ctx-item" @click="ctxEditorPaste">
+            {{ t("explorer.ctxPaste") }}
+          </button>
+          <button type="button" class="ctx-item" @click="ctxEditorFind">
+            {{ t("explorer.ctxFind") }}
+          </button>
+          <div class="ctx-sep" />
+          <button type="button" class="ctx-item" @click="ctxEditorMore">
+            {{ t("explorer.ctxMore") }}
           </button>
         </template>
         <template v-else>

@@ -139,6 +139,7 @@ export const useUiStore = defineStore("ui", () => {
   const aiSettingsModalOpen = ref(false);
   const displaySettingsModalOpen = ref(false);
   const terminalSettingsModalOpen = ref(false);
+  const editorSettingsModalOpen = ref(false);
   /** 编辑时带入；新增时为 null */
   const editingHost = ref<HostRecord | null>(null);
 
@@ -239,6 +240,14 @@ export const useUiStore = defineStore("ui", () => {
     terminalSettingsModalOpen.value = false;
   }
 
+  function openEditorSettingsModal() {
+    editorSettingsModalOpen.value = true;
+  }
+
+  function closeEditorSettingsModal() {
+    editorSettingsModalOpen.value = false;
+  }
+
   function resetDisplayPrefs() {
     Object.assign(displayPrefs.sidebar, DEFAULT_DISPLAY_PREFS.sidebar);
     Object.assign(displayPrefs.explorer, DEFAULT_DISPLAY_PREFS.explorer);
@@ -258,6 +267,7 @@ export const useUiStore = defineStore("ui", () => {
     aiSettingsModalOpen,
     displaySettingsModalOpen,
     terminalSettingsModalOpen,
+    editorSettingsModalOpen,
     editingHost,
     setTheme,
     toggleTheme,
@@ -275,6 +285,8 @@ export const useUiStore = defineStore("ui", () => {
     closeDisplaySettingsModal,
     openTerminalSettingsModal,
     closeTerminalSettingsModal,
+    openEditorSettingsModal,
+    closeEditorSettingsModal,
     resetDisplayPrefs,
   };
 });

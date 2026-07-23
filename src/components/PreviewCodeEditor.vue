@@ -3,6 +3,7 @@
  * CodeMirror 6 text editor for remote file preview.
  * Mod-f uses CM search panel; Mod-s emits save for the parent to persist.
  * Syntax highlighting follows filename via @codemirror/language-data.
+ * Appearance (theme / font / size) follows editorPrefs.
  */
 import {
   EditorView,
@@ -19,7 +20,7 @@ import {
 } from "@codemirror/view";
 import { EditorState, Compartment, type Extension } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
+import { openSearchPanel, searchKeymap, highlightSelectionMatches } from "@codemirror/search";
 import {
   indentOnInput,
   bracketMatching,
@@ -30,8 +31,12 @@ import {
 } from "@codemirror/language";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { tags as t } from "@lezer/highlight";
+import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { storeToRefs } from "pinia";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { languageSupportForFilename } from "../editor/language";
+import { useEditorPrefsStore, type EditorColorScheme } from "../stores/editorPrefs";
+import { useUiStore, type ThemeMode } from "../stores/ui";
 
 const props = withDefaults(
   defineProps<{
@@ -53,10 +58,16 @@ const emit = defineEmits<{
   contextmenu: [event: MouseEvent];
 }>();
 
+const editorPrefs = useEditorPrefsStore();
+const ui = useUiStore();
+const { prefs } = storeToRefs(editorPrefs);
+const { theme: uiTheme } = storeToRefs(ui);
+
 const hostEl = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
 const editableCompartment = new Compartment();
 const languageCompartment = new Compartment();
+const appearanceCompartment = new Compartment();
 /** Bump to ignore stale async language loads. */
 let languageLoadId = 0;
 /** Suppress emit while applying external doc updates. */
@@ -92,80 +103,198 @@ const peekHighlight = HighlightStyle.define([
   { tag: t.invalid, color: "var(--danger)" },
 ]);
 
-const peekTheme = EditorView.theme({
-  "&": {
-    height: "100%",
-    fontSize: "11.5px",
-    backgroundColor: "transparent",
-    color: "var(--text)",
-  },
-  ".cm-scroller": {
-    fontFamily: "var(--font-mono)",
-    lineHeight: "1.45",
-    overflow: "auto",
-  },
-  ".cm-content": {
-    caretColor: "var(--accent)",
-    padding: "8px 0",
-  },
-  ".cm-cursor, .cm-dropCursor": {
-    borderLeftColor: "var(--accent)",
-  },
-  "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": {
-    backgroundColor: "var(--accent-dim)",
-  },
-  ".cm-activeLine": {
-    backgroundColor: "var(--bg-hover)",
-  },
-  ".cm-activeLineGutter": {
-    backgroundColor: "var(--bg-hover)",
-  },
-  ".cm-gutters": {
-    backgroundColor: "transparent",
-    color: "var(--text-dim)",
-    border: "none",
-    borderRight: "1px solid var(--border-soft)",
-  },
-  ".cm-lineNumbers .cm-gutterElement": {
-    padding: "0 8px 0 10px",
-    minWidth: "2.2em",
-  },
-  ".cm-panels": {
-    backgroundColor: "var(--bg-elevated)",
-    color: "var(--text)",
-    borderTop: "1px solid var(--border)",
-  },
-  ".cm-panels.cm-panels-top": {
-    borderBottom: "1px solid var(--border)",
-    borderTop: "none",
-  },
-  ".cm-searchMatch": {
-    backgroundColor: "var(--warn-dim)",
-  },
-  ".cm-searchMatch.cm-searchMatch-selected": {
-    backgroundColor: "var(--accent-dim)",
-    outline: "1px solid var(--accent-border)",
-  },
-  ".cm-panel.cm-search input, .cm-panel.cm-search button, .cm-panel.cm-search label": {
-    fontSize: "12px",
-    color: "var(--text)",
-  },
-  ".cm-panel.cm-search input": {
-    background: "var(--bg-root)",
-    border: "1px solid var(--border-soft)",
-    borderRadius: "6px",
-    padding: "2px 6px",
-  },
-  ".cm-panel.cm-search button": {
-    background: "var(--bg-root)",
-    border: "1px solid var(--border-soft)",
-    borderRadius: "6px",
-    cursor: "pointer",
-  },
-  ".cm-placeholder": {
-    color: "var(--text-dim)",
-  },
-});
+type AppearanceColors = {
+  background: string;
+  foreground: string;
+  caret: string;
+  selection: string;
+  activeLine: string;
+  gutterFg: string;
+  gutterBorder: string;
+  panelBg: string;
+  panelBorder: string;
+  matchBg: string;
+  matchSelectedBg: string;
+  matchOutline: string;
+  inputBg: string;
+  inputBorder: string;
+  placeholder: string;
+};
+
+function resolveScheme(scheme: EditorColorScheme, appTheme: ThemeMode): "dark" | "light" {
+  if (scheme === "theme") return appTheme;
+  return scheme;
+}
+
+function colorsForScheme(resolved: "dark" | "light", followCss: boolean): AppearanceColors {
+  if (followCss) {
+    return {
+      background: "transparent",
+      foreground: "var(--text)",
+      caret: "var(--accent)",
+      selection: "var(--accent-dim)",
+      activeLine: "var(--bg-hover)",
+      gutterFg: "var(--text-dim)",
+      gutterBorder: "var(--border-soft)",
+      panelBg: "var(--bg-elevated)",
+      panelBorder: "var(--border)",
+      matchBg: "var(--warn-dim)",
+      matchSelectedBg: "var(--accent-dim)",
+      matchOutline: "var(--accent-border)",
+      inputBg: "var(--bg-root)",
+      inputBorder: "var(--border-soft)",
+      placeholder: "var(--text-dim)",
+    };
+  }
+  if (resolved === "light") {
+    return {
+      background: "#f6f8fa",
+      foreground: "#1f2328",
+      caret: "#1a7f37",
+      selection: "rgba(26, 127, 55, 0.22)",
+      activeLine: "rgba(31, 35, 40, 0.05)",
+      gutterFg: "#656d76",
+      gutterBorder: "#d0d7de",
+      panelBg: "#ffffff",
+      panelBorder: "#d0d7de",
+      matchBg: "rgba(210, 153, 34, 0.28)",
+      matchSelectedBg: "rgba(26, 127, 55, 0.22)",
+      matchOutline: "rgba(26, 127, 55, 0.45)",
+      inputBg: "#ffffff",
+      inputBorder: "#d0d7de",
+      placeholder: "#656d76",
+    };
+  }
+  return {
+    background: "#0a0d10",
+    foreground: "#d6dde6",
+    caret: "#3ecf8e",
+    selection: "rgba(62, 207, 142, 0.22)",
+    activeLine: "rgba(255, 255, 255, 0.04)",
+    gutterFg: "#6b7280",
+    gutterBorder: "rgba(255, 255, 255, 0.08)",
+    panelBg: "#12161c",
+    panelBorder: "rgba(255, 255, 255, 0.1)",
+    matchBg: "rgba(210, 153, 34, 0.28)",
+    matchSelectedBg: "rgba(62, 207, 142, 0.22)",
+    matchOutline: "rgba(62, 207, 142, 0.45)",
+    inputBg: "#0a0d10",
+    inputBorder: "rgba(255, 255, 255, 0.12)",
+    placeholder: "#6b7280",
+  };
+}
+
+function buildAppearance(
+  scheme: EditorColorScheme,
+  appTheme: ThemeMode,
+  fontFamily: string,
+  fontSize: number
+): Extension {
+  const followCss = scheme === "theme";
+  const resolved = resolveScheme(scheme, appTheme);
+  const c = colorsForScheme(resolved, followCss);
+  return EditorView.theme(
+    {
+      "&": {
+        height: "100%",
+        fontSize: `${fontSize}px`,
+        backgroundColor: c.background,
+        color: c.foreground,
+      },
+      ".cm-scroller": {
+        fontFamily,
+        lineHeight: "1.45",
+        overflow: "auto",
+      },
+      ".cm-content": {
+        caretColor: c.caret,
+        padding: "8px 0",
+      },
+      ".cm-cursor, .cm-dropCursor": {
+        borderLeftColor: c.caret,
+      },
+      "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": {
+        backgroundColor: c.selection,
+      },
+      ".cm-activeLine": {
+        backgroundColor: c.activeLine,
+      },
+      ".cm-activeLineGutter": {
+        backgroundColor: c.activeLine,
+      },
+      ".cm-gutters": {
+        backgroundColor: "transparent",
+        color: c.gutterFg,
+        border: "none",
+        borderRight: `1px solid ${c.gutterBorder}`,
+      },
+      ".cm-lineNumbers .cm-gutterElement": {
+        padding: "0 8px 0 10px",
+        minWidth: "2.2em",
+      },
+      ".cm-panels": {
+        backgroundColor: c.panelBg,
+        color: c.foreground,
+        borderTop: `1px solid ${c.panelBorder}`,
+      },
+      ".cm-panels.cm-panels-top": {
+        borderBottom: `1px solid ${c.panelBorder}`,
+        borderTop: "none",
+      },
+      ".cm-searchMatch": {
+        backgroundColor: c.matchBg,
+      },
+      ".cm-searchMatch.cm-searchMatch-selected": {
+        backgroundColor: c.matchSelectedBg,
+        outline: `1px solid ${c.matchOutline}`,
+      },
+      ".cm-panel.cm-search input, .cm-panel.cm-search button, .cm-panel.cm-search label": {
+        fontSize: "12px",
+        color: c.foreground,
+      },
+      ".cm-panel.cm-search input": {
+        background: c.inputBg,
+        border: `1px solid ${c.inputBorder}`,
+        borderRadius: "6px",
+        padding: "2px 6px",
+      },
+      ".cm-panel.cm-search button": {
+        background: c.inputBg,
+        border: `1px solid ${c.inputBorder}`,
+        borderRadius: "6px",
+        cursor: "pointer",
+      },
+      ".cm-placeholder": {
+        color: c.placeholder,
+      },
+    },
+    { dark: resolved === "dark" }
+  );
+}
+
+function appearanceExt(): Extension {
+  return appearanceCompartment.of(
+    buildAppearance(
+      prefs.value.colorScheme,
+      uiTheme.value,
+      prefs.value.fontFamily,
+      prefs.value.fontSize
+    )
+  );
+}
+
+function reconfigureAppearance() {
+  view?.dispatch({
+    effects: appearanceCompartment.reconfigure(
+      buildAppearance(
+        prefs.value.colorScheme,
+        uiTheme.value,
+        prefs.value.fontFamily,
+        prefs.value.fontSize
+      )
+    ),
+  });
+}
 
 function editableExt(readonly: boolean): Extension {
   return editableCompartment.of([
@@ -207,7 +336,7 @@ function buildExtensions(readonly: boolean): Extension[] {
       ...historyKeymap,
       ...foldKeymap,
     ]),
-    peekTheme,
+    appearanceExt(),
     editableExt(readonly),
     EditorView.updateListener.of((update) => {
       if (applyingExternal || !update.docChanged) return;
@@ -244,6 +373,14 @@ function createEditor() {
     }),
   });
   void applyLanguage(props.filename);
+}
+
+function selectedText(): string {
+  if (!view) return "";
+  return view.state.selection.ranges
+    .filter((r) => !r.empty)
+    .map((r) => view!.state.sliceDoc(r.from, r.to))
+    .join("\n");
 }
 
 onMounted(() => {
@@ -289,9 +426,56 @@ watch(
   }
 );
 
+watch(
+  [() => prefs.value.colorScheme, () => prefs.value.fontFamily, () => prefs.value.fontSize, uiTheme],
+  () => {
+    reconfigureAppearance();
+  }
+);
+
 defineExpose({
   focus() {
     view?.focus();
+  },
+  hasSelection() {
+    return !!view && view.state.selection.ranges.some((r) => !r.empty);
+  },
+  async copySelection() {
+    const text = selectedText();
+    if (!text) return false;
+    try {
+      await writeText(text);
+      return true;
+    } catch {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+  },
+  async pasteClipboard() {
+    if (!view || props.readonly) return false;
+    let text = "";
+    try {
+      text = await readText();
+    } catch {
+      try {
+        text = await navigator.clipboard.readText();
+      } catch {
+        return false;
+      }
+    }
+    if (!text) return false;
+    view.dispatch(view.state.replaceSelection(text));
+    view.focus();
+    return true;
+  },
+  openFind() {
+    if (!view) return;
+    openSearchPanel(view);
+    view.focus();
   },
 });
 </script>
