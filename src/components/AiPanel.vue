@@ -157,15 +157,13 @@ onBeforeUnmount(() => {
       </div>
       <div class="ai-head-right">
         <AppSelect
-          v-if="activeProvider"
           class="model-select"
           :model-value="activeModel"
           :options="modelOptions"
-          :disabled="sending || modelOptions.length <= 1"
+          :disabled="!canCompose || sending || modelOptions.length <= 1"
           :placeholder="t('ai.notConfigured')"
           @update:model-value="onModelChange"
         />
-        <span v-else class="model-tag">{{ t("ai.notConfigured") }}</span>
         <div class="ai-head-actions">
           <button
             class="icon-btn"
@@ -263,7 +261,7 @@ onBeforeUnmount(() => {
             v-model="execMode"
             class="mode-select"
             :options="modeOptions"
-            :disabled="sending"
+            :disabled="!canCompose || sending"
             @change="onModeChange"
           />
           <button
@@ -341,19 +339,6 @@ onBeforeUnmount(() => {
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-dim);
-}
-
-.model-tag {
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 10px;
-  font-family: var(--font-mono);
-  color: var(--text-dim);
-  border: 1px solid var(--border);
-  padding: 3px 7px;
-  border-radius: 4px;
 }
 
 .model-select {
