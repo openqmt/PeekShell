@@ -48,6 +48,9 @@ export const useTransfersStore = defineStore("transfers", () => {
   const items = ref<TransferItem[]>([]);
   const panelOpen = ref(false);
   const defaultDownloadDir = ref(readDownloadDir());
+  /** Current multi-file batch size; 0 means no active batch. */
+  const batchTotal = ref(0);
+  const batchCompleted = ref(0);
   let unlisten: UnlistenFn | null = null;
   let listening = false;
 
@@ -55,11 +58,24 @@ export const useTransfersStore = defineStore("transfers", () => {
     () => items.value.filter((item) => item.status === "running").length
   );
 
+  /** Badge / header label like `3/12` while a batch is tracked. */
+  const batchProgressLabel = computed(() => {
+    if (batchTotal.value <= 1) return "";
+    return `${batchCompleted.value}/${batchTotal.value}`;
+  });
+
+  const hasBatchProgress = computed(() => batchTotal.value > 1);
+
   watch(defaultDownloadDir, (value) => {
     const trimmed = value.trim();
     if (trimmed) localStorage.setItem(DOWNLOAD_DIR_KEY, trimmed);
     else localStorage.removeItem(DOWNLOAD_DIR_KEY);
   });
+
+  function noteFinished() {
+    if (batchTotal.value <= 0) return;
+    batchCompleted.value = Math.min(batchTotal.value, batchCompleted.value + 1);
+  }
 
   async function ensureListening() {
     if (listening) return;
@@ -68,14 +84,33 @@ export const useTransfersStore = defineStore("transfers", () => {
       const payload = event.payload;
       const item = items.value.find((row) => row.id === payload.id);
       if (!item) return;
+      const wasRunning = item.status === "running";
       item.transferred = payload.transferred;
       item.total = payload.total;
       item.status = payload.status;
       if (payload.error) item.error = payload.error;
       if (payload.status === "done" || payload.status === "error") {
         item.finishedAt = Date.now();
+        if (wasRunning) noteFinished();
       }
     });
+  }
+
+  /** Start counting a multi-file upload/download batch (`done/total` badge). */
+  function beginBatch(total: number) {
+    const n = Math.max(0, Math.floor(total));
+    if (n <= 1) {
+      batchTotal.value = 0;
+      batchCompleted.value = 0;
+      return;
+    }
+    batchTotal.value = n;
+    batchCompleted.value = 0;
+  }
+
+  function clearBatch() {
+    batchTotal.value = 0;
+    batchCompleted.value = 0;
   }
 
   function startTransfer(input: {
@@ -107,13 +142,16 @@ export const useTransfersStore = defineStore("transfers", () => {
   function markError(id: string, error: string) {
     const item = items.value.find((row) => row.id === id);
     if (!item) return;
+    const wasRunning = item.status === "running";
     item.status = "error";
     item.error = error;
     item.finishedAt = Date.now();
+    if (wasRunning) noteFinished();
   }
 
   function clearFinished() {
     items.value = items.value.filter((item) => item.status === "running");
+    if (activeCount.value === 0) clearBatch();
   }
 
   function setDefaultDownloadDir(path: string) {
@@ -141,6 +179,12 @@ export const useTransfersStore = defineStore("transfers", () => {
     panelOpen,
     defaultDownloadDir,
     activeCount,
+    batchTotal,
+    batchCompleted,
+    batchProgressLabel,
+    hasBatchProgress,
+    beginBatch,
+    clearBatch,
     startTransfer,
     markError,
     clearFinished,

@@ -206,6 +206,7 @@ export const messages = {
         'explorer.dropUpload': '松开以上传到',
 
         'transfers.title': '上传 / 下载',
+        'transfers.batchProgress': '{done}/{total}',
         'transfers.empty': '暂无传输任务',
         'transfers.running': '进行中',
         'transfers.done': '已完成',
@@ -544,6 +545,7 @@ export const messages = {
         'explorer.dropUpload': 'Drop to upload into',
 
         'transfers.title': 'Transfers',
+        'transfers.batchProgress': '{done}/{total}',
         'transfers.empty': 'No transfers yet',
         'transfers.running': 'Running',
         'transfers.done': 'Done',

@@ -93,7 +93,7 @@ const explorerPrefs = useExplorerPrefsStore();
 const { activeSessionId } = storeToRefs(sessions);
 const { displayPrefs } = storeToRefs(ui);
 const { prefs: explorerPrefsState } = storeToRefs(explorerPrefs);
-const { items: transferItems, panelOpen: transfersPanelOpen, defaultDownloadDir, activeCount } =
+const { items: transferItems, panelOpen: transfersPanelOpen, defaultDownloadDir, activeCount, batchProgressLabel, hasBatchProgress } =
   storeToRefs(transfers);
 
 const previewLimitBytes = computed(() => previewMaxBytes(explorerPrefsState.value));
@@ -1086,6 +1086,7 @@ async function uploadLocalPaths(remoteDirPath: string, localPaths: string[]) {
   statusMsg.value = t("explorer.working");
   error.value = "";
   try {
+    const queue: { localPath: string; remotePath: string; name: string }[] = [];
     for (const localPath of localPaths) {
       const items = await api.expandLocalUpload(localPath);
       for (const item of items) {
@@ -1095,18 +1096,22 @@ async function uploadLocalPaths(remoteDirPath: string, localPaths: string[]) {
           continue;
         }
         const name = item.remoteRelative.split(/[/\\]/).pop() || item.remoteRelative;
-        const transferId = transfers.startTransfer({
-          kind: "upload",
-          name,
-          remotePath,
-          localPath: item.localPath,
-        });
-        try {
-          await api.remoteUpload(activeSessionId.value, item.localPath, remotePath, transferId);
-        } catch (e) {
-          transfers.markError(transferId, String(e));
-          throw e;
-        }
+        queue.push({ localPath: item.localPath, remotePath, name });
+      }
+    }
+    transfers.beginBatch(queue.length);
+    for (const item of queue) {
+      const transferId = transfers.startTransfer({
+        kind: "upload",
+        name: item.name,
+        remotePath: item.remotePath,
+        localPath: item.localPath,
+      });
+      try {
+        await api.remoteUpload(activeSessionId.value, item.localPath, item.remotePath, transferId);
+      } catch (e) {
+        transfers.markError(transferId, String(e));
+        throw e;
       }
     }
     await refreshAfterMutation(remoteDirPath);
@@ -1354,8 +1359,12 @@ onBeforeUnmount(() => {
         <button
           type="button"
           class="tool-icon transfers-btn"
-          :class="{ active: transfersPanelOpen || activeCount > 0 }"
-          :title="t('transfers.title')"
+          :class="{ active: transfersPanelOpen || activeCount > 0 || hasBatchProgress }"
+          :title="
+            hasBatchProgress
+              ? t('transfers.batchProgress', { done: transfers.batchCompleted, total: transfers.batchTotal })
+              : t('transfers.title')
+          "
           :aria-label="t('transfers.title')"
           :aria-expanded="transfersPanelOpen"
           @click="transfers.togglePanel()"
@@ -1370,12 +1379,18 @@ onBeforeUnmount(() => {
               stroke-linejoin="round"
             />
           </svg>
-          <span v-if="activeCount" class="transfers-badge">{{ activeCount }}</span>
+          <span v-if="batchProgressLabel" class="transfers-badge wide">{{ batchProgressLabel }}</span>
+          <span v-else-if="activeCount" class="transfers-badge">{{ activeCount }}</span>
         </button>
 
         <div v-if="transfersPanelOpen" class="transfers-panel" @mousedown.stop>
           <div class="transfers-head">
-            <strong>{{ t("transfers.title") }}</strong>
+            <strong>
+              {{ t("transfers.title") }}
+              <span v-if="hasBatchProgress" class="transfers-batch">
+                {{ t("transfers.batchProgress", { done: transfers.batchCompleted, total: transfers.batchTotal }) }}
+              </span>
+            </strong>
             <button
               type="button"
               class="btn ghost mini"
@@ -1905,6 +1920,14 @@ onBeforeUnmount(() => {
   font-weight: 700;
   line-height: 14px;
   text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.transfers-badge.wide {
+  min-width: 22px;
+  padding: 0 4px;
+  font-size: 8px;
+  letter-spacing: -0.02em;
 }
 
 :global([data-theme="light"]) .transfers-badge {
@@ -1937,8 +1960,19 @@ onBeforeUnmount(() => {
 }
 
 .transfers-head strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
   font-size: 12px;
   font-weight: 600;
+}
+
+.transfers-batch {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
 .transfers-dir {
