@@ -7,7 +7,7 @@ import { storeToRefs } from "pinia";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import * as api from "../api/tauri";
 import { useI18n } from "../i18n";
@@ -157,6 +157,95 @@ const fileDragTargetPath = ref<string | null>(null);
 let unlistenDragDrop: UnlistenFn | null = null;
 let statusClearTimer: ReturnType<typeof setTimeout> | null = null;
 
+/**
+ * Map Tauri drag-drop position to DOM client coordinates.
+ * macOS WKWebView already reports logical points (webview-relative);
+ * Windows WebView2 reports physical pixels — only then divide by DPR.
+ */
+function toCssPoint(position: { x: number; y: number }) {
+  const scale = window.devicePixelRatio || 1;
+  const fitsViewport =
+    position.x >= -2 &&
+    position.y >= -2 &&
+    position.x <= window.innerWidth + 2 &&
+    position.y <= window.innerHeight + 2;
+  if (fitsViewport) return { x: position.x, y: position.y };
+  return { x: position.x / scale, y: position.y / scale };
+}
+
+function pointInExplorer(x: number, y: number): boolean {
+  const el = explorerEl.value;
+  if (!el) return false;
+  const rect = el.getBoundingClientRect();
+  return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+}
+
+function resolveDropRemoteDir(position?: { x: number; y: number }): string | null {
+  if (!activeSessionId.value) return null;
+  if (position) {
+    const { x, y } = toCssPoint(position);
+    if (!pointInExplorer(x, y)) return null;
+    const el = document.elementFromPoint(x, y) as HTMLElement | null;
+    const hit = el?.closest?.("[data-drop-path]") as HTMLElement | null;
+    if (hit?.dataset.dropPath) return hit.dataset.dropPath;
+  }
+  return currentContainerEntry()?.path ?? ROOT_PATH;
+}
+
+/** Strip file:// / percent-encoding so Rust expand_local_upload can open the path. */
+function normalizeDroppedPaths(paths: string[]): string[] {
+  const out: string[] = [];
+  for (const raw of paths) {
+    let p = raw.trim();
+    if (!p) continue;
+    if (p.startsWith("file://")) {
+      try {
+        p = decodeURIComponent(new URL(p).pathname);
+      } catch {
+        p = decodeURIComponent(p.replace(/^file:\/\//, ""));
+      }
+    }
+    out.push(p);
+  }
+  return out;
+}
+
+function updateFileDragTarget(position?: { x: number; y: number }) {
+  if (!activeSessionId.value) {
+    fileDragActive.value = false;
+    fileDragTargetPath.value = null;
+    return;
+  }
+  // Enter/over only fires while files hover this window; explorer is the drop zone.
+  fileDragActive.value = true;
+  fileDragTargetPath.value =
+    (position ? resolveDropRemoteDir(position) : null) ||
+    currentContainerEntry()?.path ||
+    ROOT_PATH;
+}
+
+async function handleExternalDrop(
+  paths: string[],
+  position?: { x: number; y: number }
+) {
+  const hoveredTarget = fileDragTargetPath.value;
+  fileDragActive.value = false;
+  fileDragTargetPath.value = null;
+  if (!activeSessionId.value) return;
+  const localPaths = normalizeDroppedPaths(paths);
+  if (!localPaths.length) {
+    error.value = t("explorer.dropNoFiles");
+    return;
+  }
+  // Prefer precise hit; otherwise use last hover / current folder (macOS coord quirks)
+  const remoteDir =
+    (position ? resolveDropRemoteDir(position) : null) ||
+    hoveredTarget ||
+    currentContainerEntry()?.path ||
+    ROOT_PATH;
+  await uploadLocalPaths(remoteDir, localPaths);
+}
+
 function flashStatus(message: string, ms = 1600) {
   statusMsg.value = message;
   if (statusClearTimer) clearTimeout(statusClearTimer);
@@ -304,48 +393,6 @@ function currentContainerEntry(): RemoteEntry | null {
     return makeDirEntry(parentPath(preview.value.path));
   }
   return makeDirEntry(ROOT_PATH);
-}
-
-function toCssPoint(position: { x: number; y: number }) {
-  const scale = window.devicePixelRatio || 1;
-  return { x: position.x / scale, y: position.y / scale };
-}
-
-function resolveDropRemoteDir(position?: { x: number; y: number }): string | null {
-  if (!activeSessionId.value) return null;
-  if (position) {
-    const { x, y } = toCssPoint(position);
-    const el = document.elementFromPoint(x, y) as HTMLElement | null;
-    const hit = el?.closest?.("[data-drop-path]") as HTMLElement | null;
-    if (hit?.dataset.dropPath) return hit.dataset.dropPath;
-    if (!el?.closest?.(".explorer")) return null;
-  }
-  return currentContainerEntry()?.path ?? ROOT_PATH;
-}
-
-function updateFileDragTarget(position?: { x: number; y: number }) {
-  if (!activeSessionId.value || !position) {
-    fileDragActive.value = false;
-    fileDragTargetPath.value = null;
-    return;
-  }
-  const { x, y } = toCssPoint(position);
-  const el = document.elementFromPoint(x, y) as HTMLElement | null;
-  if (!el?.closest?.(".explorer")) {
-    fileDragActive.value = false;
-    fileDragTargetPath.value = null;
-    return;
-  }
-  fileDragActive.value = true;
-  fileDragTargetPath.value = resolveDropRemoteDir(position);
-}
-
-async function handleExternalDrop(paths: string[], position?: { x: number; y: number }) {
-  fileDragActive.value = false;
-  const remoteDir = resolveDropRemoteDir(position);
-  fileDragTargetPath.value = null;
-  if (!remoteDir || !paths.length) return;
-  await uploadLocalPaths(remoteDir, paths);
 }
 
 function clampHeight(value: number) {
@@ -1321,7 +1368,7 @@ watch(
 onMounted(() => {
   window.addEventListener("pointerdown", onGlobalPointerDown, true);
   void transfers.ensureListening();
-  void getCurrentWebview()
+  void getCurrentWindow()
     .onDragDropEvent((event) => {
       const payload = event.payload;
       if (payload.type === "enter" || payload.type === "over") {

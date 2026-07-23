@@ -225,6 +225,7 @@ export const messages = {
         'explorer.downloadDone': '下载完成',
         'explorer.uploadDone': '上传完成',
         'explorer.dropUpload': '松开以上传到',
+        'explorer.dropNoFiles': '未能读取拖入的文件路径，请改用上传按钮',
 
         'transfers.title': '上传 / 下载',
         'transfers.batchProgress': '{done}/{total}',
@@ -596,6 +597,7 @@ export const messages = {
         'explorer.downloadDone': 'Download complete',
         'explorer.uploadDone': 'Upload complete',
         'explorer.dropUpload': 'Drop to upload into',
+        'explorer.dropNoFiles': 'Could not read dropped file paths — use Upload instead',
 
         'transfers.title': 'Transfers',
         'transfers.batchProgress': '{done}/{total}',
