@@ -101,7 +101,6 @@ export const useTransfersStore = defineStore("transfers", () => {
     if (items.value.length > MAX_ITEMS) {
       items.value = items.value.slice(0, MAX_ITEMS);
     }
-    panelOpen.value = true;
     return id;
   }
 
