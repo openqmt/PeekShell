@@ -20,7 +20,12 @@ import {
 } from "@codemirror/view";
 import { EditorState, Compartment, type Extension } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { openSearchPanel, searchKeymap, highlightSelectionMatches } from "@codemirror/search";
+import {
+  openSearchPanel,
+  search,
+  searchKeymap,
+  highlightSelectionMatches,
+} from "@codemirror/search";
 import {
   indentOnInput,
   bracketMatching,
@@ -35,6 +40,7 @@ import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { storeToRefs } from "pinia";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { languageSupportForFilename } from "../editor/language";
+import { useI18n } from "../i18n";
 import { useEditorPrefsStore, type EditorColorScheme } from "../stores/editorPrefs";
 import { useUiStore, type ThemeMode } from "../stores/ui";
 
@@ -60,6 +66,7 @@ const emit = defineEmits<{
 
 const editorPrefs = useEditorPrefsStore();
 const ui = useUiStore();
+const { t: tr, locale } = useI18n();
 const { prefs } = storeToRefs(editorPrefs);
 const { theme: uiTheme } = storeToRefs(ui);
 
@@ -68,10 +75,32 @@ let view: EditorView | null = null;
 const editableCompartment = new Compartment();
 const languageCompartment = new Compartment();
 const appearanceCompartment = new Compartment();
+const phrasesCompartment = new Compartment();
 /** Bump to ignore stale async language loads. */
 let languageLoadId = 0;
 /** Suppress emit while applying external doc updates. */
 let applyingExternal = false;
+
+/** Map CodeMirror's English phrase keys to the active UI locale. */
+function searchPhrases(): Extension {
+  return EditorState.phrases.of({
+    Find: tr("editor.searchFind"),
+    Replace: tr("editor.searchReplace"),
+    next: tr("editor.searchNext"),
+    previous: tr("editor.searchPrevious"),
+    all: tr("editor.searchAll"),
+    "match case": tr("editor.searchMatchCase"),
+    regexp: tr("editor.searchRegexp"),
+    "by word": tr("editor.searchByWord"),
+    replace: tr("editor.searchReplaceOne"),
+    "replace all": tr("editor.searchReplaceAll"),
+    close: tr("common.close"),
+    "current match": tr("editor.searchCurrentMatch"),
+    "on line": tr("editor.searchOnLine"),
+    "replaced match on line $": tr("editor.searchReplacedOnLine"),
+    "replaced $ matches": tr("editor.searchReplacedMatches"),
+  });
+}
 
 /** Highlight colors tuned for both light and dark PeekShell themes. */
 const peekHighlight = HighlightStyle.define([
@@ -320,6 +349,8 @@ function buildExtensions(readonly: boolean): Extension[] {
     crosshairCursor(),
     highlightActiveLine(),
     highlightSelectionMatches(),
+    search(),
+    phrasesCompartment.of(searchPhrases()),
     syntaxHighlighting(peekHighlight, { fallback: true }),
     languageCompartment.of([]),
     keymap.of([
@@ -432,6 +463,12 @@ watch(
     reconfigureAppearance();
   }
 );
+
+watch(locale, () => {
+  view?.dispatch({
+    effects: phrasesCompartment.reconfigure(searchPhrases()),
+  });
+});
 
 defineExpose({
   focus() {
