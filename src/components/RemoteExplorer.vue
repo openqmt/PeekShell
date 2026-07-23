@@ -93,7 +93,7 @@ const explorerPrefs = useExplorerPrefsStore();
 const { activeSessionId } = storeToRefs(sessions);
 const { displayPrefs } = storeToRefs(ui);
 const { prefs: explorerPrefsState } = storeToRefs(explorerPrefs);
-const { items: transferItems, panelOpen: transfersPanelOpen, defaultDownloadDir, activeCount, batchProgressLabel, hasBatchProgress } =
+const { items: transferItems, panelOpen: transfersPanelOpen, defaultDownloadDir, pendingCount, canResume, resuming, batchProgressLabel, hasBatchProgress } =
   storeToRefs(transfers);
 
 const previewLimitBytes = computed(() => previewMaxBytes(explorerPrefsState.value));
@@ -616,6 +616,11 @@ async function downloadAndEditLocally() {
     }
     flashStatus(t("explorer.localEditReady"), 2800);
   } catch (e) {
+    const item = transferItems.value.find((row) => row.id === transferId);
+    if (item?.status === "paused" || String(e).includes("已停止")) {
+      statusMsg.value = "";
+      return;
+    }
     transfers.markError(transferId, String(e));
     statusMsg.value = "";
     error.value = String(e);
@@ -661,6 +666,11 @@ async function syncLocalEdit() {
     await fetchDir(parent, true);
     flashStatus(t("explorer.synced"));
   } catch (e) {
+    const item = transferItems.value.find((row) => row.id === transferId);
+    if (item?.status === "paused" || String(e).includes("已停止")) {
+      statusMsg.value = "";
+      return;
+    }
     transfers.markError(transferId, String(e));
     statusMsg.value = "";
     error.value = String(e);
@@ -1075,9 +1085,74 @@ async function downloadEntry(entry: RemoteEntry) {
     await api.remoteDownload(activeSessionId.value, entry.path, localPath, transferId);
     flashStatus(t("explorer.downloadDone"));
   } catch (e) {
+    const item = transferItems.value.find((row) => row.id === transferId);
+    if (item?.status === "paused" || String(e).includes("已停止")) {
+      statusMsg.value = "";
+      return;
+    }
     transfers.markError(transferId, String(e));
     statusMsg.value = "";
     error.value = String(e);
+  }
+}
+
+async function resumeTransfers() {
+  if (!activeSessionId.value || resuming.value || !canResume.value) return;
+  transfers.resuming = true;
+  statusMsg.value = t("explorer.working");
+  error.value = "";
+  const ids = transfers.prepareResume();
+  const abortAt = transfers.snapshotAbortEpoch();
+  let hadUpload = false;
+  const parentsToRefresh = new Set<string>();
+  try {
+    for (const id of ids) {
+      if (transfers.isAborted(abortAt)) break;
+      const item = transferItems.value.find((row) => row.id === id);
+      if (!item || !transfers.activateTransfer(id)) continue;
+      try {
+        if (item.kind === "upload") {
+          hadUpload = true;
+          parentsToRefresh.add(parentPath(item.remotePath));
+          await api.remoteUpload(
+            activeSessionId.value,
+            item.localPath,
+            item.remotePath,
+            id
+          );
+        } else {
+          await api.remoteDownload(
+            activeSessionId.value,
+            item.remotePath,
+            item.localPath,
+            id
+          );
+        }
+      } catch (e) {
+        if (transfers.isAborted(abortAt) || String(e).includes("已停止")) break;
+        transfers.markError(id, String(e));
+        throw e;
+      }
+    }
+    if (!transfers.isAborted(abortAt)) {
+      if (hadUpload) {
+        for (const dir of parentsToRefresh) {
+          try {
+            await refreshAfterMutation(dir);
+          } catch {
+            // ignore refresh errors
+          }
+        }
+      }
+      flashStatus(t("transfers.resumeDone"));
+    } else {
+      statusMsg.value = "";
+    }
+  } catch (e) {
+    statusMsg.value = "";
+    error.value = String(e);
+  } finally {
+    transfers.resuming = false;
   }
 }
 
@@ -1099,23 +1174,39 @@ async function uploadLocalPaths(remoteDirPath: string, localPaths: string[]) {
         queue.push({ localPath: item.localPath, remotePath, name });
       }
     }
-    transfers.beginBatch(queue.length);
-    for (const item of queue) {
-      const transferId = transfers.startTransfer({
-        kind: "upload",
+    const abortAt = transfers.snapshotAbortEpoch();
+    const transferIds = transfers.enqueueTransfers(
+      queue.map((item) => ({
+        kind: "upload" as const,
         name: item.name,
         remotePath: item.remotePath,
         localPath: item.localPath,
-      });
+      }))
+    );
+    for (let i = 0; i < queue.length; i++) {
+      if (transfers.isAborted(abortAt)) break;
+      const item = queue[i]!;
+      const transferId = transferIds[i]!;
+      if (!transfers.activateTransfer(transferId)) continue;
       try {
         await api.remoteUpload(activeSessionId.value, item.localPath, item.remotePath, transferId);
       } catch (e) {
+        if (transfers.isAborted(abortAt)) break;
         transfers.markError(transferId, String(e));
         throw e;
       }
     }
-    await refreshAfterMutation(remoteDirPath);
-    flashStatus(t("explorer.uploadDone"));
+    if (!transfers.isAborted(abortAt)) {
+      await refreshAfterMutation(remoteDirPath);
+      flashStatus(t("explorer.uploadDone"));
+    } else {
+      statusMsg.value = "";
+      try {
+        await refreshAfterMutation(remoteDirPath);
+      } catch {
+        // ignore refresh errors after stop
+      }
+    }
   } catch (e) {
     statusMsg.value = "";
     error.value = String(e);
@@ -1359,7 +1450,7 @@ onBeforeUnmount(() => {
         <button
           type="button"
           class="tool-icon transfers-btn"
-          :class="{ active: transfersPanelOpen || activeCount > 0 || hasBatchProgress }"
+          :class="{ active: transfersPanelOpen || pendingCount > 0 || hasBatchProgress || canResume }"
           :title="
             hasBatchProgress
               ? t('transfers.batchProgress', { done: transfers.batchCompleted, total: transfers.batchTotal })
@@ -1380,7 +1471,7 @@ onBeforeUnmount(() => {
             />
           </svg>
           <span v-if="batchProgressLabel" class="transfers-badge wide">{{ batchProgressLabel }}</span>
-          <span v-else-if="activeCount" class="transfers-badge">{{ activeCount }}</span>
+          <span v-else-if="pendingCount" class="transfers-badge">{{ pendingCount }}</span>
         </button>
 
         <div v-if="transfersPanelOpen" class="transfers-panel" @mousedown.stop>
@@ -1391,14 +1482,33 @@ onBeforeUnmount(() => {
                 {{ t("transfers.batchProgress", { done: transfers.batchCompleted, total: transfers.batchTotal }) }}
               </span>
             </strong>
-            <button
-              type="button"
-              class="btn ghost mini"
-              :disabled="!transferItems.some((i) => i.status !== 'running')"
-              @click="transfers.clearFinished()"
-            >
-              {{ t("transfers.clearFinished") }}
-            </button>
+            <div class="transfers-head-actions">
+              <button
+                v-if="pendingCount > 0"
+                type="button"
+                class="btn ghost mini danger"
+                @click="transfers.stopAll()"
+              >
+                {{ t("transfers.stop") }}
+              </button>
+              <button
+                v-else-if="canResume"
+                type="button"
+                class="btn ghost mini primary"
+                :disabled="resuming || !activeSessionId"
+                @click="resumeTransfers"
+              >
+                {{ resuming ? t("transfers.resuming") : t("transfers.continue") }}
+              </button>
+              <button
+                type="button"
+                class="btn ghost mini"
+                :disabled="!transferItems.some((i) => i.status !== 'running' && i.status !== 'queued' && i.status !== 'paused')"
+                @click="transfers.clearFinished()"
+              >
+                {{ t("transfers.clearFinished") }}
+              </button>
+            </div>
           </div>
 
           <div class="transfers-dir">
@@ -1439,11 +1549,15 @@ onBeforeUnmount(() => {
                 <span class="transfer-name" :title="item.name">{{ item.name }}</span>
                 <span class="transfer-status" :class="item.status">
                   {{
-                    item.status === "running"
-                      ? t("transfers.running")
-                      : item.status === "done"
-                        ? t("transfers.done")
-                        : t("transfers.failed")
+                    item.status === "queued"
+                      ? t("transfers.queued")
+                      : item.status === "running"
+                        ? t("transfers.running")
+                        : item.status === "done"
+                          ? t("transfers.done")
+                          : item.status === "paused"
+                            ? t("transfers.paused")
+                            : t("transfers.failed")
                   }}
                 </span>
               </div>
@@ -1959,6 +2073,13 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid var(--border-soft);
 }
 
+.transfers-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .transfers-head strong {
   display: inline-flex;
   align-items: center;
@@ -2073,9 +2194,19 @@ onBeforeUnmount(() => {
   color: var(--text-dim);
 }
 
+.transfer-status.queued { color: var(--text-muted); }
 .transfer-status.running { color: var(--term-cyan); }
 .transfer-status.done { color: var(--accent); }
 .transfer-status.error { color: var(--danger); }
+.transfer-status.paused { color: var(--warn); }
+
+.transfers-head .btn.danger {
+  color: var(--danger);
+}
+
+.transfers-head .btn.primary {
+  color: var(--accent);
+}
 
 .transfer-bar {
   height: 4px;

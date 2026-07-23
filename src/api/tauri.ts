@@ -188,6 +188,10 @@ export function remoteUpload(
   return invoke("remote_upload", { sessionId, localPath, remotePath, transferId });
 }
 
+export function cancelAllTransfers(): Promise<void> {
+  return invoke("cancel_all_transfers_cmd");
+}
+
 export function expandLocalUpload(path: string): Promise<LocalUploadItem[]> {
   return invoke("expand_local_upload", { path });
 }

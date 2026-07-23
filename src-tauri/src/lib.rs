@@ -13,8 +13,8 @@ use ai_config::{AiProviderRecord, AiProviderUpsert, AiSettings};
 use error::AppResult;
 use hosts::{HostRecord, HostUpsert};
 use ssh::{
-    test_connection, ConnectionTestRequest, HostMetrics, RemoteDirListing, RemoteFileContent,
-    SessionInfo, SessionManager,
+    cancel_all_transfers, test_connection, ConnectionTestRequest, HostMetrics, RemoteDirListing,
+    RemoteFileContent, SessionInfo, SessionManager,
 };
 
 use std::sync::Arc;
@@ -278,6 +278,11 @@ async fn remote_upload(
         .await
 }
 
+#[tauri::command]
+fn cancel_all_transfers_cmd() {
+    cancel_all_transfers();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let sessions = Arc::new(SessionManager::new());
@@ -330,6 +335,7 @@ pub fn run() {
             remote_chmod,
             remote_download,
             remote_upload,
+            cancel_all_transfers_cmd,
             expand_local_upload
         ])
         .setup(|app| {

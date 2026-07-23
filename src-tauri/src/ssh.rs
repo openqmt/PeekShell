@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::Write;
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
@@ -1169,8 +1170,57 @@ struct TransferProgressPayload {
     error: Option<String>,
 }
 
+/// Bumped by `cancel_all_transfers`; in-flight transfers compare against their start epoch.
+static TRANSFER_ABORT_EPOCH: AtomicU64 = AtomicU64::new(0);
+const TRANSFER_CANCELLED_MSG: &str = "已停止";
+
+/// Stop all in-flight uploads/downloads (checked in transfer loops).
+pub fn cancel_all_transfers() {
+    TRANSFER_ABORT_EPOCH.fetch_add(1, Ordering::SeqCst);
+}
+
+fn transfer_abort_epoch() -> u64 {
+    TRANSFER_ABORT_EPOCH.load(Ordering::SeqCst)
+}
+
+fn transfer_was_aborted(start_epoch: u64) -> bool {
+    transfer_abort_epoch() != start_epoch
+}
+
+fn transfer_cancelled_error() -> AppError {
+    AppError::Message(TRANSFER_CANCELLED_MSG.into())
+}
+
+fn is_transfer_cancelled(err: &AppError) -> bool {
+    matches!(err, AppError::Message(msg) if msg == TRANSFER_CANCELLED_MSG)
+}
+
 fn emit_transfer_progress(app: &AppHandle, payload: TransferProgressPayload) {
     let _ = app.emit("transfer://progress", payload);
+}
+
+fn emit_transfer_failure(
+    app: &AppHandle,
+    transfer_id: &str,
+    transferred: u64,
+    total: u64,
+    err: &AppError,
+) {
+    let cancelled = is_transfer_cancelled(err);
+    emit_transfer_progress(
+        app,
+        TransferProgressPayload {
+            id: transfer_id.to_string(),
+            transferred,
+            total,
+            status: if cancelled { "cancelled" } else { "error" },
+            error: if cancelled {
+                None
+            } else {
+                Some(err.to_string())
+            },
+        },
+    );
 }
 
 async fn remote_download(
@@ -1180,9 +1230,15 @@ async fn remote_download(
     app: &AppHandle,
     transfer_id: &str,
 ) -> AppResult<()> {
+    let start_epoch = transfer_abort_epoch();
     let remote_path = normalize_remote_path(remote_path)?;
     if local_path.trim().is_empty() {
         return Err(AppError::Message("本地路径无效".into()));
+    }
+    if transfer_was_aborted(start_epoch) {
+        let err = transfer_cancelled_error();
+        emit_transfer_failure(app, transfer_id, 0, 0, &err);
+        return Err(err);
     }
     let quoted = shell_quote(&remote_path);
     let probe = format!(
@@ -1227,6 +1283,12 @@ if [ -d "$path" ]; then echo DIR; else echo FILE; fi
         return Err(AppError::Message("下载失败：无法识别路径类型".into()));
     };
 
+    if transfer_was_aborted(start_epoch) {
+        let err = transfer_cancelled_error();
+        emit_transfer_failure(app, transfer_id, 0, total, &err);
+        return Err(err);
+    }
+
     if let Some(parent) = Path::new(local_path).parent() {
         std::fs::create_dir_all(parent)
             .map_err(|e| AppError::Message(format!("创建本地目录失败: {e}")))?;
@@ -1243,7 +1305,7 @@ if [ -d "$path" ]; then echo DIR; else echo FILE; fi
         },
     );
 
-    match run_exec_to_file(host, &cmd, local_path, app, transfer_id, total).await {
+    match run_exec_to_file(host, &cmd, local_path, app, transfer_id, total, start_epoch).await {
         Ok(transferred) => {
             emit_transfer_progress(
                 app,
@@ -1258,16 +1320,7 @@ if [ -d "$path" ]; then echo DIR; else echo FILE; fi
             Ok(())
         }
         Err(e) => {
-            emit_transfer_progress(
-                app,
-                TransferProgressPayload {
-                    id: transfer_id.to_string(),
-                    transferred: 0,
-                    total,
-                    status: "error",
-                    error: Some(e.to_string()),
-                },
-            );
+            emit_transfer_failure(app, transfer_id, 0, total, &e);
             Err(e)
         }
     }
@@ -1280,6 +1333,7 @@ async fn run_exec_to_file(
     app: &AppHandle,
     transfer_id: &str,
     total: u64,
+    start_epoch: u64,
 ) -> AppResult<u64> {
     let handle = open_authenticated_handle(host).await?;
     let mut channel = handle.channel_open_session().await?;
@@ -1291,6 +1345,12 @@ async fn run_exec_to_file(
     let mut last_emit = Instant::now() - Duration::from_millis(200);
 
     while let Some(msg) = channel.wait().await {
+        if transfer_was_aborted(start_epoch) {
+            let _ = handle
+                .disconnect(russh::Disconnect::ByApplication, "", "")
+                .await;
+            return Err(transfer_cancelled_error());
+        }
         if let ChannelMsg::Data { ref data } = msg {
             file.write_all(data)
                 .map_err(|e| AppError::Message(format!("写入本地文件失败: {e}")))?;
@@ -1356,9 +1416,15 @@ async fn remote_upload(
     app: &AppHandle,
     transfer_id: &str,
 ) -> AppResult<()> {
+    let start_epoch = transfer_abort_epoch();
     let remote_path = normalize_remote_path(remote_path)?;
     if remote_path == "/" {
         return Err(AppError::Message("远端路径无效".into()));
+    }
+    if transfer_was_aborted(start_epoch) {
+        let err = transfer_cancelled_error();
+        emit_transfer_failure(app, transfer_id, 0, 0, &err);
+        return Err(err);
     }
     let meta = std::fs::metadata(local_path)
         .map_err(|e| AppError::Message(format!("读取本地文件失败: {e}")))?;
@@ -1375,6 +1441,12 @@ mkdir -p -- "$parent" && echo OK || echo ERR|创建远端目录失败
 "#
     );
     assert_ok_output(&run_exec(host, &ensure).await?, "创建远端目录失败")?;
+
+    if transfer_was_aborted(start_epoch) {
+        let err = transfer_cancelled_error();
+        emit_transfer_failure(app, transfer_id, 0, total, &err);
+        return Err(err);
+    }
 
     emit_transfer_progress(
         app,
@@ -1397,6 +1469,12 @@ mkdir -p -- "$parent" && echo OK || echo ERR|创建远端目录失败
         let mut transferred = 0u64;
         let mut last_emit = Instant::now() - Duration::from_millis(200);
         for chunk in data.chunks(CHUNK) {
+            if transfer_was_aborted(start_epoch) {
+                let _ = handle
+                    .disconnect(russh::Disconnect::ByApplication, "", "")
+                    .await;
+                return Err(transfer_cancelled_error());
+            }
             channel
                 .data(chunk)
                 .await
@@ -1465,16 +1543,7 @@ mkdir -p -- "$parent" && echo OK || echo ERR|创建远端目录失败
             Ok(())
         }
         Err(e) => {
-            emit_transfer_progress(
-                app,
-                TransferProgressPayload {
-                    id: transfer_id.to_string(),
-                    transferred: 0,
-                    total,
-                    status: "error",
-                    error: Some(e.to_string()),
-                },
-            );
+            emit_transfer_failure(app, transfer_id, 0, total, &e);
             Err(e)
         }
     }
