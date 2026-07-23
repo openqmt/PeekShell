@@ -49,14 +49,19 @@ const findOpen = ref(false)
 const findQuery = ref('')
 
 const hostSurfaceStyle = computed(() => {
-    const img = termPrefs.value.backgroundImage.trim()
-    if (!img) return undefined
-    const safe = img.replace(/\\/g, '/').replace(/"/g, '\\"')
-    return {
-        backgroundImage: `url("${safe}")`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+    const themeBg = readTermTheme().background
+    const style: Record<string, string> = {
+        // Keep host / viewport in sync with xterm-scrollable-element (theme.background).
+        backgroundColor: themeBg,
+        '--term-surface-bg': themeBg,
     }
+    const img = termPrefs.value.backgroundImage.trim()
+    if (!img) return style
+    const safe = img.replace(/\\/g, '/').replace(/"/g, '\\"')
+    style.backgroundImage = `url("${safe}")`
+    style.backgroundSize = 'cover'
+    style.backgroundPosition = 'center'
+    return style
 })
 
 const hostOverlayStyle = computed(() => {
@@ -788,6 +793,8 @@ onBeforeUnmount(() => {
     min-height: 0;
     padding: 4px;
     position: relative;
+    /* Match xterm-scrollable-element theme.background (set via --term-surface-bg). */
+    background-color: var(--term-surface-bg, var(--term-bg));
 }
 
 .term-host.has-bg-image {
@@ -809,7 +816,8 @@ onBeforeUnmount(() => {
 
 .term-host :deep(.xterm-viewport) {
     overflow-y: auto !important;
-    background-color: var(--term-bg) !important;
+    /* Same as xterm-scrollable-element on macOS (theme.background). */
+    background-color: var(--term-surface-bg, var(--term-bg)) !important;
 }
 
 .term-host.has-bg-image :deep(.xterm),
