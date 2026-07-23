@@ -395,7 +395,35 @@ async function ensureTerm(sessionId: string) {
         ta.setAttribute('spellcheck', 'false')
     }
 
+    // Track the current input line so local "cls" can clear the buffer without running remotely.
+    let lineBuf = ''
     term.onData((data) => {
+        if (data === '\r' || data === '\n' || data === '\r\n') {
+            if (lineBuf.trim().toLowerCase() === 'cls') {
+                lineBuf = ''
+                // Kill the remote input line (echoed "cls") without executing a command.
+                void api.ptyWrite(sessionId, '\x15')
+                term.clear()
+                return
+            }
+            lineBuf = ''
+            void api.ptyWrite(sessionId, data)
+            return
+        }
+
+        if (data === '\x7f' || data === '\b') {
+            lineBuf = lineBuf.slice(0, -1)
+        } else if (data === '\x03' || data === '\x15') {
+            lineBuf = ''
+        } else if (data.length === 1 && data >= ' ') {
+            lineBuf += data
+        } else if ([...data].every((c) => c >= ' ' || c === '\t')) {
+            lineBuf += data
+        } else {
+            // CSI / other controls (arrows, etc.) — reset local line tracking.
+            lineBuf = ''
+        }
+
         void api.ptyWrite(sessionId, data)
     })
 
