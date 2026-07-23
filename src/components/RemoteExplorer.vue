@@ -1478,7 +1478,7 @@ onBeforeUnmount(() => {
             'drop-target': fileDragActive && fileDragTargetPath === (row.entry.isDir ? row.entry.path : parentPath(row.entry.path)),
           }"
           :data-drop-path="row.entry.isDir ? row.entry.path : parentPath(row.entry.path)"
-          :style="{ paddingLeft: 8 + row.depth * 14 + 'px' }"
+          :style="{ paddingLeft: 6 + row.depth * 12 + 'px' }"
           @click="onTreeClick(row.entry)"
           @contextmenu.prevent="onEntryContextMenu(row.entry, $event)"
         >
@@ -1494,8 +1494,8 @@ onBeforeUnmount(() => {
             <svg
               v-if="row.entry.isDir && !loadingDirs[row.entry.path]"
               viewBox="0 0 16 16"
-              width="12"
-              height="12"
+              width="10"
+              height="10"
               fill="none"
               aria-hidden="true"
             >
@@ -2130,12 +2130,14 @@ onBeforeUnmount(() => {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: 4px;
+  padding: 1px 6px;
+  min-height: 22px;
   border: none;
   background: transparent;
   color: var(--text);
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.25;
   text-align: left;
 }
 
@@ -2155,8 +2157,8 @@ onBeforeUnmount(() => {
 }
 
 .twist {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
   color: var(--text-dim);
   display: grid;
@@ -2180,8 +2182,8 @@ onBeforeUnmount(() => {
 }
 
 .twist-loading {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   border: 1.5px solid var(--border);
   border-top-color: var(--accent);
@@ -2196,10 +2198,10 @@ onBeforeUnmount(() => {
 
 .kind {
   flex-shrink: 0;
-  margin-right: 2px;
-  font-size: 9px;
+  margin-right: 0;
+  font-size: 8px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   color: var(--text-dim);
   font-family: var(--font-mono);
 }
@@ -2208,6 +2210,18 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
+}
+
+.kind-slot :deep(.kind-icon) {
+  width: 13px;
+  height: 13px;
+  margin-right: 2px;
+}
+
+.kind-slot :deep(.kind-icon.filled) {
+  width: 14px;
+  height: 14px;
+  margin-right: 2px;
 }
 
 .tree-row.dir {
