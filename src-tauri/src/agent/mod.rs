@@ -75,7 +75,7 @@ pub async fn chat(
     let mut messages = vec![
         ChatHistoryMessage {
             role: "system".into(),
-            content: system_prompt(),
+            content: system_prompt(&req.locale),
         },
         ChatHistoryMessage {
             role: "system".into(),
@@ -146,6 +146,8 @@ pub async fn chat(
                 rationale: proposed.rationale.clone(),
                 exec_mode: req.exec_mode,
                 status: AgentCommandStatus::PendingConfirm,
+                user_goal: message.to_string(),
+                locale: req.locale.clone(),
             };
 
             match action {
@@ -224,7 +226,7 @@ pub async fn chat(
     }
 
     let follow_up = if !auto_results.is_empty() {
-        match feedback_after_runs(&provider, message, &auto_results).await {
+        match feedback_after_runs(&provider, message, &req.locale, &auto_results).await {
             Ok(text) => {
                 if !text.is_empty() {
                     explanation = format!("{explanation}\n\n{text}");
@@ -300,7 +302,8 @@ pub async fn execute_approved(
             let follow_up = if let Some(p) = provider.as_ref() {
                 feedback_after_runs(
                     p,
-                    &pending.command,
+                    &pending.user_goal,
+                    &pending.locale,
                     &[(pending.command.clone(), exec.clone())],
                 )
                 .await
@@ -390,20 +393,31 @@ fn command_view(cmd: &PendingCommand, auto_executed: bool) -> AgentCommandView {
     }
 }
 
-fn system_prompt() -> String {
-    r#"You are PeekShell Agent, an SSH assistant.
+fn reply_language_rule(locale: &str) -> &'static str {
+    if locale.eq_ignore_ascii_case("en") {
+        "Always reply in English."
+    } else {
+        "Always reply in Simplified Chinese (简体中文)."
+    }
+}
+
+fn system_prompt(locale: &str) -> String {
+    format!(
+        r#"You are PeekShell Agent, an SSH assistant.
+
+{lang}
 
 Reply in this exact format:
 1) First write a clear natural-language explanation for the user (plain text / markdown). Do NOT start with JSON.
 2) Then append a JSON block for machine parsing, fenced like:
 
 ```json
-{
+{{
   "needs_more_info": false,
   "commands": [
-    { "command": "shell command", "risk": "low|medium|high", "rationale": "why this command" }
+    {{ "command": "shell command", "risk": "low|medium|high", "rationale": "why this command" }}
   ]
-}
+}}
 ```
 
 Rules:
@@ -414,8 +428,10 @@ Rules:
 - If unclear, set needs_more_info=true and commands=[].
 - commands should be non-interactive; avoid editors/pagers (no vim/less). Use absolute paths when helpful.
 - The JSON must be valid. Keep the explanation outside the fence.
-"#
-    .to_string()
+- The rationale field inside JSON may stay in the same language as the explanation.
+"#,
+        lang = reply_language_rule(locale)
+    )
 }
 
 fn build_context(
@@ -547,9 +563,13 @@ fn strip_json_fence_tail(raw: &str) -> String {
 async fn feedback_after_runs(
     provider: &ai_config::ActiveProviderRuntime,
     user_goal: &str,
+    locale: &str,
     runs: &[(String, ExecResult)],
 ) -> AppResult<String> {
-    let mut body = String::from("Summarize these command results for the user in plain language. If another safe next step is obvious, mention it but do not pretend it was executed.\n");
+    let lang = reply_language_rule(locale);
+    let mut body = format!(
+        "Summarize these command results for the user in plain language. {lang} If another safe next step is obvious, mention it but do not pretend it was executed.\n"
+    );
     body.push_str(&format!("User goal: {user_goal}\n"));
     for (cmd, exec) in runs {
         let stdout = truncate(&exec.stdout, OUTPUT_FEEDBACK_CHARS / 2);
@@ -562,7 +582,9 @@ async fn feedback_after_runs(
     let messages = vec![
         ChatHistoryMessage {
             role: "system".into(),
-            content: "You are PeekShell Agent. Reply with a short plain-text explanation only (no JSON).".into(),
+            content: format!(
+                "You are PeekShell Agent. Reply with a short plain-text explanation only (no JSON). {lang}"
+            ),
         },
         ChatHistoryMessage {
             role: "user".into(),

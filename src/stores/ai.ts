@@ -10,6 +10,7 @@ import type {
   ExecMode,
 } from "../types/ai";
 import { useSessionsStore } from "./sessions";
+import { useUiStore } from "./ui";
 
 const EXEC_MODE_KEY = "peekshell.execMode";
 
@@ -153,6 +154,7 @@ export const useAiStore = defineStore("ai", () => {
         execMode: execMode.value,
         history,
         requestId,
+        locale: useUiStore().locale,
       });
 
       const msg = messages.value.find((m) => m.id === assistantId);

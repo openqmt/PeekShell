@@ -58,6 +58,13 @@ pub struct AiChatRequest {
     /// 前端生成，用于关联 `ai://chunk` 流式事件。
     #[serde(default)]
     pub request_id: String,
+    /// UI 语言：`zh` | `en`，用于约束 Agent 回复语言。
+    #[serde(default = "default_locale")]
+    pub locale: String,
+}
+
+fn default_locale() -> String {
+    "zh".into()
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -112,4 +119,7 @@ pub struct PendingCommand {
     pub rationale: String,
     pub exec_mode: ExecMode,
     pub status: AgentCommandStatus,
+    /// 触发该命令的用户原话，供执行后总结沿用同一语言。
+    pub user_goal: String,
+    pub locale: String,
 }
