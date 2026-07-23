@@ -1771,14 +1771,14 @@ onBeforeUnmount(() => {
 .transfers-panel {
   position: absolute;
   right: 0;
-  top: calc(100% + 6px);
-  width: min(360px, 72vw);
-  max-height: min(360px, 50vh);
+  top: calc(100% + 4px);
+  width: min(340px, 72vw);
+  max-height: min(320px, 50vh);
   z-index: 30;
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--bg-panel);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
   overflow: hidden;
@@ -1788,8 +1788,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: 6px;
+  padding: 5px 8px;
   border-bottom: 1px solid var(--border-soft);
 }
 
@@ -1799,7 +1799,7 @@ onBeforeUnmount(() => {
 }
 
 .transfers-dir {
-  padding: 8px 10px;
+  padding: 5px 8px;
   border-bottom: 1px solid var(--border-soft);
   background: var(--bg-elevated);
 }
@@ -1810,13 +1810,13 @@ onBeforeUnmount(() => {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-dim);
-  margin-bottom: 6px;
+  margin-bottom: 3px;
 }
 
 .transfers-dir-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .transfers-dir-path {
@@ -1831,7 +1831,7 @@ onBeforeUnmount(() => {
 }
 
 .transfers-empty {
-  padding: 18px 12px;
+  padding: 12px 10px;
   text-align: center;
   color: var(--text-dim);
   font-size: 12px;
@@ -1840,15 +1840,15 @@ onBeforeUnmount(() => {
 .transfers-list {
   flex: 1;
   overflow: auto;
-  padding: 6px;
+  padding: 4px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .transfer-item {
-  padding: 8px;
-  border-radius: 6px;
+  padding: 5px 6px;
+  border-radius: 5px;
   border: 1px solid var(--border-soft);
   background: var(--bg-elevated);
 }
@@ -1856,8 +1856,8 @@ onBeforeUnmount(() => {
 .transfer-top {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 5px;
+  margin-bottom: 4px;
 }
 
 .transfer-kind {
@@ -1901,7 +1901,7 @@ onBeforeUnmount(() => {
 .transfer-status.error { color: var(--danger); }
 
 .transfer-bar {
-  height: 5px;
+  height: 4px;
   border-radius: 999px;
   background: var(--bg-root);
   overflow: hidden;
@@ -1925,7 +1925,7 @@ onBeforeUnmount(() => {
 }
 
 .transfer-meta {
-  margin-top: 4px;
+  margin-top: 3px;
   display: flex;
   justify-content: space-between;
   font-size: 10px;
@@ -1934,7 +1934,7 @@ onBeforeUnmount(() => {
 }
 
 .transfer-error {
-  margin-top: 4px;
+  margin-top: 3px;
   font-size: 11px;
   color: var(--danger);
   word-break: break-all;
