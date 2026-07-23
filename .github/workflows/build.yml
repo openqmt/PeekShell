@@ -1,0 +1,187 @@
+name: "Publish"
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_macos_aarch64:
+        description: "Build for macOS aarch64"
+        required: false
+        type: boolean
+        default: true
+      build_macos_x86_64:
+        description: "Build for macOS x86_64"
+        required: false
+        type: boolean
+        default: true
+      build_linux_x86_64:
+        description: "Build for Linux x86_64"
+        required: false
+        type: boolean
+        default: true
+      build_linux_aarch64:
+        description: "Build for Linux aarch64"
+        required: false
+        type: boolean
+        default: true
+      build_windows_x86_64:
+        description: "Build for Windows x86_64"
+        required: false
+        type: boolean
+        default: true
+      build_windows_aarch64:
+        description: "Build for Windows aarch64"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: "macos-latest"
+            target: "aarch64-apple-darwin"
+            args: "--target aarch64-apple-darwin"
+            enabled: ${{ github.event.inputs.build_macos_aarch64 == 'true' }}
+          - platform: "macos-latest"
+            target: "x86_64-apple-darwin"
+            args: "--target x86_64-apple-darwin"
+            enabled: ${{ github.event.inputs.build_macos_x86_64 == 'true' }}
+          - platform: "ubuntu-22.04"
+            target: "x86_64-unknown-linux-gnu"
+            args: ""
+            enabled: ${{ github.event.inputs.build_linux_x86_64 == 'true' }}
+          - platform: "ubuntu-22.04"
+            target: "aarch64-unknown-linux-gnu"
+            args: ""
+            enabled: ${{ github.event.inputs.build_linux_aarch64 == 'true' }}
+          - platform: "windows-latest"
+            target: "x86_64-pc-windows-msvc"
+            args: ""
+            enabled: ${{ github.event.inputs.build_windows_x86_64 == 'true' }}
+          - platform: "windows-latest"
+            target: "aarch64-pc-windows-msvc"
+            args: "--target aarch64-pc-windows-msvc"
+            enabled: ${{ github.event.inputs.build_windows_aarch64 == 'true' }}
+
+    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        if: ${{ matrix.enabled }}
+        uses: actions/checkout@v3
+
+      - name: Check Tauri
+        if: ${{ matrix.enabled }}
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.TAURI_KEY_PASSWORD }}" ]; then
+            echo "::error::TAURI_KEY_PASSWORD is required but not set."
+            exit 1
+          fi
+
+      - name: Install rust target
+        if: ${{ matrix.enabled }}
+        run: rustup target add ${{ matrix.target }}
+
+      - uses: pnpm/action-setup@v3
+        if: ${{ matrix.enabled }}
+        with:
+          version: latest
+
+      - name: Sync node version and setup cache
+        if: ${{ matrix.enabled }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        if: ${{ matrix.enabled }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Rust stable
+        if: ${{ matrix.enabled }}
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Install dependencies (ubuntu only)
+        if: ${{ matrix.enabled && matrix.platform == 'ubuntu-22.04'}}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Remove dist folder (Linux/macOS)
+        if: matrix.enabled && (runner.os == 'Linux' || runner.os == 'macOS')
+        run: rm -rf ./dist
+
+      - name: Get project version
+        if: ${{ matrix.enabled }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Current version: $VERSION"
+        shell: bash
+
+      - name: Install Dependencies
+        if: ${{ matrix.enabled }}
+        run: |
+          curl -L -f -o dist.zip "${{ secrets.VITE_DIST_URL }}${{ env.VERSION }}.zip"
+          unzip -o dist.zip -d dist
+
+      - name: import Apple Developer Certificate
+        if: ${{ matrix.enabled && matrix.platform == 'macos-latest'}}
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          echo $APPLE_CERTIFICATE | base64 --decode > certificate.p12
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          security find-identity -v -p codesigning build.keychain
+
+      - name: verify certificate
+        if: ${{ matrix.enabled && matrix.platform == 'macos-latest'}}
+        run: |
+          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application")
+          CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
+          echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
+          echo "Certificate imported."
+
+      - uses: tauri-apps/tauri-action@v0
+        if: ${{ matrix.enabled }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ env.CERT_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        with:
+          tagName: "PeekShell-v__VERSION__"
+          releaseName: "PeekShell v__VERSION__"
+          body_path: ./Note.md
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
