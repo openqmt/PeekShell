@@ -45,7 +45,10 @@ export const messages = {
         'sidebar.totalGb': '总 {n} GB',
 
         'displaySettings.title': '显示设置',
-        'displaySettings.sub': '配置各区域要展示的内容',
+        'displaySettings.sub': '配置主题色与各区域要展示的内容',
+        'displaySettings.accentSection': '主题色系',
+        'displaySettings.accentDefault': '默认',
+        'displaySettings.accentPick': '自定义颜色',
         'displaySettings.sidebarSection': '左侧主机信息',
         'displaySettings.sidebarSystem': '系统',
         'displaySettings.sidebarResources': '资源',
@@ -376,7 +379,10 @@ export const messages = {
         'sidebar.totalGb': 'Total {n} GB',
 
         'displaySettings.title': 'Display settings',
-        'displaySettings.sub': 'Choose which sections and fields to show',
+        'displaySettings.sub': 'Accent color and which sections to show',
+        'displaySettings.accentSection': 'Accent color',
+        'displaySettings.accentDefault': 'Default',
+        'displaySettings.accentPick': 'Custom color',
         'displaySettings.sidebarSection': 'Left host info',
         'displaySettings.sidebarSystem': 'System',
         'displaySettings.sidebarResources': 'Resources',

@@ -25,7 +25,12 @@ export interface DisplayPrefs {
     colGroup: boolean;
   };
   aiPanel: boolean;
+  /** Custom accent hex (`#rrggbb`). Empty = follow theme CSS defaults. */
+  accentColor: string;
 }
+
+/** Preset accent swatches for display settings (excluding theme default). */
+export const ACCENT_COLOR_PRESETS = ["#3ecf8e", "#3b9eff", "#a78bfa"] as const;
 
 const THEME_KEY = "peekshell.theme";
 const LOCALE_KEY = "peekshell.locale";
@@ -78,7 +83,58 @@ export const DEFAULT_DISPLAY_PREFS: DisplayPrefs = {
     colGroup: true,
   },
   aiPanel: true,
+  accentColor: "",
 };
+
+/** Normalize to `#rrggbb` or empty string when invalid / unset. */
+export function normalizeAccentColor(raw: unknown): string {
+  if (typeof raw !== "string") return "";
+  const trimmed = raw.trim();
+  const short = trimmed.match(/^#?([0-9a-fA-F]{3})$/);
+  if (short) {
+    const [r, g, b] = short[1]!;
+    return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
+  }
+  const m = trimmed.match(/^#?([0-9a-fA-F]{6})$/);
+  if (!m) return "";
+  return `#${m[1]!.toLowerCase()}`;
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const normalized = normalizeAccentColor(hex);
+  if (!normalized) return null;
+  const n = Number.parseInt(normalized.slice(1), 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+/**
+ * Override `--accent` / related tokens on <html>.
+ * Empty clears the override so theme CSS defaults apply.
+ */
+export function applyAccentColor(hex: string) {
+  const root = document.documentElement;
+  const rgb = hexToRgb(hex);
+  if (!rgb) {
+    root.style.removeProperty("--accent");
+    root.style.removeProperty("--accent-dim");
+    root.style.removeProperty("--accent-border");
+    root.style.removeProperty("--scrollbar-thumb-hover");
+    return;
+  }
+  const accent = normalizeAccentColor(hex);
+  const { r, g, b } = rgb;
+  const isLight = root.getAttribute("data-theme") === "light";
+  root.style.setProperty("--accent", accent);
+  root.style.setProperty(
+    "--accent-dim",
+    `rgba(${r}, ${g}, ${b}, ${isLight ? 0.12 : 0.14})`
+  );
+  root.style.setProperty("--accent-border", `rgba(${r}, ${g}, ${b}, 0.35)`);
+  root.style.setProperty(
+    "--scrollbar-thumb-hover",
+    `rgba(${r}, ${g}, ${b}, ${isLight ? 0.5 : 0.55})`
+  );
+}
 
 function readStoredTheme(): ThemeMode {
   const raw = localStorage.getItem(THEME_KEY);
@@ -99,6 +155,7 @@ function readStoredDisplayPrefs(): DisplayPrefs {
       sidebar: { ...DEFAULT_DISPLAY_PREFS.sidebar, ...parsed.sidebar },
       explorer: { ...DEFAULT_DISPLAY_PREFS.explorer, ...parsed.explorer },
       aiPanel: typeof parsed.aiPanel === "boolean" ? parsed.aiPanel : DEFAULT_DISPLAY_PREFS.aiPanel,
+      accentColor: normalizeAccentColor(parsed.accentColor),
     };
   } catch {
     return structuredClone(DEFAULT_DISPLAY_PREFS);
@@ -145,11 +202,14 @@ export const useUiStore = defineStore("ui", () => {
   const editingHost = ref<HostRecord | null>(null);
 
   applyTheme(theme.value);
+  applyAccentColor(displayPrefs.accentColor);
   applyLocale(locale.value);
   void syncTauriTheme(theme.value);
 
   watch(theme, (mode) => {
     applyTheme(mode);
+    // Re-derive dim opacities for light/dark when a custom accent is set.
+    applyAccentColor(displayPrefs.accentColor);
     localStorage.setItem(THEME_KEY, mode);
     void syncTauriTheme(mode);
   });
@@ -165,6 +225,13 @@ export const useUiStore = defineStore("ui", () => {
       localStorage.setItem(DISPLAY_PREFS_KEY, JSON.stringify(value));
     },
     { deep: true }
+  );
+
+  watch(
+    () => displayPrefs.accentColor,
+    (hex) => {
+      applyAccentColor(hex);
+    }
   );
 
   function setTheme(mode: ThemeMode) {
@@ -261,6 +328,7 @@ export const useUiStore = defineStore("ui", () => {
     Object.assign(displayPrefs.sidebar, DEFAULT_DISPLAY_PREFS.sidebar);
     Object.assign(displayPrefs.explorer, DEFAULT_DISPLAY_PREFS.explorer);
     displayPrefs.aiPanel = DEFAULT_DISPLAY_PREFS.aiPanel;
+    displayPrefs.accentColor = DEFAULT_DISPLAY_PREFS.accentColor;
   }
 
   return {

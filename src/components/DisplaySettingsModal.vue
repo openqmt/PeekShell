@@ -1,12 +1,44 @@
-<script setup lang="ts">
-/** 界面显示设置：控制侧栏、资源管理器列与 AI 面板显隐。 */
+﻿<script setup lang="ts">
+/** 界面显示设置：控制侧栏、资源管理器列、AI 面板显隐与主题色。 */
 import { storeToRefs } from "pinia";
+import { computed } from "vue";
 import { useI18n } from "../i18n";
-import { useUiStore } from "../stores/ui";
+import {
+  ACCENT_COLOR_PRESETS,
+  normalizeAccentColor,
+  useUiStore,
+} from "../stores/ui";
 
 const ui = useUiStore();
 const { t } = useI18n();
-const { displayPrefs } = storeToRefs(ui);
+const { displayPrefs, theme } = storeToRefs(ui);
+
+const themeDefaultAccent = computed(() =>
+  theme.value === "light" ? "#1f9d63" : "#3ecf8e"
+);
+
+const isDefaultAccent = computed(() => !displayPrefs.value.accentColor);
+
+const isCustomAccent = computed(() => {
+  const hex = displayPrefs.value.accentColor;
+  return !!hex && !(ACCENT_COLOR_PRESETS as readonly string[]).includes(hex);
+});
+
+const pickerValue = computed(() =>
+  displayPrefs.value.accentColor || themeDefaultAccent.value
+);
+
+function setAccent(hex: string) {
+  displayPrefs.value.accentColor = normalizeAccentColor(hex);
+}
+
+function clearAccent() {
+  displayPrefs.value.accentColor = "";
+}
+
+function onPickerInput(e: Event) {
+  setAccent((e.target as HTMLInputElement).value);
+}
 
 function onBackdrop(e: MouseEvent) {
   if (e.target === e.currentTarget) ui.closeDisplaySettingsModal();
@@ -32,6 +64,50 @@ function onBackdrop(e: MouseEvent) {
       </div>
 
       <div class="modal-body">
+        <div class="section-label">{{ t("displaySettings.accentSection") }}</div>
+        <div class="accent-row">
+          <button
+            type="button"
+            class="accent-swatch default"
+            :class="{ active: isDefaultAccent }"
+            :title="t('displaySettings.accentDefault')"
+            :aria-label="t('displaySettings.accentDefault')"
+            :aria-pressed="isDefaultAccent"
+            @click="clearAccent"
+          >
+            <span class="swatch-fill" :style="{ background: themeDefaultAccent }" />
+            <span class="swatch-label">{{ t("displaySettings.accentDefault") }}</span>
+          </button>
+          <button
+            v-for="hex in ACCENT_COLOR_PRESETS"
+            :key="hex"
+            type="button"
+            class="accent-swatch"
+            :class="{ active: displayPrefs.accentColor === hex }"
+            :style="{ '--swatch': hex }"
+            :title="hex"
+            :aria-label="hex"
+            :aria-pressed="displayPrefs.accentColor === hex"
+            @click="setAccent(hex)"
+          >
+            <span class="swatch-fill" />
+          </button>
+          <label
+            class="color-swatch"
+            :class="{ active: isCustomAccent }"
+            :title="t('displaySettings.accentPick')"
+          >
+            <span class="color-chip" :style="{ background: pickerValue }" />
+            <span class="color-hex">{{ pickerValue }}</span>
+            <input
+              type="color"
+              :value="pickerValue"
+              :aria-label="t('displaySettings.accentPick')"
+              @input="onPickerInput"
+            />
+          </label>
+        </div>
+
         <div class="section-label">{{ t("displaySettings.sidebarSection") }}</div>
         <div class="check-grid">
           <label class="check">
@@ -142,6 +218,121 @@ function onBackdrop(e: MouseEvent) {
 
 .modal :deep(.section-label:not(:first-child)) {
   margin-top: 4px;
+}
+
+.accent-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.accent-swatch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.accent-swatch.default {
+  width: auto;
+  height: 32px;
+  padding: 0 8px 0 6px;
+  gap: 6px;
+}
+
+.accent-swatch .swatch-fill {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--swatch);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.accent-swatch.default .swatch-fill {
+  width: 14px;
+  height: 14px;
+}
+
+.swatch-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.accent-swatch.active {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+/* Same pattern as TerminalSettingsModal background color input */
+.color-swatch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  width: 118px;
+  min-width: 0;
+  height: 32px;
+  padding: 0 8px 0 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-root);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  overflow: hidden;
+}
+
+.color-swatch:hover {
+  border-color: var(--accent-border);
+  background: var(--bg-hover);
+}
+
+.color-swatch.active {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.color-chip {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+  flex-shrink: 0;
+}
+
+.color-hex {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text);
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.color-swatch input[type="color"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .check-grid {
