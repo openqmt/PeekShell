@@ -14,7 +14,7 @@ import { storeToRefs } from 'pinia'
 import * as api from '../api/tauri'
 import { useI18n } from '../i18n'
 import { useSessionsStore } from '../stores/sessions'
-import { matchShortcut, useTerminalPrefsStore } from '../stores/terminalPrefs'
+import { matchShortcut, useTerminalPrefsStore, clampFontSize } from '../stores/terminalPrefs'
 import { useUiStore } from '../stores/ui'
 import QuickCommandsPanel from './QuickCommandsPanel.vue'
 import RemoteExplorer from './RemoteExplorer.vue'
@@ -173,6 +173,14 @@ function applyTermFont() {
         const active = terms.get(activeSessionId.value)
         if (active) void sessions.resize(active.term.cols, active.term.rows)
     }
+}
+
+/** Ctrl/Cmd + / - zoom terminal font (persisted via termPrefs). */
+function adjustTermFontSize(delta: number) {
+    const next = clampFontSize(termPrefs.value.fontSize + delta)
+    if (next === termPrefs.value.fontSize) return
+    termPrefs.value.fontSize = next
+    applyTermFont()
 }
 
 function applyTermPrefs() {
@@ -441,6 +449,28 @@ async function ensureTerm(sessionId: string) {
             ev.stopPropagation()
             term.clear()
             return false
+        }
+        // Ctrl/Cmd + / - ：放大 / 缩小终端字号（= 与 + 均可放大）
+        if ((ev.ctrlKey || ev.metaKey) && !ev.altKey) {
+            if (
+                ev.key === '=' ||
+                ev.key === '+' ||
+                ev.code === 'NumpadAdd'
+            ) {
+                ev.preventDefault()
+                ev.stopPropagation()
+                adjustTermFontSize(1)
+                return false
+            }
+            if (
+                (ev.key === '-' || ev.code === 'NumpadSubtract') &&
+                !ev.shiftKey
+            ) {
+                ev.preventDefault()
+                ev.stopPropagation()
+                adjustTermFontSize(-1)
+                return false
+            }
         }
         // 兼容：有选区时 Ctrl/Cmd+C 仍可复制
         if (
