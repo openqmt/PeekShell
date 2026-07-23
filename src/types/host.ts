@@ -96,6 +96,8 @@ export interface RemoteFileContent {
   truncated: boolean;
   content: string;
   binary: boolean;
+  /** When set, `content` is base64 for an in-app image preview. */
+  imageMime: string | null;
 }
 
 export interface LocalUploadItem {

@@ -217,6 +217,15 @@ const previewEditorText = computed(() => {
   return canEditOnline.value ? editBuffer.value : preview.value.content;
 });
 
+const imagePreviewSrc = computed(() => {
+  const file = preview.value;
+  if (!file?.imageMime || !file.content) return "";
+  return `data:${file.imageMime};base64,${file.content}`;
+});
+
+const isImagePreviewName = (name: string) =>
+  /\.(png|jpe?g|gif|webp|bmp|svg|ico|avif)$/i.test(name);
+
 const hasLocalEditForPreview = computed(
   () =>
     !!localEdit.value &&
@@ -1555,7 +1564,7 @@ onBeforeUnmount(() => {
           </div>
 
           <div
-            v-if="preview.truncated"
+            v-if="preview.truncated && !isImagePreviewName(preview.name)"
             class="trunc-banner"
             @contextmenu.prevent.stop="onEntryContextMenu(previewAsEntry(preview), $event)"
           >
@@ -1563,11 +1572,22 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="preview-content-wrap">
+            <div
+              v-if="imagePreviewSrc"
+              class="preview-image-wrap"
+              @contextmenu.prevent.stop="onEntryContextMenu(previewAsEntry(preview), $event)"
+            >
+              <img class="preview-image" :src="imagePreviewSrc" :alt="preview.name" />
+            </div>
             <pre
-              v-if="preview.binary"
+              v-else-if="preview.binary"
               class="preview-body muted"
               @contextmenu.prevent.stop="onEntryContextMenu(previewAsEntry(preview), $event)"
-            >{{ t("explorer.binary") }}</pre>
+            >{{
+              isImagePreviewName(preview.name)
+                ? t("explorer.imageTooLarge")
+                : t("explorer.binary")
+            }}</pre>
             <PreviewCodeEditor
               v-else
               ref="previewEditorRef"
@@ -2290,6 +2310,29 @@ onBeforeUnmount(() => {
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+.preview-image-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background:
+    linear-gradient(45deg, var(--border) 25%, transparent 25%) 0 0 / 16px 16px,
+    linear-gradient(-45deg, var(--border) 25%, transparent 25%) 0 8px / 16px 16px,
+    linear-gradient(45deg, transparent 75%, var(--border) 75%) 8px -8px / 16px 16px,
+    linear-gradient(-45deg, transparent 75%, var(--border) 75%) -8px 0 / 16px 16px;
+  background-color: var(--bg);
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  image-rendering: auto;
 }
 
 .preview-body {

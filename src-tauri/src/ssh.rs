@@ -5,6 +5,7 @@ use crate::credentials;
 use crate::error::{AppError, AppResult};
 use crate::hosts::{self, AuthType, HostRecord};
 use async_trait::async_trait;
+use base64::Engine;
 use russh::client::{self, Handle, Msg};
 use russh::ChannelMsg;
 use russh_keys::key::KeyPair;
@@ -102,6 +103,8 @@ pub struct RemoteFileContent {
     pub truncated: bool,
     pub content: String,
     pub binary: bool,
+    /// When set, `content` is base64 and can be shown as `data:{mime};base64,...`.
+    pub image_mime: Option<String>,
 }
 
 #[derive(Clone, Serialize)]
@@ -813,6 +816,22 @@ fn remote_file_type_label(kind: &str) -> String {
 
 const MAX_PREVIEW_BYTES: u64 = 512 * 1024;
 
+/// Map common image extensions to MIME types for in-app preview.
+fn image_mime_for_name(name: &str) -> Option<&'static str> {
+    let ext = name.rsplit('.').next()?.to_ascii_lowercase();
+    match ext.as_str() {
+        "png" => Some("image/png"),
+        "jpg" | "jpeg" => Some("image/jpeg"),
+        "gif" => Some("image/gif"),
+        "webp" => Some("image/webp"),
+        "bmp" => Some("image/bmp"),
+        "svg" => Some("image/svg+xml"),
+        "ico" => Some("image/x-icon"),
+        "avif" => Some("image/avif"),
+        _ => None,
+    }
+}
+
 async fn read_remote_file(host: &HostRecord, path: &str) -> AppResult<RemoteFileContent> {
     let path = normalize_remote_path(path)?;
     let quoted = shell_quote(&path);
@@ -871,12 +890,22 @@ head -c "$max" "$path"
         .unwrap_or_default();
     let permissions = parts.get(4).unwrap_or(&"").to_string();
     let group = parts.get(5).unwrap_or(&"").to_string();
-    let binary = body.contains(&0);
     let truncated = size > MAX_PREVIEW_BYTES;
-    let content = if binary {
-        String::new()
+    // Full image only: truncated payloads would render as a broken image.
+    let image_mime = if !truncated {
+        image_mime_for_name(&name).map(|m| m.to_string())
     } else {
-        String::from_utf8_lossy(body).into_owned()
+        None
+    };
+    let (content, binary) = if image_mime.is_some() {
+        (
+            base64::engine::general_purpose::STANDARD.encode(body),
+            true,
+        )
+    } else if body.contains(&0) {
+        (String::new(), true)
+    } else {
+        (String::from_utf8_lossy(body).into_owned(), false)
     };
     Ok(RemoteFileContent {
         path: resolved,
@@ -889,6 +918,7 @@ head -c "$max" "$path"
         truncated,
         content,
         binary,
+        image_mime,
     })
 }
 
