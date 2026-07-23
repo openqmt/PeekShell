@@ -1,5 +1,6 @@
 import { createPinia } from "pinia";
 import { createApp } from "vue";
+import { createGtag } from "vue-gtag";
 import App from "./App.vue";
 import { installDisableNativeInputHints } from "./disableNativeInputHints";
 import { applyLocale, applyTheme } from "./stores/ui";
@@ -11,6 +12,17 @@ applyTheme(storedTheme === "light" ? "light" : "dark");
 const storedLocale = localStorage.getItem("peekshell.locale");
 applyLocale(storedLocale === "en" ? "en" : "zh");
 
-createApp(App).use(createPinia()).mount("#app");
+const app = createApp(App).use(createPinia());
+
+const gtagId = import.meta.env.VITE_GTAG_ID;
+if (gtagId) {
+  app.use(
+    createGtag({
+      tagId: gtagId,
+    }),
+  );
+}
+
+app.mount("#app");
 // WebKit/macOS: turn off system autocomplete / autocorrect on all text fields
 installDisableNativeInputHints();

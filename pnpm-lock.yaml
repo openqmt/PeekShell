@@ -68,6 +68,9 @@ importers:
       vue:
         specifier: ^3.5.13
         version: 3.5.40(typescript@5.6.3)
+      vue-gtag:
+        specifier: ^3.7.1
+        version: 3.7.1(vue@3.5.40(typescript@5.6.3))
     devDependencies:
       '@tauri-apps/cli':
         specifier: ^2
@@ -1436,6 +1439,15 @@ packages:
 
   vscode-uri@3.1.0:
     resolution: {integrity: sha512-/BpdSx+yCQGnCvecbyXdxHDkuk55/G3xwnC0GqY4gmQ3j+A+g8kzzgB4Nk/SINjqn6+waqw3EgbVF2QKExkRxQ==}
+
+  vue-gtag@3.7.1:
+    resolution: {integrity: sha512-V4S+ks1p/VdfTrxZrgrAjwdcBp3rGjuR4Ts/9KmNOeGlcATOsLZRjIxkrIDWW6oHy7HM4zcviYDEb2QOR9+AKQ==}
+    peerDependencies:
+      vue: ^3.5.13
+      vue-router: ^4.5.0 || ^5.0.0
+    peerDependenciesMeta:
+      vue-router:
+        optional: true
 
   vue-tsc@2.2.12:
     resolution: {integrity: sha512-P7OP77b2h/Pmk+lZdJ0YWs+5tJ6J2+uOQPo7tlBnY44QqQSPYvS0qVT4wqDJgwrZaLe47etJLLQRFia71GYITw==}
@@ -2904,6 +2916,10 @@ snapshots:
       - universal-cookie
 
   vscode-uri@3.1.0: {}
+
+  vue-gtag@3.7.1(vue@3.5.40(typescript@5.6.3)):
+    dependencies:
+      vue: 3.5.40(typescript@5.6.3)
 
   vue-tsc@2.2.12(typescript@5.6.3):
     dependencies:
