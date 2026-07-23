@@ -131,7 +131,7 @@ export const useUiStore = defineStore("ui", () => {
   const locale = ref<Locale>(readStoredLocale());
   const displayPrefs = reactive<DisplayPrefs>(readStoredDisplayPrefs());
   const sidebarCollapsed = ref(false);
-  const aiCollapsed = ref(false);
+  const aiCollapsed = ref(true);
   const aiPanelWidth = ref(readStoredAiPanelWidth());
   const sidebarWidth = ref(readStoredSidebarWidth());
   const hostsModalOpen = ref(false);
