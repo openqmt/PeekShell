@@ -511,7 +511,7 @@ async function selectFile(entry: RemoteEntry) {
   error.value = "";
   selectedPath.value = entry.path;
   selectedIsDir.value = false;
-  pathInput.value = parentPath(entry.path);
+  pathInput.value = entry.path;
   previewLoading.value = true;
   try {
     const file = await api.readRemoteFile(activeSessionId.value, entry.path);
@@ -706,6 +706,24 @@ async function goParent() {
 async function goPath() {
   const target = pathInput.value.trim() || ROOT_PATH;
   try {
+    if (target === ROOT_PATH) {
+      await selectFolder(ROOT_PATH, true);
+      return;
+    }
+    // 先展开到父目录，再判断目标是文件还是目录
+    const parent = parentPath(target);
+    await ensureAncestorsExpanded(parent);
+    const kids = childrenMap.value[parent] ?? (await fetchDir(parent));
+    const found = kids.find((e) => e.name === basenameOf(target));
+    if (found && !found.isDir) {
+      expanded.value = { ...expanded.value, [parent]: true };
+      await selectFile(found);
+      return;
+    }
+    if (found?.isDir) {
+      await selectFolder(found.path, true);
+      return;
+    }
     await ensureAncestorsExpanded(target);
     await selectFolder(target, true);
   } catch (e) {
@@ -715,12 +733,33 @@ async function goPath() {
 
 async function refresh() {
   if (!activeSessionId.value) return;
-  const focus = selectedIsDir.value && selectedPath.value ? selectedPath.value : ROOT_PATH;
-  // 清掉该目录缓存后重载
+  const container = currentContainerEntry();
+  if (!container) return;
+  const focus = container.path;
+  // 打开的是文件时：刷新父目录并重新读取该文件，避免跳回根路径
+  const openFilePath =
+    !selectedIsDir.value && selectedPath.value ? selectedPath.value : null;
+  if (openFilePath && !confirmDiscardIfDirty()) return;
+
   const next = { ...childrenMap.value };
   delete next[focus];
   childrenMap.value = next;
   try {
+    if (openFilePath) {
+      await fetchDir(focus, true);
+      pathInput.value = openFilePath;
+      previewLoading.value = true;
+      try {
+        const file = await api.readRemoteFile(activeSessionId.value, openFilePath);
+        applyPreviewContent(file);
+      } catch (e) {
+        applyPreviewContent(null);
+        error.value = String(e);
+      } finally {
+        previewLoading.value = false;
+      }
+      return;
+    }
     await selectFolder(focus, true);
   } catch (e) {
     error.value = String(e);
