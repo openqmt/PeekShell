@@ -532,14 +532,10 @@ onBeforeUnmount(() => {
   border: none;
   border-radius: var(--radius);
   background: var(--accent);
-  color: #06140e;
+  color: #ffffff;
   font-size: 12px;
   font-weight: 600;
   flex-shrink: 0;
-}
-
-:global([data-theme="light"]) .send {
-  color: #ffffff;
 }
 
 .send:disabled {
