@@ -49,13 +49,21 @@ const findOpen = ref(false)
 const findQuery = ref('')
 
 const hostSurfaceStyle = computed(() => {
-    const themeBg = readTermTheme().background
+    // Track UI theme so "follow theme" surfaces refresh with --term-bg.
+    void theme.value
+    const scheme = termPrefs.value.colorScheme
+    const img = termPrefs.value.backgroundImage.trim()
+    // Prefer CSS var when following UI theme so host stays in sync without a stale hex snapshot.
+    const themeBg = img
+        ? 'rgba(0, 0, 0, 0)'
+        : scheme === 'theme'
+          ? 'var(--term-bg)'
+          : readTermTheme().background
     const style: Record<string, string> = {
         // Keep host / viewport in sync with xterm-scrollable-element (theme.background).
         backgroundColor: themeBg,
         '--term-surface-bg': themeBg,
     }
-    const img = termPrefs.value.backgroundImage.trim()
     if (!img) return style
     const safe = img.replace(/\\/g, '/').replace(/"/g, '\\"')
     style.backgroundImage = `url("${safe}")`
@@ -519,6 +527,7 @@ watch(
 )
 
 watch(theme, async () => {
+    // Wait for data-theme / CSS vars, then sync xterm + host surface.
     await nextTick()
     applyTermTheme()
 })
