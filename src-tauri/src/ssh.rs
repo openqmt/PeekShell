@@ -266,15 +266,28 @@ impl SessionManager {
         list_remote_dir(&host, path).await
     }
 
-    pub async fn read_file(&self, session_id: &str, path: &str) -> AppResult<RemoteFileContent> {
+    pub async fn read_file(
+        &self,
+        session_id: &str,
+        path: &str,
+        max_bytes: Option<u64>,
+    ) -> AppResult<RemoteFileContent> {
         let host = self.host_for_session(session_id).await?;
-        read_remote_file(&host, path).await
+        let max = clamp_preview_bytes(max_bytes.unwrap_or(DEFAULT_PREVIEW_BYTES));
+        read_remote_file(&host, path, max).await
     }
 
     /// Overwrite a remote text file with UTF-8 content (preview-sized payloads only).
-    pub async fn write_file(&self, session_id: &str, path: &str, content: &str) -> AppResult<()> {
+    pub async fn write_file(
+        &self,
+        session_id: &str,
+        path: &str,
+        content: &str,
+        max_bytes: Option<u64>,
+    ) -> AppResult<()> {
         let host = self.host_for_session(session_id).await?;
-        write_remote_file(&host, path, content).await
+        let max = clamp_preview_bytes(max_bytes.unwrap_or(DEFAULT_PREVIEW_BYTES));
+        write_remote_file(&host, path, content, max).await
     }
 
     pub async fn mkdir(&self, session_id: &str, path: &str) -> AppResult<()> {
@@ -814,7 +827,13 @@ fn remote_file_type_label(kind: &str) -> String {
     }
 }
 
-const MAX_PREVIEW_BYTES: u64 = 512 * 1024;
+const DEFAULT_PREVIEW_BYTES: u64 = 512 * 1024;
+const MIN_PREVIEW_BYTES: u64 = 64 * 1024;
+const MAX_PREVIEW_BYTES_CAP: u64 = 8 * 1024 * 1024;
+
+fn clamp_preview_bytes(n: u64) -> u64 {
+    n.clamp(MIN_PREVIEW_BYTES, MAX_PREVIEW_BYTES_CAP)
+}
 
 /// Map common image extensions to MIME types for in-app preview.
 fn image_mime_for_name(name: &str) -> Option<&'static str> {
@@ -832,10 +851,14 @@ fn image_mime_for_name(name: &str) -> Option<&'static str> {
     }
 }
 
-async fn read_remote_file(host: &HostRecord, path: &str) -> AppResult<RemoteFileContent> {
+async fn read_remote_file(
+    host: &HostRecord,
+    path: &str,
+    max_bytes: u64,
+) -> AppResult<RemoteFileContent> {
     let path = normalize_remote_path(path)?;
     let quoted = shell_quote(&path);
-    let max = MAX_PREVIEW_BYTES;
+    let max = max_bytes;
     let script = format!(
         r#"
 path={quoted}
@@ -890,7 +913,7 @@ head -c "$max" "$path"
         .unwrap_or_default();
     let permissions = parts.get(4).unwrap_or(&"").to_string();
     let group = parts.get(5).unwrap_or(&"").to_string();
-    let truncated = size > MAX_PREVIEW_BYTES;
+    let truncated = size > max_bytes;
     // Full image only: truncated payloads would render as a broken image.
     let image_mime = if !truncated {
         image_mime_for_name(&name).map(|m| m.to_string())
@@ -923,16 +946,21 @@ head -c "$max" "$path"
 }
 
 /// Write UTF-8 content via `cat > path` on an SSH channel (same transport as upload).
-async fn write_remote_file(host: &HostRecord, path: &str, content: &str) -> AppResult<()> {
+async fn write_remote_file(
+    host: &HostRecord,
+    path: &str,
+    content: &str,
+    max_bytes: u64,
+) -> AppResult<()> {
     let path = normalize_remote_path(path)?;
     if path == "/" {
         return Err(AppError::Message("远端路径无效".into()));
     }
     let data = content.as_bytes();
-    if data.len() as u64 > MAX_PREVIEW_BYTES {
+    if data.len() as u64 > max_bytes {
         return Err(AppError::Message(format!(
             "内容超过 {}KB 上限，请改用本地下载编辑后同步",
-            MAX_PREVIEW_BYTES / 1024
+            max_bytes / 1024
         )));
     }
 

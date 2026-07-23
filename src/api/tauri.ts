@@ -133,12 +133,21 @@ export function listRemoteDir(sessionId: string, path: string): Promise<RemoteDi
   return invoke("list_remote_dir", { sessionId, path });
 }
 
-export function readRemoteFile(sessionId: string, path: string): Promise<RemoteFileContent> {
-  return invoke("read_remote_file", { sessionId, path });
+export function readRemoteFile(
+  sessionId: string,
+  path: string,
+  maxBytes?: number
+): Promise<RemoteFileContent> {
+  return invoke("read_remote_file", { sessionId, path, maxBytes });
 }
 
-export function writeRemoteFile(sessionId: string, path: string, content: string): Promise<void> {
-  return invoke("write_remote_file", { sessionId, path, content });
+export function writeRemoteFile(
+  sessionId: string,
+  path: string,
+  content: string,
+  maxBytes?: number
+): Promise<void> {
+  return invoke("write_remote_file", { sessionId, path, content, maxBytes });
 }
 
 export function remoteMkdir(sessionId: string, path: string): Promise<void> {

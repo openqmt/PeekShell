@@ -16,6 +16,8 @@ import { useTransfersStore } from "../stores/transfers";
 import { useUiStore } from "../stores/ui";
 import type { RemoteEntry, RemoteFileContent } from "../types/host";
 import PreviewCodeEditor from "./PreviewCodeEditor.vue";
+import ExplorerKindIcon from "./ExplorerKindIcon.vue";
+import { previewMaxBytes, useExplorerPrefsStore } from "../stores/explorerPrefs";
 
 const emit = defineEmits<{ resized: [] }>();
 const { t } = useI18n();
@@ -87,10 +89,16 @@ function joinPath(dir: string, name: string) {
 const sessions = useSessionsStore();
 const ui = useUiStore();
 const transfers = useTransfersStore();
+const explorerPrefs = useExplorerPrefsStore();
 const { activeSessionId } = storeToRefs(sessions);
 const { displayPrefs } = storeToRefs(ui);
+const { prefs: explorerPrefsState } = storeToRefs(explorerPrefs);
 const { items: transferItems, panelOpen: transfersPanelOpen, defaultDownloadDir, activeCount } =
   storeToRefs(transfers);
+
+const previewLimitBytes = computed(() => previewMaxBytes(explorerPrefsState.value));
+const previewLimitKb = computed(() => explorerPrefsState.value.previewMaxKb);
+const kindDisplay = computed(() => explorerPrefsState.value.kindDisplay);
 
 const visibleAttrCols = computed(() =>
   ATTR_COL_ORDER.filter((key) => displayPrefs.value.explorer[key])
@@ -531,7 +539,7 @@ async function selectFile(entry: RemoteEntry) {
   pathInput.value = entry.path;
   previewLoading.value = true;
   try {
-    const file = await api.readRemoteFile(activeSessionId.value, entry.path);
+    const file = await api.readRemoteFile(activeSessionId.value, entry.path, previewLimitBytes.value);
     applyPreviewContent(file);
   } catch (e) {
     applyPreviewContent(null);
@@ -548,8 +556,17 @@ async function savePreview() {
   error.value = "";
   statusMsg.value = t("explorer.saving");
   try {
-    await api.writeRemoteFile(activeSessionId.value, preview.value.path, editBuffer.value);
-    const file = await api.readRemoteFile(activeSessionId.value, preview.value.path);
+    await api.writeRemoteFile(
+      activeSessionId.value,
+      preview.value.path,
+      editBuffer.value,
+      previewLimitBytes.value
+    );
+    const file = await api.readRemoteFile(
+      activeSessionId.value,
+      preview.value.path,
+      previewLimitBytes.value
+    );
     applyPreviewContent(file);
     const parent = parentPath(file.path);
     const next = { ...childrenMap.value };
@@ -630,7 +647,11 @@ async function syncLocalEdit() {
   try {
     await api.remoteUpload(activeSessionId.value, localPath, remotePath, transferId);
     if (preview.value?.path === remotePath) {
-      const file = await api.readRemoteFile(activeSessionId.value, remotePath);
+      const file = await api.readRemoteFile(
+        activeSessionId.value,
+        remotePath,
+        previewLimitBytes.value
+      );
       applyPreviewContent(file);
     }
     const parent = parentPath(remotePath);
@@ -767,7 +788,11 @@ async function refresh() {
       pathInput.value = openFilePath;
       previewLoading.value = true;
       try {
-        const file = await api.readRemoteFile(activeSessionId.value, openFilePath);
+        const file = await api.readRemoteFile(
+          activeSessionId.value,
+          openFilePath,
+          previewLimitBytes.value
+        );
         applyPreviewContent(file);
       } catch (e) {
         applyPreviewContent(null);
@@ -795,7 +820,7 @@ function closeCtxMenu() {
 function openCtxMenu(event: MouseEvent, variant: "entry" | "blank", entry: RemoteEntry) {
   const pad = 8;
   const menuW = 200;
-  const menuH = variant === "blank" ? 160 : 320;
+  const menuH = variant === "blank" ? 200 : 320;
   const x = Math.min(event.clientX, window.innerWidth - menuW - pad);
   const y = Math.min(event.clientY, window.innerHeight - menuH - pad);
   ctxMenu.value = { x: Math.max(pad, x), y: Math.max(pad, y), variant, entry };
@@ -858,6 +883,11 @@ function ctxEditorFind() {
 function ctxEditorMore() {
   closeCtxMenu();
   ui.openEditorSettingsModal();
+}
+
+function ctxExplorerMore() {
+  closeCtxMenu();
+  ui.openExplorerSettingsModal();
 }
 
 async function ctxRefresh() {
@@ -1479,7 +1509,10 @@ onBeforeUnmount(() => {
             </svg>
             <span v-else-if="row.entry.isDir" class="twist-loading" aria-hidden="true" />
           </span>
-          <span class="kind">{{ row.entry.isDir ? "DIR" : "FILE" }}</span>
+          <span v-if="kindDisplay === 'icon'" class="kind-slot">
+            <ExplorerKindIcon :entry="row.entry" />
+          </span>
+          <span v-else class="kind">{{ row.entry.isDir ? "DIR" : "FILE" }}</span>
           <span class="name">{{ row.entry.name }}</span>
         </button>
       </div>
@@ -1568,7 +1601,7 @@ onBeforeUnmount(() => {
             class="trunc-banner"
             @contextmenu.prevent.stop="onEntryContextMenu(previewAsEntry(preview), $event)"
           >
-            {{ t("explorer.truncated") }} — {{ t("explorer.truncatedReadonly") }}
+            {{ t("explorer.truncated", { n: previewLimitKb }) }} — {{ t("explorer.truncatedReadonly") }}
           </div>
 
           <div class="preview-content-wrap">
@@ -1585,7 +1618,7 @@ onBeforeUnmount(() => {
               @contextmenu.prevent.stop="onEntryContextMenu(previewAsEntry(preview), $event)"
             >{{
               isImagePreviewName(preview.name)
-                ? t("explorer.imageTooLarge")
+                ? t("explorer.imageTooLarge", { n: previewLimitKb })
                 : t("explorer.binary")
             }}</pre>
             <PreviewCodeEditor
@@ -1624,6 +1657,10 @@ onBeforeUnmount(() => {
           </button>
           <button type="button" class="ctx-item" :disabled="actionBusy" @click="ctxNewFolder">
             {{ t("explorer.newFolder") }}
+          </button>
+          <div class="ctx-sep" />
+          <button type="button" class="ctx-item" @click="ctxExplorerMore">
+            {{ t("explorer.ctxMore") }}
           </button>
         </template>
         <template v-else-if="ctxMenu.variant === 'editor'">
@@ -2164,13 +2201,20 @@ onBeforeUnmount(() => {
   font-family: var(--font-mono);
 }
 
+.kind-slot {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
 .tree-row.dir {
   user-select: none;
   -webkit-user-select: none;
 }
 
 .tree-row.dir .kind,
-.tree-row.dir .name {
+.tree-row.dir .name,
+.tree-row.dir .kind-slot {
   color: var(--accent);
   font-weight: 600;
   user-select: none;

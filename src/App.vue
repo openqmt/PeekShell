@@ -10,6 +10,7 @@ import HostSidebar from "./components/HostSidebar.vue";
 import TerminalPanel from "./components/TerminalPanel.vue";
 import TerminalSettingsModal from "./components/TerminalSettingsModal.vue";
 import EditorSettingsModal from "./components/EditorSettingsModal.vue";
+import ExplorerSettingsModal from "./components/ExplorerSettingsModal.vue";
 import { useAiStore } from "./stores/ai";
 import { useHostsStore } from "./stores/hosts";
 import { useUiStore } from "./stores/ui";
@@ -28,6 +29,7 @@ const {
   displaySettingsModalOpen,
   terminalSettingsModalOpen,
   editorSettingsModalOpen,
+  explorerSettingsModalOpen,
   displayPrefs,
 } = storeToRefs(ui);
 
@@ -70,5 +72,6 @@ const workspaceStyle = computed(() => {
     <DisplaySettingsModal v-if="displaySettingsModalOpen" />
     <TerminalSettingsModal v-if="terminalSettingsModalOpen" />
     <EditorSettingsModal v-if="editorSettingsModalOpen" />
+    <ExplorerSettingsModal v-if="explorerSettingsModalOpen" />
   </div>
 </template>

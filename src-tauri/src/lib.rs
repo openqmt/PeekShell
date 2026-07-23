@@ -180,8 +180,9 @@ async fn read_remote_file(
     state: tauri::State<'_, Arc<SessionManager>>,
     session_id: String,
     path: String,
+    max_bytes: Option<u64>,
 ) -> AppResult<RemoteFileContent> {
-    state.read_file(&session_id, &path).await
+    state.read_file(&session_id, &path, max_bytes).await
 }
 
 #[tauri::command]
@@ -190,8 +191,11 @@ async fn write_remote_file(
     session_id: String,
     path: String,
     content: String,
+    max_bytes: Option<u64>,
 ) -> AppResult<()> {
-    state.write_file(&session_id, &path, &content).await
+    state
+        .write_file(&session_id, &path, &content, max_bytes)
+        .await
 }
 
 #[tauri::command]
