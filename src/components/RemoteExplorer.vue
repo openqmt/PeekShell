@@ -1666,10 +1666,12 @@ onBeforeUnmount(() => {
             </svg>
             <span v-else-if="row.entry.isDir" class="twist-loading" aria-hidden="true" />
           </span>
-          <span v-if="kindDisplay === 'icon' || kindDisplay === 'image'" class="kind-slot">
+          <span v-if="kindDisplay === 'icon' || kindDisplay === 'windows' || kindDisplay === 'macos'" class="kind-slot">
             <ExplorerKindIcon
               :entry="row.entry"
-              :variant="kindDisplay === 'image' ? 'filled' : 'line'"
+              :variant="
+                kindDisplay === 'windows' ? 'windows' : kindDisplay === 'macos' ? 'macos' : 'line'
+              "
             />
           </span>
           <span v-else class="kind">{{ row.entry.isDir ? "DIR" : "FILE" }}</span>
@@ -2453,7 +2455,8 @@ onBeforeUnmount(() => {
   margin-right: 2px;
 }
 
-.kind-slot :deep(.kind-icon.filled) {
+.kind-slot :deep(.kind-icon.windows),
+.kind-slot :deep(.kind-icon.macos) {
   width: 14px;
   height: 14px;
   margin-right: 2px;

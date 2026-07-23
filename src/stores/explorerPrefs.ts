@@ -2,12 +2,12 @@
 import { defineStore } from "pinia";
 import { reactive, watch } from "vue";
 
-export type ExplorerKindDisplay = "text" | "icon" | "image";
+export type ExplorerKindDisplay = "text" | "icon" | "windows" | "macos";
 
 export interface ExplorerPrefs {
   /** Max bytes loaded for in-app file preview (default 512 KiB). */
   previewMaxKb: number;
-  /** Left tree kind column: DIR/FILE text, outline icons, or colored image icons. */
+  /** Left tree kind column: DIR/FILE text, outline icons, Windows, or macOS icons. */
   kindDisplay: ExplorerKindDisplay;
 }
 
@@ -33,23 +33,24 @@ export function previewMaxBytes(prefs: Pick<ExplorerPrefs, "previewMaxKb">): num
   return clampPreviewMaxKb(prefs.previewMaxKb) * 1024;
 }
 
+function normalizeKindDisplay(value: unknown): ExplorerKindDisplay {
+  // Migrate legacy "image" label → Windows-style icons.
+  if (value === "image" || value === "windows") return "windows";
+  if (value === "macos" || value === "icon" || value === "text") return value;
+  return DEFAULT_EXPLORER_PREFS.kindDisplay;
+}
+
 function readStoredPrefs(): ExplorerPrefs {
   try {
     const raw = localStorage.getItem(PREFS_KEY);
     if (!raw) return structuredClone(DEFAULT_EXPLORER_PREFS);
     const parsed = JSON.parse(raw) as Partial<ExplorerPrefs>;
-    const kindDisplay =
-      parsed.kindDisplay === "icon" ||
-      parsed.kindDisplay === "text" ||
-      parsed.kindDisplay === "image"
-        ? parsed.kindDisplay
-        : DEFAULT_EXPLORER_PREFS.kindDisplay;
     return {
       previewMaxKb:
         typeof parsed.previewMaxKb === "number"
           ? clampPreviewMaxKb(parsed.previewMaxKb)
           : DEFAULT_EXPLORER_PREFS.previewMaxKb,
-      kindDisplay,
+      kindDisplay: normalizeKindDisplay(parsed.kindDisplay),
     };
   } catch {
     return structuredClone(DEFAULT_EXPLORER_PREFS);

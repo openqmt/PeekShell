@@ -28,7 +28,8 @@ const previewMaxOptions = computed(() =>
 const kindDisplayOptions = computed(() => [
   { value: "text", label: t("explorerSettings.kindText") },
   { value: "icon", label: t("explorerSettings.kindIcon") },
-  { value: "image", label: t("explorerSettings.kindImage") },
+  { value: "windows", label: t("explorerSettings.kindWindows") },
+  { value: "macos", label: t("explorerSettings.kindMacos") },
 ]);
 
 const previewMaxModel = ref(String(prefs.value.previewMaxKb));
@@ -48,7 +49,9 @@ function onPreviewMaxChange(value: string) {
 
 function onKindDisplayChange(value: string) {
   prefs.value.kindDisplay =
-    value === "icon" || value === "image" || value === "text" ? value : "text";
+    value === "icon" || value === "windows" || value === "macos" || value === "text"
+      ? value
+      : "text";
 }
 
 function onBackdrop(e: MouseEvent) {

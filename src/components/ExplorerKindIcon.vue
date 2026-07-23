@@ -2,18 +2,22 @@
 /**
  * Explorer tree kind icons.
  * - line: compact outline icons (kindDisplay = icon)
- * - filled: modern colored glyphs (kindDisplay = image)
+ * - windows: colored glyphs in Windows Explorer style (kindDisplay = windows)
+ * - macos: Finder-like folder/document glyphs (kindDisplay = macos)
  */
-import { computed } from "vue";
+import { computed, useId } from "vue";
 import type { RemoteEntry } from "../types/host";
 
 const props = withDefaults(
   defineProps<{
     entry: Pick<RemoteEntry, "name" | "isDir" | "fileType">;
-    variant?: "line" | "filled";
+    variant?: "line" | "windows" | "macos";
   }>(),
   { variant: "line" }
 );
+
+/** Unique prefix so gradient defs don’t collide across many tree rows. */
+const gid = useId();
 
 type IconKind =
   | "folder"
@@ -127,13 +131,14 @@ const kind = computed<IconKind>(() => {
   return "file";
 });
 
-const filled = computed(() => props.variant === "filled");
+const isWindows = computed(() => props.variant === "windows");
+const isMacos = computed(() => props.variant === "macos");
 </script>
 
 <template>
   <span class="kind-icon" :class="[kind, variant]" aria-hidden="true">
-    <template v-if="filled">
-      <!-- filled: modern colored glyphs -->
+    <template v-if="isWindows">
+      <!-- windows: colored Explorer-style glyphs -->
       <svg v-if="kind === 'folder'" viewBox="0 0 16 16">
         <path
           d="M1.75 4.1A1.6 1.6 0 0 1 3.35 2.5h2.55c.35 0 .68.14.92.4l.55.6c.12.13.29.2.46.2h4.82A1.6 1.6 0 0 1 14.25 5.3v6.45a1.6 1.6 0 0 1-1.6 1.6H3.35a1.6 1.6 0 0 1-1.6-1.6V4.1Z"
@@ -226,6 +231,175 @@ const filled = computed(() => props.variant === "filled");
           fill="#60A5FA"
         />
         <path d="M9.2 1.9V5h3.4" fill="#93C5FD" />
+      </svg>
+    </template>
+
+    <template v-else-if="isMacos">
+      <!-- macos: Finder-like folder / document glyphs -->
+      <svg v-if="kind === 'folder'" viewBox="0 0 16 16">
+        <defs>
+          <linearGradient :id="`${gid}-folderBody`" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#7DD3FC" />
+            <stop offset="55%" stop-color="#38BDF8" />
+            <stop offset="100%" stop-color="#0EA5E9" />
+          </linearGradient>
+          <linearGradient :id="`${gid}-folderTab`" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#BAE6FD" />
+            <stop offset="100%" stop-color="#7DD3FC" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M1.6 4.35c0-.75.6-1.35 1.35-1.35h3.05c.32 0 .62.12.85.34l.7.68c.14.14.33.22.53.22h5.0c.75 0 1.35.6 1.35 1.35v.55H1.6v-1.79Z"
+          :fill="`url(#${gid}-folderTab)`"
+        />
+        <path
+          d="M1.6 5.55h12.8v6.55c0 .9-.73 1.65-1.65 1.65H3.25c-.9 0-1.65-.75-1.65-1.65V5.55Z"
+          :fill="`url(#${gid}-folderBody)`"
+        />
+        <path
+          d="M1.6 6.7h12.8"
+          stroke="#FFFFFF"
+          stroke-opacity="0.35"
+          stroke-width="0.9"
+        />
+      </svg>
+
+      <svg v-else-if="kind === 'symlink'" viewBox="0 0 16 16">
+        <defs>
+          <linearGradient :id="`${gid}-alias`" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#E2E8F0" />
+            <stop offset="100%" stop-color="#94A3B8" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M3.1 1.7h6.2L13 5.4v7.5c0 .7-.55 1.25-1.25 1.25H3.1c-.7 0-1.25-.55-1.25-1.25V2.95c0-.7.55-1.25 1.25-1.25Z"
+          :fill="`url(#${gid}-alias)`"
+        />
+        <path d="M9.2 1.85V5.2h3.35" fill="#CBD5E1" />
+        <circle cx="11.2" cy="11.2" r="2.55" fill="#0EA5E9" />
+        <path
+          d="M10.35 11.2h1.7M11.2 10.35v1.7"
+          stroke="#fff"
+          stroke-width="1.15"
+          stroke-linecap="round"
+        />
+      </svg>
+
+      <svg v-else-if="kind === 'image'" viewBox="0 0 16 16">
+        <defs>
+          <linearGradient :id="`${gid}-img`" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#FDE68A" />
+            <stop offset="45%" stop-color="#F9A8D4" />
+            <stop offset="100%" stop-color="#93C5FD" />
+          </linearGradient>
+        </defs>
+        <rect x="1.6" y="1.6" width="12.8" height="12.8" rx="2.6" :fill="`url(#${gid}-img)`" />
+        <circle cx="5.5" cy="5.7" r="1.35" fill="#fff" fill-opacity="0.9" />
+        <path
+          d="m2.8 12.4 2.9-3.2a1 1 0 0 1 1.5-.05l1.35 1.4.85-.9a1 1 0 0 1 1.45 0L13.2 12.4"
+          fill="#fff"
+          fill-opacity="0.88"
+        />
+      </svg>
+
+      <svg v-else-if="kind === 'code'" viewBox="0 0 16 16">
+        <path
+          d="M3.1 1.7h6.2L13 5.4v7.5c0 .7-.55 1.25-1.25 1.25H3.1c-.7 0-1.25-.55-1.25-1.25V2.95c0-.7.55-1.25 1.25-1.25Z"
+          fill="#F8FAFC"
+        />
+        <path d="M9.2 1.85V5.2h3.35" fill="#E2E8F0" />
+        <path d="M3.1 1.7h6.2L13 5.4v7.5c0 .7-.55 1.25-1.25 1.25H3.1c-.7 0-1.25-.55-1.25-1.25V2.95c0-.7.55-1.25 1.25-1.25Z" fill="none" stroke="#CBD5E1" stroke-width="0.7" />
+        <path
+          d="M5.8 6.4 4 8l1.8 1.6M10.2 6.4 12 8l-1.8 1.6M8.7 6.1 7.3 10.1"
+          stroke="#22C55E"
+          stroke-width="1.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          fill="none"
+        />
+      </svg>
+
+      <svg v-else-if="kind === 'archive'" viewBox="0 0 16 16">
+        <defs>
+          <linearGradient :id="`${gid}-zip`" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#FDE68A" />
+            <stop offset="100%" stop-color="#F59E0B" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M3.1 1.7h6.2L13 5.4v7.5c0 .7-.55 1.25-1.25 1.25H3.1c-.7 0-1.25-.55-1.25-1.25V2.95c0-.7.55-1.25 1.25-1.25Z"
+          :fill="`url(#${gid}-zip)`"
+        />
+        <path d="M9.2 1.85V5.2h3.35" fill="#FCD34D" />
+        <path d="M7.1 3.4h1.8v1.1H7.1V3.4Zm0 1.7h1.8v1.1H7.1V5.1Zm0 1.7h1.8v1.1H7.1V6.8Zm0 1.7h1.8v1.1H7.1V8.5Z" fill="#92400E" fill-opacity="0.55" />
+        <rect x="6.55" y="10.2" width="2.9" height="2.2" rx="0.45" fill="#78350F" />
+      </svg>
+
+      <svg v-else-if="kind === 'text'" viewBox="0 0 16 16">
+        <path
+          d="M3.1 1.7h6.2L13 5.4v7.5c0 .7-.55 1.25-1.25 1.25H3.1c-.7 0-1.25-.55-1.25-1.25V2.95c0-.7.55-1.25 1.25-1.25Z"
+          fill="#F8FAFC"
+        />
+        <path d="M9.2 1.85V5.2h3.35" fill="#E2E8F0" />
+        <path d="M3.1 1.7h6.2L13 5.4v7.5c0 .7-.55 1.25-1.25 1.25H3.1c-.7 0-1.25-.55-1.25-1.25V2.95c0-.7.55-1.25 1.25-1.25Z" fill="none" stroke="#CBD5E1" stroke-width="0.7" />
+        <path d="M4.6 7.6h6.4M4.6 9.5h5.2M4.6 11.4h4" stroke="#64748B" stroke-width="1.05" stroke-linecap="round" />
+      </svg>
+
+      <svg v-else-if="kind === 'video'" viewBox="0 0 16 16">
+        <defs>
+          <linearGradient :id="`${gid}-vid`" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#C4B5FD" />
+            <stop offset="100%" stop-color="#7C3AED" />
+          </linearGradient>
+        </defs>
+        <rect x="1.6" y="1.6" width="12.8" height="12.8" rx="2.6" :fill="`url(#${gid}-vid)`" />
+        <path d="M6.1 5.2v5.6L11.1 8 6.1 5.2Z" fill="#fff" />
+      </svg>
+
+      <svg v-else-if="kind === 'audio'" viewBox="0 0 16 16">
+        <defs>
+          <linearGradient :id="`${gid}-aud`" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#F9A8D4" />
+            <stop offset="100%" stop-color="#DB2777" />
+          </linearGradient>
+        </defs>
+        <rect x="1.6" y="1.6" width="12.8" height="12.8" rx="2.6" :fill="`url(#${gid}-aud)`" />
+        <path
+          d="M6.1 10.55a1.45 1.45 0 1 1-1.05-1.4V5.35l5.1-1.05v5.4a1.45 1.45 0 1 1-1.05-1.4V6.15L6.1 6.7v3.85Z"
+          fill="#fff"
+        />
+      </svg>
+
+      <svg v-else-if="kind === 'pdf'" viewBox="0 0 16 16">
+        <path
+          d="M3.1 1.7h6.2L13 5.4v7.5c0 .7-.55 1.25-1.25 1.25H3.1c-.7 0-1.25-.55-1.25-1.25V2.95c0-.7.55-1.25 1.25-1.25Z"
+          fill="#F8FAFC"
+        />
+        <path d="M9.2 1.85V5.2h3.35" fill="#FEE2E2" />
+        <path d="M3.1 1.7h6.2L13 5.4v7.5c0 .7-.55 1.25-1.25 1.25H3.1c-.7 0-1.25-.55-1.25-1.25V2.95c0-.7.55-1.25 1.25-1.25Z" fill="none" stroke="#FECACA" stroke-width="0.7" />
+        <rect x="3.4" y="9.5" width="9.2" height="3.2" rx="0.7" fill="#EF4444" />
+        <path d="M4.55 11.75V10.25h1.05c.55 0 .9.3.9.75s-.35.75-.9.75H4.55Zm.7-.55h.35c.2 0 .35-.1.35-.25s-.15-.2-.35-.2H5.25v.45Zm1.85.55V10.25h.7c.7 0 1.15.4 1.15.75 0 .35-.45.75-1.15.75h-.7Zm.7-.55h.05c.3 0 .45-.15.45-.25s-.15-.2-.45-.2h-.05v.45Zm1.85.55V10.25h1.85v.5h-1.15v.25h1v.5h-1v.25h1.2v.5H8.6Z" fill="#fff" />
+      </svg>
+
+      <svg v-else viewBox="0 0 16 16">
+        <defs>
+          <linearGradient :id="`${gid}-doc`" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#FFFFFF" />
+            <stop offset="100%" stop-color="#F1F5F9" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M3.1 1.7h6.2L13 5.4v7.5c0 .7-.55 1.25-1.25 1.25H3.1c-.7 0-1.25-.55-1.25-1.25V2.95c0-.7.55-1.25 1.25-1.25Z"
+          :fill="`url(#${gid}-doc)`"
+        />
+        <path d="M9.2 1.85V5.2h3.35" fill="#E2E8F0" />
+        <path
+          d="M3.1 1.7h6.2L13 5.4v7.5c0 .7-.55 1.25-1.25 1.25H3.1c-.7 0-1.25-.55-1.25-1.25V2.95c0-.7.55-1.25 1.25-1.25Z"
+          fill="none"
+          stroke="#CBD5E1"
+          stroke-width="0.7"
+        />
+        <path d="M4.6 8h6.4M4.6 10h4.8" stroke="#94A3B8" stroke-width="1.05" stroke-linecap="round" />
       </svg>
     </template>
 
@@ -338,7 +512,8 @@ const filled = computed(() => props.variant === "filled");
   color: var(--text-dim);
 }
 
-.kind-icon.filled {
+.kind-icon.windows,
+.kind-icon.macos {
   width: 16px;
   height: 16px;
   margin-right: 5px;
