@@ -2,6 +2,7 @@ import { createPinia } from "pinia";
 import { createApp } from "vue";
 import { createGtag } from "vue-gtag";
 import App from "./App.vue";
+import { installDisableBrowserFind } from "./disableBrowserFind";
 import { installDisableNativeInputHints } from "./disableNativeInputHints";
 import { applyAccentColor, applyLocale, applyTheme, normalizeAccentColor } from "./stores/ui";
 import "./styles/app.css";
@@ -35,3 +36,5 @@ if (gtagId) {
 app.mount("#app");
 // WebKit/macOS: turn off system autocomplete / autocorrect on all text fields
 installDisableNativeInputHints();
+// Block WebView Find (Ctrl/Cmd+F, F3); terminal + file preview keep their own find
+installDisableBrowserFind();
