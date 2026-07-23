@@ -453,7 +453,7 @@ function onExplorerDown(event: MouseEvent) {
 
     function onMove(ev: MouseEvent) {
       height.value = clampHeight(startHeight + (startY - ev.clientY));
-      emit("resized");
+      void nextTick(() => emit("resized"));
     }
 
     function onUp() {
@@ -462,7 +462,7 @@ function onExplorerDown(event: MouseEvent) {
       localStorage.setItem(HEIGHT_KEY, String(height.value));
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
-      emit("resized");
+      void nextTick(() => emit("resized"));
     }
 
     window.addEventListener("mousemove", onMove);

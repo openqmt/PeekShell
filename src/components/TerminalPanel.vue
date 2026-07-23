@@ -489,11 +489,23 @@ async function onClose(sessionId: string, ev: Event) {
 }
 
 function onResize() {
-    if (!activeSessionId.value) return
-    const entry = terms.get(activeSessionId.value)
-    if (!entry) return
-    entry.fit.fit()
-    void sessions.resize(entry.term.cols, entry.term.rows)
+    scheduleTermFit()
+}
+
+let fitRaf = 0
+/** Fit after layout settles — explorer height emits before Vue paints the new flex size. */
+function scheduleTermFit() {
+    if (fitRaf) cancelAnimationFrame(fitRaf)
+    fitRaf = requestAnimationFrame(() => {
+        fitRaf = 0
+        void nextTick(() => {
+            if (!activeSessionId.value) return
+            const entry = terms.get(activeSessionId.value)
+            if (!entry?.term.element) return
+            entry.fit.fit()
+            void sessions.resize(entry.term.cols, entry.term.rows)
+        })
+    })
 }
 
 watch(
@@ -527,16 +539,26 @@ watch(
     }
 )
 
+let hostResizeObserver: ResizeObserver | null = null
+
 onMounted(async () => {
     window.addEventListener('resize', onResize)
     window.addEventListener('pointerdown', onGlobalPointerDown, true)
     await nextTick()
+    if (hostEl.value && typeof ResizeObserver !== 'undefined') {
+        hostResizeObserver = new ResizeObserver(() => scheduleTermFit())
+        hostResizeObserver.observe(hostEl.value)
+    }
     for (const s of sessionList.value) {
         await ensureTerm(s.sessionId)
     }
 })
 
 onBeforeUnmount(() => {
+    if (fitRaf) cancelAnimationFrame(fitRaf)
+    fitRaf = 0
+    hostResizeObserver?.disconnect()
+    hostResizeObserver = null
     window.removeEventListener('resize', onResize)
     window.removeEventListener('pointerdown', onGlobalPointerDown, true)
     for (const [, entry] of terms) {
@@ -793,6 +815,7 @@ onBeforeUnmount(() => {
     min-height: 0;
     padding: 4px;
     position: relative;
+    overflow: hidden;
     /* Match xterm-scrollable-element theme.background (set via --term-surface-bg). */
     background-color: var(--term-surface-bg, var(--term-bg));
 }
@@ -810,14 +833,21 @@ onBeforeUnmount(() => {
 
 .term-host :deep(.xterm) {
     height: 100%;
+    max-height: 100%;
     position: relative;
     z-index: 1;
+    overflow: hidden;
 }
 
 .term-host :deep(.xterm-viewport) {
     overflow-y: auto !important;
     /* Same as xterm-scrollable-element on macOS (theme.background). */
     background-color: var(--term-surface-bg, var(--term-bg)) !important;
+}
+
+.term-host :deep(.xterm-scrollable-element) {
+    /* Prevent Mac overlay scrollbar host from spilling past term-host during explorer resize. */
+    max-height: 100% !important;
 }
 
 .term-host.has-bg-image :deep(.xterm),
