@@ -127,7 +127,7 @@ export const messages = {
             '超过此大小的文件仅能下载后查看或编辑',
         'explorerSettings.kindDisplay': '目录树类型显示',
         'explorerSettings.kindDisplayHint':
-            '左侧 entries 中文件类型用文字、线框图标、Windows 或 macOS 风格图标表示',
+            '目录树文件类型表示：文字、线框图标、Windows 或 macOS 风格图标',
         'explorerSettings.kindText': '文字（DIR / FILE）',
         'explorerSettings.kindIcon': '图标',
         'explorerSettings.kindWindows': 'Windows 风格',

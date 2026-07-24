@@ -1714,6 +1714,7 @@ onBeforeUnmount(() => {
           :class="{
             selected: selectedPath === row.entry.path,
             dir: row.entry.isDir,
+            opened: row.entry.isDir && !!childrenMap[row.entry.path],
             'drop-target': fileDragActive && fileDragTargetPath === (row.entry.isDir ? row.entry.path : parentPath(row.entry.path)),
           }"
           :data-drop-path="row.entry.isDir ? row.entry.path : parentPath(row.entry.path)"
@@ -2532,16 +2533,16 @@ onBeforeUnmount(() => {
 }
 
 .kind-slot :deep(.kind-icon) {
-  width: 13px;
-  height: 13px;
-  margin-right: 2px;
+  width: 15px;
+  height: 15px;
+  margin-right: 3px;
 }
 
 .kind-slot :deep(.kind-icon.windows),
 .kind-slot :deep(.kind-icon.macos) {
-  width: 14px;
-  height: 14px;
-  margin-right: 2px;
+  width: 16px;
+  height: 16px;
+  margin-right: 3px;
 }
 
 .tree-row.dir {
@@ -2550,12 +2551,23 @@ onBeforeUnmount(() => {
 }
 
 .tree-row.dir .kind,
-.tree-row.dir .name,
-.tree-row.dir .kind-slot {
+.tree-row.dir .name {
   color: var(--accent);
   font-weight: 600;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* Opened folders keep full accent; never-fetched folders are lighter. */
+.tree-row.dir .kind-slot {
+  color: var(--accent);
+  opacity: 0.42;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.tree-row.dir.opened .kind-slot {
+  opacity: 1;
 }
 
 .tree-row.selected.dir .kind,
