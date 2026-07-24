@@ -639,17 +639,35 @@ onBeforeUnmount(() => {
 <template>
     <section class="main">
         <div class="tabs">
+            <template v-for="s in sessionList" :key="s.sessionId">
+                <button
+                    type="button"
+                    class="tab"
+                    :class="{ active: s.sessionId === activeSessionId }"
+                    @click="onSelect(s.sessionId)"
+                >
+                    <span class="dot" />
+                    <span>{{ s.title }}</span>
+                    <span class="x" @click="onClose(s.sessionId, $event)">×</span>
+                </button>
+                <button
+                    v-if="s.sessionId === activeSessionId"
+                    type="button"
+                    class="tab-tool tab-add"
+                    :title="t('terminal.openFromHosts')"
+                    @click="ui.openHostsModal()"
+                >
+                    ＋
+                </button>
+            </template>
             <button
-                v-for="s in sessionList"
-                :key="s.sessionId"
+                v-if="!sessionList.length"
                 type="button"
-                class="tab"
-                :class="{ active: s.sessionId === activeSessionId }"
-                @click="onSelect(s.sessionId)"
+                class="tab-tool tab-add"
+                :title="t('terminal.openFromHosts')"
+                @click="ui.openHostsModal()"
             >
-                <span class="dot" />
-                <span>{{ s.title }}</span>
-                <span class="x" @click="onClose(s.sessionId, $event)">×</span>
+                ＋
             </button>
             <span class="tabs-spacer" />
             <div class="tabs-tools">
@@ -677,14 +695,6 @@ onBeforeUnmount(() => {
                             stroke-linejoin="round"
                         />
                     </svg>
-                </button>
-                <button
-                    type="button"
-                    class="tab-tool"
-                    :title="t('terminal.openFromHosts')"
-                    @click="ui.openHostsModal()"
-                >
-                    ＋
                 </button>
                 <QuickCommandsPanel v-model:open="quickCommandsOpen" />
             </div>
