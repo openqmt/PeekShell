@@ -4,15 +4,27 @@ import { computed, ref, watch } from "vue";
 import * as api from "../api/tauri";
 import type {
   AgentCommand,
+  AiChatResponse,
   AiProviderRecord,
   AiProviderUpsert,
   ChatMessage,
   ExecMode,
+  ExecuteCommandResponse,
 } from "../types/ai";
 import { useSessionsStore } from "./sessions";
 import { useUiStore } from "./ui";
 
 const EXEC_MODE_KEY = "peekshell.execMode";
+
+/** Optional sink for terminal (or other) UIs that render outside AiPanel. */
+export interface AiSendOptions {
+  onChunk?: (visibleDelta: string, fullVisible: string) => void;
+  onComplete?: (result: {
+    explanation: string;
+    commands: AgentCommand[];
+    error?: string;
+  }) => void;
+}
 
 function loadExecMode(): ExecMode {
   const raw = localStorage.getItem(EXEC_MODE_KEY);
@@ -110,13 +122,24 @@ export const useAiStore = defineStore("ai", () => {
     }
   }
 
-  async function send(message: string) {
+  async function send(
+    message: string,
+    options?: AiSendOptions
+  ): Promise<AiChatResponse | null> {
     const text = message.trim();
-    if (!text || sending.value) return;
+    if (!text || sending.value) {
+      options?.onComplete?.({ explanation: "", commands: [], error: "busy" });
+      return null;
+    }
 
     if (!activeProvider.value) {
       error.value = "noProvider";
-      return;
+      options?.onComplete?.({
+        explanation: "",
+        commands: [],
+        error: "noProvider",
+      });
+      return null;
     }
 
     const sessions = useSessionsStore();
@@ -140,12 +163,17 @@ export const useAiStore = defineStore("ai", () => {
       .map((m) => ({ role: m.role, content: m.content }));
 
     let unlisten: UnlistenFn | undefined;
+    let lastVisible = "";
     try {
       unlisten = await listen<{ requestId: string; delta: string }>("ai://chunk", (event) => {
         if (event.payload.requestId !== requestId) return;
         const msg = messages.value.find((m) => m.id === assistantId);
         if (!msg) return;
         msg.content += event.payload.delta;
+        const visible = visibleStreamText(msg.content);
+        const visibleDelta = visible.slice(lastVisible.length);
+        lastVisible = visible;
+        if (visibleDelta) options?.onChunk?.(visibleDelta, visible);
       });
 
       const res = await api.aiChat({
@@ -163,6 +191,11 @@ export const useAiStore = defineStore("ai", () => {
         msg.commands = res.commands;
         msg.streaming = false;
       }
+      options?.onComplete?.({
+        explanation: res.explanation,
+        commands: res.commands,
+      });
+      return res;
     } catch (e) {
       error.value = String(e);
       const msg = messages.value.find((m) => m.id === assistantId);
@@ -176,16 +209,22 @@ export const useAiStore = defineStore("ai", () => {
           content: String(e),
         });
       }
+      options?.onComplete?.({
+        explanation: String(e),
+        commands: [],
+        error: String(e),
+      });
+      return null;
     } finally {
       if (unlisten) unlisten();
       sending.value = false;
     }
   }
 
-  async function approve(commandId: string) {
+  async function approve(commandId: string): Promise<ExecuteCommandResponse | null> {
     const sessions = useSessionsStore();
     const sessionId = sessions.activeSessionId;
-    if (!sessionId) return;
+    if (!sessionId) return null;
     try {
       const res = await api.executeApprovedCommand(sessionId, commandId);
       updateCommandInMessages(res.command);
@@ -202,20 +241,24 @@ export const useAiStore = defineStore("ai", () => {
         content: parts.join("\n\n"),
         execResult: res.result,
       });
+      return res;
     } catch (e) {
       error.value = String(e);
+      return null;
     }
   }
 
-  async function reject(commandId: string) {
+  async function reject(commandId: string): Promise<AgentCommand | null> {
     const sessions = useSessionsStore();
     const sessionId = sessions.activeSessionId;
-    if (!sessionId) return;
+    if (!sessionId) return null;
     try {
       const updated = await api.rejectAgentCommand(sessionId, commandId);
       updateCommandInMessages(updated);
+      return updated;
     } catch (e) {
       error.value = String(e);
+      return null;
     }
   }
 

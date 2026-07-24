@@ -173,6 +173,10 @@ onBeforeUnmount(() => {
             <span>{{ t("terminalSettings.closeTab") }}</span>
             <input v-model="prefs.shortcuts.closeTab" type="text" spellcheck="false" />
           </label>
+          <label class="field">
+            <span>{{ t("terminalSettings.aiChat") }}</span>
+            <input v-model="prefs.shortcuts.aiChat" type="text" spellcheck="false" />
+          </label>
         </div>
         <p class="hint">{{ t("terminalSettings.shortcutsHint") }}</p>
 

@@ -85,6 +85,7 @@ export const messages = {
         'terminal.findClose': '关闭查找',
         'terminalSettings.newSession': '新建相同连接',
         'terminalSettings.closeTab': '关闭当前标签',
+        'terminalSettings.aiChat': '终端 AI 对话',
 
         'terminalSettings.title': '终端设置',
         'terminalSettings.sub': '快捷键、配色、背景与字体',
@@ -320,7 +321,7 @@ export const messages = {
             '已选择 {name} / {model}。可直接提问；连接主机后，命令才能按执行模式在远端运行。',
         'ai.setup':
             '请先点击右上角设置按钮配置模型提供商。API Key 将安全保存在系统钥匙串中。',
-        'ai.placeholder': '例如：检查 nginx 错误日志',
+        'ai.placeholder': '例如：检查 nginx 错误日志（终端也可用 Ctrl+I 或中文直接提问）',
         'ai.context': '上下文：最近终端输出 · 当前主机指标',
         'ai.send': '发送',
         'ai.sending': '发送中…',
@@ -348,6 +349,18 @@ export const messages = {
         'ai.err.noProvider': '请先配置并选择 AI 提供商。',
         'ai.hint.noSession':
             '未连接主机：可正常对话，提议的命令不会在终端执行。',
+
+        'termAi.banner': '── PeekShell AI ──',
+        'termAi.bannerHint': 'Ctrl+I 切换 · Esc 退出 · Linux 命令直接跑 · y/n 确认',
+        'termAi.exited': '已退出 AI 对话，回到 shell。',
+        'termAi.thinking': '正在思考…',
+        'termAi.busy': 'AI 正在处理上一请求，请稍候。',
+        'termAi.confirmPrompt': '执行？[y]es / [n]o  (Esc 取消全部)',
+        'termAi.approved': '已确认执行',
+        'termAi.rejected': '已拒绝',
+        'termAi.cancelled': '已取消',
+        'termAi.execFailed': '执行失败',
+        'termAi.runShell': '→ 已按 shell 命令执行（仍在 AI 模式）',
 
         'aiSettings.title': 'Assist 设置',
         'aiSettings.aria': 'AI 提供商设置',
@@ -465,6 +478,7 @@ export const messages = {
         'terminal.findClose': 'Close find',
         'terminalSettings.newSession': 'New same-host tab',
         'terminalSettings.closeTab': 'Close current tab',
+        'terminalSettings.aiChat': 'Terminal AI chat',
 
         'terminalSettings.title': 'Terminal settings',
         'terminalSettings.sub': 'Shortcuts, colors, background, and font',
@@ -705,7 +719,7 @@ export const messages = {
             'Selected {name} / {model}. Ask anytime; connect a host to run commands under the mode below.',
         'ai.setup':
             'Open settings (gear) to configure a model provider. API keys are stored in the OS keychain.',
-        'ai.placeholder': 'e.g. check nginx error logs',
+        'ai.placeholder': 'e.g. check nginx error logs (or Ctrl+I / CJK in the terminal)',
         'ai.context': 'Context: recent terminal output · host metrics',
         'ai.send': 'Send',
         'ai.sending': 'Sending…',
@@ -733,6 +747,18 @@ export const messages = {
         'ai.err.noProvider': 'Configure and select an AI provider first.',
         'ai.hint.noSession':
             'No host connected: you can chat; suggested commands will not run on a terminal.',
+
+        'termAi.banner': '── PeekShell AI ──',
+        'termAi.bannerHint': 'Ctrl+I toggle · Esc exit · Linux cmds run live · y/n confirm',
+        'termAi.exited': 'Left AI chat; back to shell.',
+        'termAi.thinking': 'Thinking…',
+        'termAi.busy': 'AI is still handling the previous request.',
+        'termAi.confirmPrompt': 'Run? [y]es / [n]o  (Esc cancel all)',
+        'termAi.approved': 'Approved',
+        'termAi.rejected': 'Rejected',
+        'termAi.cancelled': 'Cancelled',
+        'termAi.execFailed': 'Execution failed',
+        'termAi.runShell': '→ ran as shell command (still in AI mode)',
 
         'aiSettings.title': 'Assist settings',
         'aiSettings.aria': 'AI provider settings',

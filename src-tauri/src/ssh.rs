@@ -731,8 +731,20 @@ fn normalize_remote_path(path: &str) -> AppResult<String> {
     if trimmed.contains('\0') || trimmed.contains('\n') || trimmed.contains('\r') {
         return Err(AppError::Message("路径无效".into()));
     }
+
+    let (home, body) = if trimmed == "~" {
+        (true, "")
+    } else if let Some(rest) = trimmed.strip_prefix("~/") {
+        (true, rest)
+    } else if let Some(rest) = trimmed.strip_prefix('/') {
+        (false, rest)
+    } else {
+        // Relative segments — treat as from /
+        (false, trimmed)
+    };
+
     let mut parts: Vec<&str> = Vec::new();
-    for part in trimmed.split('/') {
+    for part in body.split('/') {
         if part.is_empty() || part == "." {
             continue;
         }
@@ -742,7 +754,14 @@ fn normalize_remote_path(path: &str) -> AppResult<String> {
         }
         parts.push(part);
     }
-    if parts.is_empty() {
+
+    if home {
+        if parts.is_empty() {
+            Ok("~".into())
+        } else {
+            Ok(format!("~/{}", parts.join("/")))
+        }
+    } else if parts.is_empty() {
         Ok("/".into())
     } else {
         Ok(format!("/{}", parts.join("/")))
@@ -763,6 +782,11 @@ async fn list_remote_dir(host: &HostRecord, path: &str) -> AppResult<RemoteDirLi
     let script = format!(
         r#"
 path={quoted}
+if [ "$path" = "~" ]; then
+  path="$HOME"
+elif [ "${{path#\~\/}}" != "$path" ]; then
+  path="$HOME/${{path#\~/}}"
+fi
 if [ ! -d "$path" ]; then
   echo "ERR|目录不存在或不可访问"
   exit 0

@@ -16,6 +16,8 @@ import { useI18n } from '../i18n'
 import { useSessionsStore } from '../stores/sessions'
 import { matchShortcut, useTerminalPrefsStore, clampFontSize } from '../stores/terminalPrefs'
 import { useUiStore } from '../stores/ui'
+import { startsWithCjkOrHangul } from '../terminal/cjk'
+import { createTerminalAiSession, type TerminalAiSession } from '../terminal/terminalAiSession'
 import QuickCommandsPanel from './QuickCommandsPanel.vue'
 import RemoteExplorer from './RemoteExplorer.vue'
 
@@ -24,6 +26,7 @@ type TermEntry = {
     fit: FitAddon
     search: SearchAddon
     unlisten: UnlistenFn
+    aiSession: TerminalAiSession
 }
 
 type CtxMenuState = {
@@ -395,9 +398,26 @@ async function ensureTerm(sessionId: string) {
         ta.setAttribute('spellcheck', 'false')
     }
 
-    // Track the current input line so local "cls" can clear the buffer without running remotely.
+    // Track the current input line so local "cls" / CJK→AI can intercept without running remotely.
+    const aiSession = createTerminalAiSession(term, t, {
+        runShell: (command) => {
+            void api.ptyWrite(sessionId, `${command}\r`)
+        },
+        writePty: (data) => {
+            void api.ptyWrite(sessionId, data)
+        },
+        listDir: async (path) => {
+            const listing = await api.listRemoteDir(sessionId, path)
+            return listing.entries.map((e) => ({
+                name: e.name,
+                isDir: e.isDir,
+            }))
+        },
+    })
     let lineBuf = ''
     term.onData((data) => {
+        if (aiSession.tryHandleData(data)) return
+
         if (data === '\r' || data === '\n' || data === '\r\n') {
             if (lineBuf.trim().toLowerCase() === 'cls') {
                 lineBuf = ''
@@ -406,13 +426,23 @@ async function ensureTerm(sessionId: string) {
                 term.clear()
                 return
             }
+            // 中/日/韩行首 → 终端 AI（清远端回显后发送）
+            if (startsWithCjkOrHangul(lineBuf)) {
+                const prompt = lineBuf.trim()
+                lineBuf = ''
+                void api.ptyWrite(sessionId, '\x15')
+                aiSession.enterAndSend(prompt)
+                return
+            }
             lineBuf = ''
             void api.ptyWrite(sessionId, data)
             return
         }
 
         if (data === '\x7f' || data === '\b') {
-            lineBuf = lineBuf.slice(0, -1)
+            const chars = [...lineBuf]
+            chars.pop()
+            lineBuf = chars.join('')
         } else if (data === '\x03' || data === '\x15') {
             lineBuf = ''
         } else if (data.length === 1 && data >= ' ') {
@@ -478,6 +508,12 @@ async function ensureTerm(sessionId: string) {
             term.clear()
             return false
         }
+        if (matchShortcut(ev, shortcuts.aiChat)) {
+            ev.preventDefault()
+            ev.stopPropagation()
+            aiSession.toggleCompose()
+            return false
+        }
         // Tab management: consume so shell does not see Ctrl+N / Ctrl+W
         if (
             matchShortcut(ev, shortcuts.newSession) ||
@@ -524,10 +560,16 @@ async function ensureTerm(sessionId: string) {
     })
 
     const unlisten = await listen<string>(`pty://${sessionId}`, (event) => {
-        term.write(event.payload)
+        aiSession.notePtyOutput(event.payload)
+        const filtered = aiSession.consumePtyOutput(event.payload)
+        if (filtered === null) {
+            term.write(event.payload)
+        } else if (filtered.length > 0) {
+            term.write(filtered)
+        }
     })
 
-    terms.set(sessionId, { term, fit, search, unlisten })
+    terms.set(sessionId, { term, fit, search, unlisten, aiSession })
     showOnly(sessionId)
     void sessions.resize(term.cols, term.rows)
 }
@@ -554,6 +596,7 @@ async function onClose(sessionId: string, ev?: Event) {
     ev?.stopPropagation()
     const entry = terms.get(sessionId)
     if (entry) {
+        entry.aiSession.dispose()
         entry.unlisten()
         entry.term.dispose()
         terms.delete(sessionId)
@@ -678,6 +721,7 @@ onBeforeUnmount(() => {
     window.removeEventListener('pointerdown', onGlobalPointerDown, true)
     window.removeEventListener('keydown', onTabShortcutKeydown, true)
     for (const [, entry] of terms) {
+        entry.aiSession.dispose()
         entry.unlisten()
         entry.term.dispose()
     }

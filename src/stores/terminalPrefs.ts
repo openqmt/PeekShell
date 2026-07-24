@@ -17,6 +17,8 @@ export interface TermShortcuts {
   clear: string;
   newSession: string;
   closeTab: string;
+  /** Toggle terminal AI compose mode (default Ctrl+I). */
+  aiChat: string;
 }
 
 export interface TerminalPrefs {
@@ -49,6 +51,7 @@ export const DEFAULT_TERMINAL_PREFS: TerminalPrefs = {
     clear: "Ctrl+Shift+K",
     newSession: "Ctrl+N",
     closeTab: "Ctrl+W",
+    aiChat: "Ctrl+I",
   },
 };
 

@@ -113,7 +113,6 @@ pub async fn chat(
     let parsed = parse_agent_reply(&raw)?;
 
     let mut commands = Vec::new();
-    let mut auto_results = Vec::new();
 
     if !parsed.needs_more_info {
         for proposed in parsed.commands {
@@ -174,7 +173,6 @@ pub async fn chat(
                                 "executed",
                                 Some(&exec),
                             );
-                            auto_results.push((command_text.clone(), exec));
                             commands.push(command_view(&pending, true));
                         }
                         Err(err) => {
@@ -225,19 +223,9 @@ pub async fn chat(
         explanation = raw.trim().to_string();
     }
 
-    let follow_up = if !auto_results.is_empty() {
-        match feedback_after_runs(&provider, message, &req.locale, &auto_results).await {
-            Ok(text) => {
-                if !text.is_empty() {
-                    explanation = format!("{explanation}\n\n{text}");
-                }
-                Some(text)
-            }
-            Err(_) => None,
-        }
-    } else {
-        None
-    };
+    // Skip second LLM round after auto-exec: it blocked returning ai_chat while the
+    // Agent block was already on screen, delaying the next `AI>` prompt.
+    let follow_up = None;
 
     Ok(AiChatResponse {
         explanation,
@@ -602,8 +590,8 @@ fn truncate(s: &str, max: usize) -> String {
     }
 }
 
-/// 把 Agent 执行过程回显到 xterm（只显示，不写入远端 shell），
-/// 随后向交互式 PTY 发送 Ctrl+U + Enter，让 shell 重新打出提示符。
+/// 把 Agent 执行过程回显到 xterm（只显示，不写入远端 shell）。
+/// 不刷新交互式 PTY 提示符，避免在 AI 对话中刷出 `user@host:~#`。
 async fn echo_exec_to_terminal(
     app: &AppHandle,
     sessions: &SessionManager,
@@ -614,8 +602,6 @@ async fn echo_exec_to_terminal(
 ) -> AppResult<()> {
     let text = format_terminal_echo(command, result, error);
     sessions.mirror_display_output(app, session_id, &text).await?;
-    // \x15 = Ctrl+U 清空当前输入行，避免误提交用户半成品输入；\n 触发新提示符
-    let _ = sessions.write(session_id, "\x15\n").await;
     Ok(())
 }
 
