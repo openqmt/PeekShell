@@ -570,10 +570,6 @@ async function openLink(url: string) {
 
 .about-card {
   width: 100%;
-  max-width: 420px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--bg-root) 55%, var(--bg-elevated));
-  border: 1px solid var(--border-soft);
   overflow: hidden;
   text-align: left;
 }
@@ -583,8 +579,7 @@ async function openLink(url: string) {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border-soft);
+  padding: 6px 10px;
 }
 
 .about-row:last-child {
