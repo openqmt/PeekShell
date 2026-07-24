@@ -389,7 +389,7 @@ export const messages = {
         'aiSettings.keyInput': '输入 API Key',
         'aiSettings.clearKey': '删除已保存的 API Key',
         'aiSettings.setActive': '设为当前',
-        'aiSettings.save': '保存配置',
+        'aiSettings.save': '保存',
         'aiSettings.deleteConfirm': '确定删除提供商“{name}”吗？',
     },
     en: {
