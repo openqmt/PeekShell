@@ -24,11 +24,15 @@ hero:
 
 features:
   - title: Host management
-    details: Group SSH hosts with password or private-key auth. Credentials stay in the OS keychain.
+    details: Group SSH hosts with password or private-key auth. Credentials stay in the OS keychain—never plain-text on disk.
   - title: Multi-tab terminal
-    details: xterm.js sessions with live host system and resource metrics after you connect.
+    details: xterm.js PTY sessions with find and multi-tab switching. Live OS, resources, processes, and network in the sidebar.
   - title: Remote files
-    details: Browse remote directories, upload and download files alongside your terminal workflow.
+    details: Browse the remote tree, preview and edit text in-app, drag-and-drop upload/download, with pause, resume, and batch transfer control.
   - title: Confirmation-first AI
-    details: Natural-language command proposals that only run after you approve them.
+    details: Natural-language proposals with risk hints. Chat in Assist or via Ctrl+I in the terminal—commands run only after you approve.
+  - title: Quick commands
+    details: Save grouped one-liners and inject them into the active terminal to cut repetition and typos.
+  - title: Lightweight & cross-platform
+    details: Tauri 2 + Rust for a small, fast desktop app on Windows, macOS, and Linux—with zh/en UI and dark/light themes.
 ---
