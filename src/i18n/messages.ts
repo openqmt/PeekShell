@@ -61,6 +61,14 @@ export const messages = {
         'displaySettings.aiPanel': '展示 AI 助手',
         'displaySettings.reset': '恢复默认',
         'displaySettings.sidebarEmpty': '请先添加主机',
+        'settingsModal.title': '设置',
+        'settingsModal.sub': '显示偏好与关于 PeekShell',
+        'about.title': '关于我们',
+        'about.version': '版本 {v}',
+        'about.blurb':
+            '轻量跨平台 SSH 客户端，支持主机管理、多标签终端、远程文件，以及「提议 → 确认 → 执行」的 AI Agent。',
+        'about.website': '官网与文档',
+        'about.github': 'GitHub',
 
         'terminal.openFromHosts': '从主机列表连接',
         'terminal.empty': '打开主机列表，选择一台主机连接后即可使用终端。',
@@ -430,6 +438,14 @@ export const messages = {
         'displaySettings.aiPanel': 'Show Assist',
         'displaySettings.reset': 'Reset defaults',
         'displaySettings.sidebarEmpty': 'Please add a host first',
+        'settingsModal.title': 'Settings',
+        'settingsModal.sub': 'Display preferences and about PeekShell',
+        'about.title': 'About',
+        'about.version': 'Version {v}',
+        'about.blurb':
+            'A lightweight cross-platform SSH client with host management, multi-tab terminals, remote files, and a propose → confirm → execute AI agent.',
+        'about.website': 'Website & docs',
+        'about.github': 'GitHub',
 
         'terminal.openFromHosts': 'Connect from host list',
         'terminal.empty':

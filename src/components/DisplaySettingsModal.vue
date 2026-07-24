@@ -1,7 +1,12 @@
 ﻿<script setup lang="ts">
-/** 界面显示设置：控制侧栏、资源管理器列、AI 面板显隐与主题色。 */
+/**
+ * App settings shell: left nav (display / about), right content pane.
+ * Display prefs control sidebar, explorer columns, AI panel, and accent color.
+ */
+import { getVersion } from "@tauri-apps/api/app";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { storeToRefs } from "pinia";
-import { computed } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useI18n } from "../i18n";
 import {
   ACCENT_COLOR_PRESETS,
@@ -9,9 +14,17 @@ import {
   useUiStore,
 } from "../stores/ui";
 
+type SettingsSection = "display" | "about";
+
+const WEBSITE_URL = "https://www.openqmt.com/";
+const GITHUB_URL = "https://github.com/openqmt/PeekShell";
+
 const ui = useUiStore();
 const { t } = useI18n();
 const { displayPrefs, theme } = storeToRefs(ui);
+
+const section = ref<SettingsSection>("display");
+const version = ref("…");
 
 const themeDefaultAccent = computed(() =>
   theme.value === "light" ? "#1f9d63" : "#3ecf8e"
@@ -28,6 +41,14 @@ const pickerValue = computed(() =>
   displayPrefs.value.accentColor || themeDefaultAccent.value
 );
 
+onMounted(async () => {
+  try {
+    version.value = await getVersion();
+  } catch {
+    version.value = "0.1.0";
+  }
+});
+
 function setAccent(hex: string) {
   displayPrefs.value.accentColor = normalizeAccentColor(hex);
 }
@@ -43,15 +64,23 @@ function onPickerInput(e: Event) {
 function onBackdrop(e: MouseEvent) {
   if (e.target === e.currentTarget) ui.closeDisplaySettingsModal();
 }
+
+async function openLink(url: string) {
+  try {
+    await openUrl(url);
+  } catch {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
 </script>
 
 <template>
   <div class="overlay" @click="onBackdrop">
-    <div class="modal sm" role="dialog" aria-labelledby="displaySettingsTitle">
+    <div class="modal settings-modal" role="dialog" aria-labelledby="settingsModalTitle">
       <div class="modal-head">
         <div>
-          <h2 id="displaySettingsTitle">{{ t("displaySettings.title") }}</h2>
-          <div class="sub">{{ t("displaySettings.sub") }}</div>
+          <h2 id="settingsModalTitle">{{ t("settingsModal.title") }}</h2>
+          <div class="sub">{{ t("settingsModal.sub") }}</div>
         </div>
         <button
           type="button"
@@ -63,166 +92,261 @@ function onBackdrop(e: MouseEvent) {
         </button>
       </div>
 
-      <div class="modal-body">
-        <div class="section-label">{{ t("displaySettings.accentSection") }}</div>
-        <div class="accent-row">
+      <div class="settings-layout">
+        <nav class="settings-nav" aria-label="settings">
           <button
             type="button"
-            class="accent-swatch default"
-            :class="{ active: isDefaultAccent }"
-            :title="t('displaySettings.accentDefault')"
-            :aria-label="t('displaySettings.accentDefault')"
-            :aria-pressed="isDefaultAccent"
-            @click="clearAccent"
+            class="nav-item"
+            :class="{ active: section === 'display' }"
+            @click="section = 'display'"
           >
-            <span class="swatch-fill" :style="{ background: themeDefaultAccent }" />
-            <span class="swatch-label">{{ t("displaySettings.accentDefault") }}</span>
+            {{ t("displaySettings.title") }}
           </button>
           <button
-            v-for="hex in ACCENT_COLOR_PRESETS"
-            :key="hex"
             type="button"
-            class="accent-swatch"
-            :class="{ active: displayPrefs.accentColor === hex }"
-            :style="{ '--swatch': hex }"
-            :title="hex"
-            :aria-label="hex"
-            :aria-pressed="displayPrefs.accentColor === hex"
-            @click="setAccent(hex)"
+            class="nav-item"
+            :class="{ active: section === 'about' }"
+            @click="section = 'about'"
           >
-            <span class="swatch-fill" />
+            {{ t("about.title") }}
           </button>
-          <label
-            class="color-swatch"
-            :class="{ active: isCustomAccent }"
-            :title="t('displaySettings.accentPick')"
-          >
-            <span class="color-chip" :style="{ background: pickerValue }" />
-            <span class="color-hex">{{ pickerValue }}</span>
-            <input
-              type="color"
-              :value="pickerValue"
-              :aria-label="t('displaySettings.accentPick')"
-              @input="onPickerInput"
-            />
-          </label>
-        </div>
+        </nav>
 
-        <div class="section-label">{{ t("displaySettings.sidebarSection") }}</div>
-        <div class="check-grid">
-          <label class="check">
-            <input v-model="displayPrefs.sidebar.system" type="checkbox" />
-            <span>{{ t("displaySettings.sidebarSystem") }}</span>
-          </label>
-          <label class="check">
-            <input v-model="displayPrefs.sidebar.resources" type="checkbox" />
-            <span>{{ t("displaySettings.sidebarResources") }}</span>
-          </label>
-          <label class="check">
-            <input v-model="displayPrefs.sidebar.processes" type="checkbox" />
-            <span>{{ t("displaySettings.sidebarProcesses") }}</span>
-          </label>
-          <label class="check">
-            <input v-model="displayPrefs.sidebar.network" type="checkbox" />
-            <span>{{ t("displaySettings.sidebarNetwork") }}</span>
-          </label>
-        </div>
+        <div class="settings-pane">
+          <div v-if="section === 'display'" class="pane-scroll">
+            <div class="section-label">{{ t("displaySettings.accentSection") }}</div>
+            <div class="accent-row">
+              <button
+                type="button"
+                class="accent-swatch default"
+                :class="{ active: isDefaultAccent }"
+                :title="t('displaySettings.accentDefault')"
+                :aria-label="t('displaySettings.accentDefault')"
+                :aria-pressed="isDefaultAccent"
+                @click="clearAccent"
+              >
+                <span class="swatch-fill" :style="{ background: themeDefaultAccent }" />
+                <span class="swatch-label">{{ t("displaySettings.accentDefault") }}</span>
+              </button>
+              <button
+                v-for="hex in ACCENT_COLOR_PRESETS"
+                :key="hex"
+                type="button"
+                class="accent-swatch"
+                :class="{ active: displayPrefs.accentColor === hex }"
+                :style="{ '--swatch': hex }"
+                :title="hex"
+                :aria-label="hex"
+                :aria-pressed="displayPrefs.accentColor === hex"
+                @click="setAccent(hex)"
+              >
+                <span class="swatch-fill" />
+              </button>
+              <label
+                class="color-swatch"
+                :class="{ active: isCustomAccent }"
+                :title="t('displaySettings.accentPick')"
+              >
+                <span class="color-chip" :style="{ background: pickerValue }" />
+                <span class="color-hex">{{ pickerValue }}</span>
+                <input
+                  type="color"
+                  :value="pickerValue"
+                  :aria-label="t('displaySettings.accentPick')"
+                  @input="onPickerInput"
+                />
+              </label>
+            </div>
 
-        <div class="section-label">{{ t("displaySettings.coreSection") }}</div>
-        <div class="check-grid">
-          <label class="check">
-            <input v-model="displayPrefs.explorer.show" type="checkbox" />
-            <span>{{ t("displaySettings.explorer") }}</span>
-          </label>
-        </div>
-        <div class="section-hint">{{ t("displaySettings.attrColumns") }}</div>
-        <div class="check-grid nested">
-          <label class="check">
-            <input v-model="displayPrefs.explorer.colName" type="checkbox" />
-            <span>{{ t("explorer.colName") }}</span>
-          </label>
-          <label class="check">
-            <input v-model="displayPrefs.explorer.colSize" type="checkbox" />
-            <span>{{ t("explorer.colSize") }}</span>
-          </label>
-          <label class="check">
-            <input v-model="displayPrefs.explorer.colType" type="checkbox" />
-            <span>{{ t("explorer.colType") }}</span>
-          </label>
-          <label class="check">
-            <input v-model="displayPrefs.explorer.colModified" type="checkbox" />
-            <span>{{ t("explorer.colModified") }}</span>
-          </label>
-          <label class="check">
-            <input v-model="displayPrefs.explorer.colPermissions" type="checkbox" />
-            <span>{{ t("explorer.colPermissions") }}</span>
-          </label>
-          <label class="check">
-            <input v-model="displayPrefs.explorer.colGroup" type="checkbox" />
-            <span>{{ t("explorer.colGroup") }}</span>
-          </label>
-        </div>
+            <div class="section-label">{{ t("displaySettings.sidebarSection") }}</div>
+            <div class="check-grid">
+              <label class="check">
+                <input v-model="displayPrefs.sidebar.system" type="checkbox" />
+                <span>{{ t("displaySettings.sidebarSystem") }}</span>
+              </label>
+              <label class="check">
+                <input v-model="displayPrefs.sidebar.resources" type="checkbox" />
+                <span>{{ t("displaySettings.sidebarResources") }}</span>
+              </label>
+              <label class="check">
+                <input v-model="displayPrefs.sidebar.processes" type="checkbox" />
+                <span>{{ t("displaySettings.sidebarProcesses") }}</span>
+              </label>
+              <label class="check">
+                <input v-model="displayPrefs.sidebar.network" type="checkbox" />
+                <span>{{ t("displaySettings.sidebarNetwork") }}</span>
+              </label>
+            </div>
 
-        <div class="section-label">{{ t("displaySettings.aiSection") }}</div>
-        <div class="check-grid">
-          <label class="check">
-            <input v-model="displayPrefs.aiPanel" type="checkbox" />
-            <span>{{ t("displaySettings.aiPanel") }}</span>
-          </label>
-        </div>
-      </div>
+            <div class="section-label">{{ t("displaySettings.coreSection") }}</div>
+            <div class="check-grid">
+              <label class="check">
+                <input v-model="displayPrefs.explorer.show" type="checkbox" />
+                <span>{{ t("displaySettings.explorer") }}</span>
+              </label>
+            </div>
+            <div class="section-hint">{{ t("displaySettings.attrColumns") }}</div>
+            <div class="check-grid nested">
+              <label class="check">
+                <input v-model="displayPrefs.explorer.colName" type="checkbox" />
+                <span>{{ t("explorer.colName") }}</span>
+              </label>
+              <label class="check">
+                <input v-model="displayPrefs.explorer.colSize" type="checkbox" />
+                <span>{{ t("explorer.colSize") }}</span>
+              </label>
+              <label class="check">
+                <input v-model="displayPrefs.explorer.colType" type="checkbox" />
+                <span>{{ t("explorer.colType") }}</span>
+              </label>
+              <label class="check">
+                <input v-model="displayPrefs.explorer.colModified" type="checkbox" />
+                <span>{{ t("explorer.colModified") }}</span>
+              </label>
+              <label class="check">
+                <input v-model="displayPrefs.explorer.colPermissions" type="checkbox" />
+                <span>{{ t("explorer.colPermissions") }}</span>
+              </label>
+              <label class="check">
+                <input v-model="displayPrefs.explorer.colGroup" type="checkbox" />
+                <span>{{ t("explorer.colGroup") }}</span>
+              </label>
+            </div>
 
-      <div class="modal-foot">
-        <button type="button" class="btn ghost md" @click="ui.resetDisplayPrefs()">
-          {{ t("displaySettings.reset") }}
-        </button>
-        <span class="foot-spacer" />
-        <button type="button" class="btn primary md" @click="ui.closeDisplaySettingsModal()">
-          {{ t("common.close") }}
-        </button>
+            <div class="section-label">{{ t("displaySettings.aiSection") }}</div>
+            <div class="check-grid">
+              <label class="check">
+                <input v-model="displayPrefs.aiPanel" type="checkbox" />
+                <span>{{ t("displaySettings.aiPanel") }}</span>
+              </label>
+            </div>
+
+            <div class="pane-actions">
+              <button type="button" class="btn ghost md" @click="ui.resetDisplayPrefs()">
+                {{ t("displaySettings.reset") }}
+              </button>
+            </div>
+          </div>
+
+          <div v-else class="pane-scroll about-pane">
+            <div class="about-brand">PeekShell</div>
+            <div class="about-version">{{ t("about.version", { v: version }) }}</div>
+            <p class="about-blurb">{{ t("about.blurb") }}</p>
+            <div class="about-links">
+              <button type="button" class="btn-ghost-block" @click="openLink(WEBSITE_URL)">
+                {{ t("about.website") }}
+              </button>
+              <button type="button" class="btn-ghost-block" @click="openLink(GITHUB_URL)">
+                {{ t("about.github") }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.modal.sm {
-  width: min(560px, 100%);
+.settings-modal {
+  width: min(640px, 100%);
+  height: min(520px, calc(100vh - 48px));
+  max-height: min(520px, calc(100vh - 48px));
 }
 
-.modal :deep(.modal-head) {
+.settings-modal :deep(.modal-head) {
   padding: 10px 12px;
+  flex-shrink: 0;
 }
 
-.modal :deep(.modal-head h2) {
+.settings-modal :deep(.modal-head h2) {
   font-size: 14px;
 }
 
-.modal :deep(.modal-head .sub) {
+.settings-modal :deep(.modal-head .sub) {
   margin-top: 1px;
 }
 
-.modal :deep(.modal-body) {
-  padding: 10px 12px;
+.settings-layout {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  min-height: 0;
+  flex: 1;
+  border-top: 1px solid var(--border-soft);
+  overflow: hidden;
 }
 
-.modal :deep(.modal-foot) {
-  padding: 8px 12px;
-  gap: 6px;
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  border-right: 1px solid var(--border-soft);
+  background: var(--bg-elevated);
+  overflow: auto;
 }
 
-.modal :deep(.section-label) {
+.nav-item {
+  margin: 0;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.nav-item.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.settings-pane {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pane-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 12px 14px;
+}
+
+.pane-actions {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.section-label {
   margin: 2px 0 6px;
   letter-spacing: 0.05em;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-dim);
 }
 
-.modal :deep(.section-label:not(:first-child)) {
-  margin-top: 4px;
+.section-label:not(:first-child) {
+  margin-top: 10px;
 }
 
 .accent-row {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
@@ -275,7 +399,6 @@ function onBackdrop(e: MouseEvent) {
   box-shadow: 0 0 0 2px var(--accent-dim);
 }
 
-/* Same pattern as TerminalSettingsModal background color input */
 .color-swatch {
   position: relative;
   display: flex;
@@ -337,7 +460,7 @@ function onBackdrop(e: MouseEvent) {
 
 .check-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px 8px;
   margin-bottom: 10px;
 }
@@ -383,7 +506,41 @@ function onBackdrop(e: MouseEvent) {
   flex-shrink: 0;
 }
 
-.foot-spacer {
-  flex: 1;
+.about-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.about-brand {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.about-version {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.about-blurb {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.about-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.about-links .btn-ghost-block {
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 6px;
 }
 </style>
