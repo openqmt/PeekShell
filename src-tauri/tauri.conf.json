@@ -36,15 +36,6 @@
     "active": true,
     "targets": "all",
     "createUpdaterArtifacts": true,
-    "plugins": {
-      "updater": {
-        "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg2QTBGNzRCQzgyMUY2MTYKUldRVzlpSElTL2VnaGpNTFV2TXNCQ0ZldzYvMXBHdE9xSGxIWmlVeHk3TWNHdEg5TzlEbkZ6VmoK",
-        "endpoints": [
-          "https://releases.peekshell.com/{{target}}/{{arch}}/{{current_version}}",
-          "https://github.com/peekshell/peekshell/releases/latest/download/latest.json"
-        ]
-      }
-    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -52,5 +43,14 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg2QTBGNzRCQzgyMUY2MTYKUldRVzlpSElTL2VnaGpNTFV2TXNCQ0ZldzYvMXBHdE9xSGxIWmlVeHk3TWNHdEg5TzlEbkZ6VmoK",
+      "endpoints": [
+        "https://releases.peekshell.com/{{target}}/{{arch}}/{{current_version}}",
+        "https://github.com/peekshell/peekshell/releases/latest/download/latest.json"
+      ]
+    }
   }
 }
