@@ -688,29 +688,19 @@ onBeforeUnmount(() => {
 <template>
     <section class="main">
         <div class="tabs">
-            <template v-for="s in sessionList" :key="s.sessionId">
-                <button
-                    type="button"
-                    class="tab"
-                    :class="{ active: s.sessionId === activeSessionId }"
-                    @click="onSelect(s.sessionId)"
-                >
-                    <span class="dot" />
-                    <span>{{ s.title }}</span>
-                    <span class="x" @click="onClose(s.sessionId, $event)">×</span>
-                </button>
-                <button
-                    v-if="s.sessionId === activeSessionId"
-                    type="button"
-                    class="tab-tool tab-add"
-                    :title="t('terminal.openFromHosts')"
-                    @click="ui.openHostsModal()"
-                >
-                    ＋
-                </button>
-            </template>
             <button
-                v-if="!sessionList.length"
+                v-for="s in sessionList"
+                :key="s.sessionId"
+                type="button"
+                class="tab"
+                :class="{ active: s.sessionId === activeSessionId }"
+                @click="onSelect(s.sessionId)"
+            >
+                <span class="dot" />
+                <span>{{ s.title }}</span>
+                <span class="x" @click="onClose(s.sessionId, $event)">×</span>
+            </button>
+            <button
                 type="button"
                 class="tab-tool tab-add"
                 :title="t('terminal.openFromHosts')"
