@@ -347,7 +347,7 @@ onBeforeUnmount(() => {
 
 .field-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
 }
 
@@ -442,14 +442,14 @@ onBeforeUnmount(() => {
 .color-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
+  gap: 10px;
 }
 
 .color-field {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 0px;
   font-size: 12px;
   color: var(--text-muted);
   min-width: 0;
