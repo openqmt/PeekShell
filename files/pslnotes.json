@@ -1,0 +1,27 @@
+{
+    "version": "",
+    "show": true,
+    "webShow": true,
+    "appShow": false,
+    "pub_date": "2026-07-06T04:00:09.755Z",
+    "openUrl": "",
+    "repeatShow": true,
+    "login": false,
+    "register": false,
+    "search": false,
+    "learn": false,
+    "aichat": false,
+    "aipage": false,
+    "rightBtn": false,
+    "devtools": false,
+    "payMethods": [
+        "wechat",
+        "code",
+        "alipay"
+    ],
+    "zh": {
+        "note": "",
+        "always": "",
+        "contact": ""
+    }
+}
