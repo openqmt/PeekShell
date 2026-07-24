@@ -36,6 +36,8 @@ export interface TerminalAiSessionOptions {
   writePty: (data: string) => void;
   /** List remote directory entries for Tab completion. */
   listDir: (path: string) => Promise<{ name: string; isDir: boolean }[]>;
+  /** Fired when tracked cwd changes (PS1 / cd); may be `~` or absolute. */
+  onCwdChange?: (cwd: string) => void;
 }
 
 const RESET = "\x1b[0m";
@@ -108,8 +110,9 @@ export function createTerminalAiSession(
   let tabBusy = false;
 
   function setCwd(next: string) {
-    if (!next) return;
+    if (!next || next === cwd) return;
     cwd = next;
+    options.onCwdChange?.(cwd);
   }
 
   function setPhase(next: TerminalAiPhase) {

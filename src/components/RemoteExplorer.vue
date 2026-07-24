@@ -90,7 +90,7 @@ const sessions = useSessionsStore();
 const ui = useUiStore();
 const transfers = useTransfersStore();
 const explorerPrefs = useExplorerPrefsStore();
-const { activeSessionId } = storeToRefs(sessions);
+const { activeSessionId, activeCwd } = storeToRefs(sessions);
 const { displayPrefs } = storeToRefs(ui);
 const { prefs: explorerPrefsState } = storeToRefs(explorerPrefs);
 const { items: transferItems, panelOpen: transfersPanelOpen, defaultDownloadDir, pendingCount, canResume, resuming, batchProgressLabel, hasBatchProgress } =
@@ -1365,6 +1365,37 @@ watch(
   { immediate: true }
 );
 
+/** Keep entries tree on the terminal's current working directory. */
+let cwdSyncTimer: ReturnType<typeof setTimeout> | null = null;
+let cwdSyncSeq = 0;
+watch(
+  () => [activeSessionId.value, activeCwd.value, displayPrefs.value.explorer.show] as const,
+  ([sessionId, cwd, showExplorer]) => {
+    if (cwdSyncTimer) {
+      clearTimeout(cwdSyncTimer);
+      cwdSyncTimer = null;
+    }
+    if (!sessionId || !cwd || !showExplorer) return;
+    if (isDirty.value) return;
+    if (selectedPath.value === cwd && selectedIsDir.value) return;
+
+    cwdSyncTimer = setTimeout(() => {
+      cwdSyncTimer = null;
+      const seq = ++cwdSyncSeq;
+      void (async () => {
+        try {
+          await ensureAncestorsExpanded(cwd);
+          if (seq !== cwdSyncSeq || activeSessionId.value !== sessionId) return;
+          if (isDirty.value) return;
+          await selectFolder(cwd, true, true);
+        } catch {
+          // Path may be transient / inaccessible; leave tree as-is
+        }
+      })();
+    }, 180);
+  }
+);
+
 onMounted(() => {
   window.addEventListener("pointerdown", onGlobalPointerDown, true);
   void transfers.ensureListening();
@@ -1391,6 +1422,10 @@ onMounted(() => {
 onBeforeUnmount(() => {
   draggingHeight.value = false;
   draggingWidth.value = false;
+  if (cwdSyncTimer) {
+    clearTimeout(cwdSyncTimer);
+    cwdSyncTimer = null;
+  }
   if (statusClearTimer) {
     clearTimeout(statusClearTimer);
     statusClearTimer = null;

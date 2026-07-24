@@ -27,6 +27,7 @@ type TermEntry = {
     search: SearchAddon
     unlisten: UnlistenFn
     aiSession: TerminalAiSession
+    disposeCwdPublish: () => void
 }
 
 type CtxMenuState = {
@@ -399,6 +400,35 @@ async function ensureTerm(sessionId: string) {
     }
 
     // Track the current input line so local "cls" / CJK→AI can intercept without running remotely.
+    let homeAbs: string | null = null
+    let cwdPublishTimer: ReturnType<typeof setTimeout> | null = null
+    const publishCwd = (rawCwd: string) => {
+        if (cwdPublishTimer) clearTimeout(cwdPublishTimer)
+        cwdPublishTimer = setTimeout(() => {
+            cwdPublishTimer = null
+            void (async () => {
+                let path = rawCwd.trim()
+                if (!path) return
+                try {
+                    if (path === '~' || path.startsWith('~/')) {
+                        if (!homeAbs) {
+                            const homeListing = await api.listRemoteDir(sessionId, '~')
+                            homeAbs = homeListing.path
+                        }
+                        path =
+                            path === '~'
+                                ? homeAbs
+                                : `${homeAbs.replace(/\/$/, '')}/${path.slice(2)}`
+                    }
+                    if (!path.startsWith('/')) return
+                    sessions.setSessionCwd(sessionId, path)
+                } catch {
+                    // Ignore resolve failures; tree stays put
+                }
+            })()
+        }, 120)
+    }
+
     const aiSession = createTerminalAiSession(term, t, {
         runShell: (command) => {
             void api.ptyWrite(sessionId, `${command}\r`)
@@ -413,7 +443,14 @@ async function ensureTerm(sessionId: string) {
                 isDir: e.isDir,
             }))
         },
+        onCwdChange: publishCwd,
     })
+    const disposeCwdPublish = () => {
+        if (cwdPublishTimer) {
+            clearTimeout(cwdPublishTimer)
+            cwdPublishTimer = null
+        }
+    }
     let lineBuf = ''
     term.onData((data) => {
         if (aiSession.tryHandleData(data)) return
@@ -569,7 +606,7 @@ async function ensureTerm(sessionId: string) {
         }
     })
 
-    terms.set(sessionId, { term, fit, search, unlisten, aiSession })
+    terms.set(sessionId, { term, fit, search, unlisten, aiSession, disposeCwdPublish })
     showOnly(sessionId)
     void sessions.resize(term.cols, term.rows)
 }
@@ -596,6 +633,7 @@ async function onClose(sessionId: string, ev?: Event) {
     ev?.stopPropagation()
     const entry = terms.get(sessionId)
     if (entry) {
+        entry.disposeCwdPublish()
         entry.aiSession.dispose()
         entry.unlisten()
         entry.term.dispose()
@@ -721,6 +759,7 @@ onBeforeUnmount(() => {
     window.removeEventListener('pointerdown', onGlobalPointerDown, true)
     window.removeEventListener('keydown', onTabShortcutKeydown, true)
     for (const [, entry] of terms) {
+        entry.disposeCwdPublish()
         entry.aiSession.dispose()
         entry.unlisten()
         entry.term.dispose()
