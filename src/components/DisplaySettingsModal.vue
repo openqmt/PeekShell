@@ -7,6 +7,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { storeToRefs } from "pinia";
 import { computed, onMounted, ref } from "vue";
+import appIcon from "../assets/app-icon.png";
 import { useI18n } from "../i18n";
 import {
   ACCENT_COLOR_PRESETS,
@@ -17,7 +18,9 @@ import {
 type SettingsSection = "display" | "about";
 
 const WEBSITE_URL = "https://www.openqmt.com/";
+const WEBSITE_LABEL = "https://www.openqmt.com";
 const GITHUB_URL = "https://github.com/openqmt/PeekShell";
+const GITHUB_LABEL = "https://github.com/openqmt/PeekShell";
 
 const ui = useUiStore();
 const { t } = useI18n();
@@ -229,17 +232,31 @@ async function openLink(url: string) {
           </div>
 
           <div v-else class="pane-scroll about-pane">
-            <div class="about-brand">PeekShell</div>
-            <div class="about-version">{{ t("about.version", { v: version }) }}</div>
-            <p class="about-blurb">{{ t("about.blurb") }}</p>
-            <div class="about-links">
-              <button type="button" class="btn-ghost-block" @click="openLink(WEBSITE_URL)">
-                {{ t("about.website") }}
-              </button>
-              <button type="button" class="btn-ghost-block" @click="openLink(GITHUB_URL)">
-                {{ t("about.github") }}
-              </button>
+            <div class="about-hero">
+              <img class="about-logo" :src="appIcon" alt="PeekShell" width="72" height="72" />
+              <div class="about-name">PeekShell</div>
+              <div class="about-version">{{ t("about.version", { v: version }) }}</div>
             </div>
+            <p class="about-blurb">{{ t("about.blurb") }}</p>
+            <div class="about-card">
+              <div class="about-row">
+                <span class="about-label">{{ t("about.websiteLabel") }}</span>
+                <button type="button" class="about-link" @click="openLink(WEBSITE_URL)">
+                  {{ WEBSITE_LABEL }}
+                </button>
+              </div>
+              <div class="about-row">
+                <span class="about-label">{{ t("about.githubLabel") }}</span>
+                <button type="button" class="about-link" @click="openLink(GITHUB_URL)">
+                  {{ GITHUB_LABEL }}
+                </button>
+              </div>
+              <div class="about-row">
+                <span class="about-label">{{ t("about.principleLabel") }}</span>
+                <span class="about-value">{{ t("about.principleValue") }}</span>
+              </div>
+            </div>
+            <p class="about-footer">{{ t("about.footer") }}</p>
           </div>
         </div>
       </div>
@@ -509,38 +526,107 @@ async function openLink(url: string) {
 .about-pane {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  padding-top: 18px;
+  padding-bottom: 18px;
 }
 
-.about-brand {
-  font-size: 20px;
+.about-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.about-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 13px;
+  object-fit: cover;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+
+.about-name {
+  font-size: 22px;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
+  color: var(--text);
 }
 
 .about-version {
-  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text-muted);
 }
 
 .about-blurb {
   margin: 0;
+  max-width: 36em;
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+.about-card {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg-root) 55%, var(--bg-elevated));
+  border: 1px solid var(--border-soft);
+  overflow: hidden;
+  text-align: left;
+}
+
+.about-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.about-row:last-child {
+  border-bottom: none;
+}
+
+.about-label {
+  flex-shrink: 0;
+  font-size: 13px;
   color: var(--text);
 }
 
-.about-links {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 4px;
+.about-link {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.4;
+  text-align: right;
+  word-break: break-all;
+  cursor: pointer;
 }
 
-.about-links .btn-ghost-block {
-  text-align: left;
-  padding: 8px 10px;
-  border-radius: 6px;
+.about-link:hover {
+  text-decoration: underline;
+}
+
+.about-value {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.about-footer {
+  margin: 4px 0 0;
+  max-width: 36em;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-dim);
 }
 </style>
