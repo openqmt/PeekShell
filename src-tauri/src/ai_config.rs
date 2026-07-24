@@ -57,7 +57,11 @@ impl StoredProvider {
             self.models.retain(|m| seen.insert(m.clone()));
         }
         self.model = None;
-        if self.active_model.as_ref().is_none_or(|m| !self.models.iter().any(|x| x == m)) {
+        if self
+            .active_model
+            .as_ref()
+            .is_none_or(|m| !self.models.iter().any(|x| x == m))
+        {
             self.active_model = self.models.first().cloned();
         }
         self
@@ -284,7 +288,9 @@ pub fn set_active_model(model: &str) -> AppResult<AiProviderRecord> {
         .ok_or_else(|| AppError::Message("当前 AI 提供商不存在，请重新选择".into()))?;
     *provider = provider.clone().normalized();
     if !provider.models.iter().any(|m| m == model) {
-        return Err(AppError::Message(format!("模型不在当前提供商列表中: {model}")));
+        return Err(AppError::Message(format!(
+            "模型不在当前提供商列表中: {model}"
+        )));
     }
     provider.active_model = Some(model.to_string());
     let saved = provider.clone();

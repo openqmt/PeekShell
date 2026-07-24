@@ -125,7 +125,9 @@ pub fn get_host(id: &str) -> AppResult<HostRecord> {
 }
 
 pub fn upsert_host(payload: HostUpsert) -> AppResult<HostRecord> {
-    if payload.name.trim().is_empty() || payload.host.trim().is_empty() || payload.username.trim().is_empty()
+    if payload.name.trim().is_empty()
+        || payload.host.trim().is_empty()
+        || payload.username.trim().is_empty()
     {
         return Err(AppError::Message("名称、主机 IP、用户名不能为空".into()));
     }

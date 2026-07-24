@@ -601,7 +601,9 @@ async fn echo_exec_to_terminal(
     error: Option<&str>,
 ) -> AppResult<()> {
     let text = format_terminal_echo(command, result, error);
-    sessions.mirror_display_output(app, session_id, &text).await?;
+    sessions
+        .mirror_display_output(app, session_id, &text)
+        .await?;
     Ok(())
 }
 

@@ -20,7 +20,10 @@ pub fn expand_local_upload(path: &str) -> AppResult<Vec<LocalUploadItem>> {
         return Err(AppError::Message("本地路径无效".into()));
     }
     if !root.exists() {
-        return Err(AppError::Message(format!("本地路径不存在: {}", root.display())));
+        return Err(AppError::Message(format!(
+            "本地路径不存在: {}",
+            root.display()
+        )));
     }
 
     if root.is_file() {
@@ -54,8 +57,8 @@ pub fn expand_local_upload(path: &str) -> AppResult<Vec<LocalUploadItem>> {
 }
 
 fn walk_dir(dir: &Path, relative: &str, out: &mut Vec<LocalUploadItem>) -> AppResult<()> {
-    let entries = fs::read_dir(dir)
-        .map_err(|e| AppError::Message(format!("读取本地目录失败: {e}")))?;
+    let entries =
+        fs::read_dir(dir).map_err(|e| AppError::Message(format!("读取本地目录失败: {e}")))?;
     for entry in entries {
         let entry = entry.map_err(|e| AppError::Message(format!("读取本地目录失败: {e}")))?;
         let path = entry.path();

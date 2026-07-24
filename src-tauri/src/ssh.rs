@@ -471,7 +471,10 @@ async fn open_shell(
 fn load_key(path: &str, passphrase: Option<&str>) -> AppResult<KeyPair> {
     let path = Path::new(path);
     if !path.exists() {
-        return Err(AppError::Message(format!("私钥文件不存在: {}", path.display())));
+        return Err(AppError::Message(format!(
+            "私钥文件不存在: {}",
+            path.display()
+        )));
     }
     Ok(russh_keys::load_secret_key(path, passphrase)?)
 }
@@ -512,22 +515,19 @@ pub async fn test_connection(req: ConnectionTestRequest) -> AppResult<()> {
 
 async fn test_connection_inner(req: ConnectionTestRequest) -> AppResult<()> {
     let config = Arc::new(client::Config::default());
-    let mut handle = client::connect(
-        config,
-        (req.host.trim(), req.port),
-        ClientHandler,
-    )
-    .await
-    .map_err(|e| AppError::Message(format!("无法连接服务器: {e}")))?;
+    let mut handle = client::connect(config, (req.host.trim(), req.port), ClientHandler)
+        .await
+        .map_err(|e| AppError::Message(format!("无法连接服务器: {e}")))?;
 
     let ok = match req.auth_type {
         AuthType::Password => {
             let password = match req.password.filter(|p| !p.is_empty()) {
                 Some(p) => p,
                 None => {
-                    let host_id = req.host_id.as_deref().ok_or_else(|| {
-                        AppError::Message("请输入密码后再测试连接".into())
-                    })?;
+                    let host_id = req
+                        .host_id
+                        .as_deref()
+                        .ok_or_else(|| AppError::Message("请输入密码后再测试连接".into()))?;
                     credentials::get_secret(host_id, "password")?.ok_or_else(|| {
                         AppError::Message("未找到已保存的密码，请输入密码后再测试".into())
                     })?
@@ -946,10 +946,7 @@ head -c "$max" "$path"
         None
     };
     let (content, binary) = if image_mime.is_some() {
-        (
-            base64::engine::general_purpose::STANDARD.encode(body),
-            true,
-        )
+        (base64::engine::general_purpose::STANDARD.encode(body), true)
     } else if body.contains(&0) {
         (String::new(), true)
     } else {
@@ -1273,7 +1270,11 @@ if [ -d "$path" ]; then echo DIR; else echo FILE; fi
 "#
     );
     let kind = run_exec(host, &probe).await?;
-    let kind = kind.lines().map(str::trim).find(|l| !l.is_empty()).unwrap_or("");
+    let kind = kind
+        .lines()
+        .map(str::trim)
+        .find(|l| !l.is_empty())
+        .unwrap_or("");
     if let Some(msg) = kind.strip_prefix("ERR|") {
         emit_transfer_progress(
             app,
@@ -1295,7 +1296,11 @@ if [ -d "$path" ]; then echo DIR; else echo FILE; fi
         let name_q = shell_quote(&name);
         (format!("tar czf - -C {parent_q} {name_q}"), 0u64)
     } else if kind == "FILE" {
-        let size_raw = run_exec(host, &format!("stat -c%s -- {quoted} 2>/dev/null || wc -c < {quoted}")).await?;
+        let size_raw = run_exec(
+            host,
+            &format!("stat -c%s -- {quoted} 2>/dev/null || wc -c < {quoted}"),
+        )
+        .await?;
         let total = size_raw
             .lines()
             .map(str::trim)
@@ -1602,7 +1607,9 @@ fn parse_metrics(host: &HostRecord, raw: &str) -> HostMetrics {
 
     let get = |key: &str| fields.get(key).map(String::as_str).unwrap_or("");
     let pair = |key: &str| -> (u64, u64) {
-        let mut parts = get(key).split_whitespace().filter_map(|t| t.parse::<u64>().ok());
+        let mut parts = get(key)
+            .split_whitespace()
+            .filter_map(|t| t.parse::<u64>().ok());
         (parts.next().unwrap_or(0), parts.next().unwrap_or(0))
     };
 
@@ -1623,7 +1630,9 @@ fn parse_metrics(host: &HostRecord, raw: &str) -> HostMetrics {
         }
     };
 
-    let mut net_parts = get("NET").split_whitespace().filter_map(|t| t.parse::<u64>().ok());
+    let mut net_parts = get("NET")
+        .split_whitespace()
+        .filter_map(|t| t.parse::<u64>().ok());
     let rx1 = net_parts.next().unwrap_or(0);
     let tx1 = net_parts.next().unwrap_or(0);
     let rx2 = net_parts.next().unwrap_or(rx1);

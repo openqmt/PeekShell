@@ -1,46 +1,56 @@
 {
-    "$schema": "https://schema.tauri.app/config/2",
-    "productName": "PeekShell",
-    "version": "0.1.0",
-    "identifier": "com.peekshell.xiaoshen",
-    "build": {
-        "beforeDevCommand": "npm run dev",
-        "devUrl": "http://localhost:1420",
-        "beforeBuildCommand": "npm run build",
-        "frontendDist": "../dist"
-    },
-    "app": {
-        "windows": [
-            {
-                "label": "main",
-                "title": "PeekShell",
-                "width": 1280,
-                "height": 800,
-                "minWidth": 960,
-                "minHeight": 600,
-                "visible": false
-            }
-        ],
-        "security": {
-            "csp": null,
-            "assetProtocol": {
-                "enable": true,
-                "scope": {
-                    "requireLiteralLeadingDot": false,
-                    "allow": ["**/*"]
-                }
-            }
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "PeekShell",
+  "version": "0.1.1",
+  "identifier": "com.peekshell.xiaoshen",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "PeekShell",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 600,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": {
+          "requireLiteralLeadingDot": false,
+          "allow": ["**/*"]
         }
-    },
-    "bundle": {
-        "active": true,
-        "targets": "all",
-        "icon": [
-            "icons/32x32.png",
-            "icons/128x128.png",
-            "icons/128x128@2x.png",
-            "icons/icon.icns",
-            "icons/icon.ico"
-        ]
+      }
     }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "plugins": {
+      "updater": {
+        "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg2QTBGNzRCQzgyMUY2MTYKUldRVzlpSElTL2VnaGpNTFV2TXNCQ0ZldzYvMXBHdE9xSGxIWmlVeHk3TWNHdEg5TzlEbkZ6VmoK",
+        "endpoints": [
+          "https://releases.peekshell.com/{{target}}/{{arch}}/{{current_version}}",
+          "https://github.com/peekshell/peekshell/releases/latest/download/latest.json"
+        ]
+      }
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
 }
