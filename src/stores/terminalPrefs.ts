@@ -15,6 +15,8 @@ export interface TermShortcuts {
   paste: string;
   find: string;
   clear: string;
+  newSession: string;
+  closeTab: string;
 }
 
 export interface TerminalPrefs {
@@ -45,6 +47,8 @@ export const DEFAULT_TERMINAL_PREFS: TerminalPrefs = {
     paste: "Ctrl+V",
     find: "Ctrl+F",
     clear: "Ctrl+Shift+K",
+    newSession: "Ctrl+N",
+    closeTab: "Ctrl+W",
   },
 };
 

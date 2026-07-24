@@ -478,6 +478,13 @@ async function ensureTerm(sessionId: string) {
             term.clear()
             return false
         }
+        // Tab management: consume so shell does not see Ctrl+N / Ctrl+W
+        if (
+            matchShortcut(ev, shortcuts.newSession) ||
+            matchShortcut(ev, shortcuts.closeTab)
+        ) {
+            return false
+        }
         // Ctrl/Cmd + / - ：放大 / 缩小终端字号（= 与 + 均可放大）
         if ((ev.ctrlKey || ev.metaKey) && !ev.altKey) {
             if (
@@ -543,8 +550,8 @@ async function onSelect(sessionId: string) {
     showOnly(sessionId)
 }
 
-async function onClose(sessionId: string, ev: Event) {
-    ev.stopPropagation()
+async function onClose(sessionId: string, ev?: Event) {
+    ev?.stopPropagation()
     const entry = terms.get(sessionId)
     if (entry) {
         entry.unlisten()
@@ -552,6 +559,46 @@ async function onClose(sessionId: string, ev: Event) {
         terms.delete(sessionId)
     }
     await sessions.close(sessionId)
+}
+
+/** Duplicate the active session onto the same host (Ctrl+N). */
+async function duplicateActiveSession() {
+    const session = sessions.activeSession
+    if (!session || sessions.connecting) return
+    try {
+        await sessions.connect(session.hostId)
+    } catch {
+        // sessions store already records error
+    }
+}
+
+async function closeActiveTab() {
+    const id = activeSessionId.value
+    if (!id) return
+    await onClose(id)
+}
+
+/** Skip tab shortcuts while typing in forms; xterm is handled separately. */
+function isFormTypingTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) return false
+    if (target.closest('.xterm')) return false
+    if (target.isContentEditable) return true
+    const tag = target.tagName
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+}
+
+function onTabShortcutKeydown(ev: KeyboardEvent) {
+    if (isFormTypingTarget(ev.target)) return
+    const shortcuts = termPrefs.value.shortcuts
+    if (matchShortcut(ev, shortcuts.newSession)) {
+        ev.preventDefault()
+        void duplicateActiveSession()
+        return
+    }
+    if (matchShortcut(ev, shortcuts.closeTab)) {
+        ev.preventDefault()
+        void closeActiveTab()
+    }
 }
 
 function onResize() {
@@ -611,6 +658,7 @@ let hostResizeObserver: ResizeObserver | null = null
 onMounted(async () => {
     window.addEventListener('resize', onResize)
     window.addEventListener('pointerdown', onGlobalPointerDown, true)
+    window.addEventListener('keydown', onTabShortcutKeydown, true)
     await nextTick()
     if (hostEl.value && typeof ResizeObserver !== 'undefined') {
         hostResizeObserver = new ResizeObserver(() => scheduleTermFit())
@@ -628,6 +676,7 @@ onBeforeUnmount(() => {
     hostResizeObserver = null
     window.removeEventListener('resize', onResize)
     window.removeEventListener('pointerdown', onGlobalPointerDown, true)
+    window.removeEventListener('keydown', onTabShortcutKeydown, true)
     for (const [, entry] of terms) {
         entry.unlisten()
         entry.term.dispose()

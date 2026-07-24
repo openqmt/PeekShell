@@ -165,6 +165,14 @@ onBeforeUnmount(() => {
             <span>{{ t("terminal.ctxClear") }}</span>
             <input v-model="prefs.shortcuts.clear" type="text" spellcheck="false" />
           </label>
+          <label class="field">
+            <span>{{ t("terminalSettings.newSession") }}</span>
+            <input v-model="prefs.shortcuts.newSession" type="text" spellcheck="false" />
+          </label>
+          <label class="field">
+            <span>{{ t("terminalSettings.closeTab") }}</span>
+            <input v-model="prefs.shortcuts.closeTab" type="text" spellcheck="false" />
+          </label>
         </div>
         <p class="hint">{{ t("terminalSettings.shortcutsHint") }}</p>
 

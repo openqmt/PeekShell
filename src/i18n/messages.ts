@@ -73,6 +73,8 @@ export const messages = {
         'terminal.findPrev': '上一个',
         'terminal.findNext': '下一个',
         'terminal.findClose': '关闭查找',
+        'terminalSettings.newSession': '新建相同连接',
+        'terminalSettings.closeTab': '关闭当前标签',
 
         'terminalSettings.title': '终端设置',
         'terminalSettings.sub': '快捷键、配色、背景与字体',
@@ -441,6 +443,8 @@ export const messages = {
         'terminal.findPrev': 'Previous',
         'terminal.findNext': 'Next',
         'terminal.findClose': 'Close find',
+        'terminalSettings.newSession': 'New same-host tab',
+        'terminalSettings.closeTab': 'Close current tab',
 
         'terminalSettings.title': 'Terminal settings',
         'terminalSettings.sub': 'Shortcuts, colors, background, and font',
