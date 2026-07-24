@@ -66,12 +66,11 @@ export const messages = {
         'about.title': '关于我们',
         'about.version': '版本 {v}',
         'about.blurb':
-            'PeekShell 是一款轻量跨平台 SSH 客户端，提供主机管理、多标签终端、远程文件浏览，以及「提议 → 确认 → 执行」的 AI Agent。',
+            'PeekShell 是一款轻量跨平台 SSH 客户端，提供主机管理、多标签终端、远程文件浏览，以及「提议 → 确认 → 执行」的 AI Agent。开源免费；请在可信环境下使用，并对远端操作自行负责。',
         'about.websiteLabel': '官网地址',
         'about.githubLabel': '开源地址',
         'about.principleLabel': '安全原则',
         'about.principleValue': 'AI 提议命令须经人工确认后再执行',
-        'about.footer': '开源免费；请在可信环境下使用，并对远端操作自行负责。',
 
         'terminal.openFromHosts': '从主机列表连接',
         'terminal.empty': '打开主机列表，选择一台主机连接后即可使用终端。',
@@ -446,13 +445,11 @@ export const messages = {
         'about.title': 'About',
         'about.version': 'Version {v}',
         'about.blurb':
-            'PeekShell is a lightweight cross-platform SSH client with host management, multi-tab terminals, remote file browsing, and a propose → confirm → execute AI agent.',
+            'PeekShell is a lightweight cross-platform SSH client with host management, multi-tab terminals, remote file browsing, and a propose → confirm → execute AI agent. Free and open source. Use in trusted environments; you are responsible for remote actions.',
         'about.websiteLabel': 'Website',
         'about.githubLabel': 'Open source',
         'about.principleLabel': 'Safety rule',
         'about.principleValue': 'AI-proposed commands run only after your confirmation',
-        'about.footer':
-            'Free and open source. Use in trusted environments; you are responsible for remote actions.',
 
         'terminal.openFromHosts': 'Connect from host list',
         'terminal.empty':

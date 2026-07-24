@@ -256,7 +256,6 @@ async function openLink(url: string) {
                 <span class="about-value">{{ t("about.principleValue") }}</span>
               </div>
             </div>
-            <p class="about-footer">{{ t("about.footer") }}</p>
           </div>
         </div>
       </div>
@@ -615,13 +614,5 @@ async function openLink(url: string) {
   line-height: 1.45;
   color: var(--text-muted);
   text-align: right;
-}
-
-.about-footer {
-  margin: 4px 0 0;
-  max-width: 36em;
-  font-size: 11.5px;
-  line-height: 1.5;
-  color: var(--text-dim);
 }
 </style>
