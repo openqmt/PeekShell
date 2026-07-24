@@ -1,0 +1,19 @@
+{
+    "version": "0.1.2",
+    "notes": "",
+    "pub_date": "2026-07-12T06:12:25.093Z",
+    "platforms": {
+        "darwin-aarch64": {
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUNVUzOFR1MThzcVMxOEp3ZmRnMi9zajUyaXBXeUhyaWFOOGE3amFLR1ZqR2VZN3pDUE5wV0IxQnBmZnN3ek11aDh4aFpIU2hqQ1g2Y1lMUjA4NE1yU2xzeWw1Q1JwWWdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzODM2NzQwCWZpbGU6T3BlblFtdC5hcHAudGFyLmd6ClE2NkltVCtiMTJaOUpDNGx6OHR2VjlGUXlLZ0FLNXBaNmZtNFdzNEV5UThDTlVHYUhNUUNkeDBrQU1IdFllSnF0Y3BXbzM2RkJXRTNWL1dpNzkvSEJnPT0K",
+            "url": "https://gh-proxy.org/https://github.com/openqmt/OpenQmt/releases/download/OpenQmt-v0.1.0/OpenQmt_aarch64.app.tar.gz"
+        },
+        "darwin-aarch64-app": {
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUNVUzOFR1MThzcVMxOEp3ZmRnMi9zajUyaXBXeUhyaWFOOGE3amFLR1ZqR2VZN3pDUE5wV0IxQnBmZnN3ek11aDh4aFpIU2hqQ1g2Y1lMUjA4NE1yU2xzeWw1Q1JwWWdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzODM2NzQwCWZpbGU6T3BlblFtdC5hcHAudGFyLmd6ClE2NkltVCtiMTJaOUpDNGx6OHR2VjlGUXlLZ0FLNXBaNmZtNFdzNEV5UThDTlVHYUhNUUNkeDBrQU1IdFllSnF0Y3BXbzM2RkJXRTNWL1dpNzkvSEJnPT0K",
+            "url": "https://gh-proxy.org/https://github.com/openqmt/OpenQmt/releases/download/OpenQmt-v0.1.0/OpenQmt_aarch64.app.tar.gz"
+        }
+    },
+    "force": false,
+    "zh": "222222",
+    "en": "333333",
+    "ja": "44444"
+}
