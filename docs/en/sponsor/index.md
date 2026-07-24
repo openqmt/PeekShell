@@ -33,6 +33,4 @@ If you would like to sponsor financially, you can scan a WeChat or Alipay QR cod
 
 You can also reach maintainers via [GitHub Issues](https://github.com/openqmt/PeekShell/issues) about other sponsorship options.
 
-## Thanks
-
-Thank you to everyone who stars, reports issues, contributes, or sponsors. Your support keeps PeekShell moving forward.
+After sponsoring, see [Sponsor benefits](/en/sponsor/rewards) for unlockable features.

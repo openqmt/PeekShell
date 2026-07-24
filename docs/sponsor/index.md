@@ -33,6 +33,4 @@ PeekShell 是开源、免费的跨平台 SSH 客户端。你的支持能帮助�
 
 也可通过 [GitHub Issues](https://github.com/openqmt/PeekShell/issues) 与维护者联系其他赞助方式。
 
-## 感谢
-
-感谢每一位 Star、反馈、贡献和赞助的朋友。你们的支持让 PeekShell 走得更远。
+赞助后可查看 [感恩回馈](/sponsor/rewards)，了解可开通的更多使用权限。

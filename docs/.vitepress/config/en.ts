@@ -37,6 +37,18 @@ export const en: LocaleSpecificConfig<DefaultTheme.Config> = {
                     ],
                 },
             ],
+            '/en/sponsor': [
+                {
+                    text: 'Sponsor',
+                    items: [
+                        { text: 'Sponsor', link: '/en/sponsor' },
+                        {
+                            text: 'Sponsor benefits',
+                            link: '/en/sponsor/rewards',
+                        },
+                    ],
+                },
+            ],
         },
 
         outline: { label: 'On this page' },

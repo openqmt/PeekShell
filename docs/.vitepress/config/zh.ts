@@ -31,6 +31,15 @@ export const zh: LocaleSpecificConfig<DefaultTheme.Config> = {
           ],
         },
       ],
+      '/sponsor': [
+        {
+          text: '赞助',
+          items: [
+            { text: '赞助', link: '/sponsor' },
+            { text: '感恩回馈', link: '/sponsor/rewards' },
+          ],
+        },
+      ],
     },
 
     outline: { label: '本页目录' },
