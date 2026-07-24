@@ -235,7 +235,7 @@ onBeforeUnmount(() => {
         </div>
         <label class="field">
           <span>{{ t("terminalSettings.bgOpacity") }} ({{ Math.round(prefs.backgroundOpacity * 100) }}%)</span>
-          <input v-model.number="prefs.backgroundOpacity" type="range" min="0" max="1" step="0.05" />
+          <input v-model.number="prefs.backgroundOpacity" type="range" min="0" max="1" step="0.01" />
         </label>
 
         <div class="section-label">{{ t("terminalSettings.font") }}</div>
@@ -371,6 +371,10 @@ onBeforeUnmount(() => {
 
 .field input[type="range"] {
   width: 100%;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 
 .size-combo {

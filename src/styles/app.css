@@ -277,6 +277,14 @@ button { cursor: pointer; }
   outline: none;
 }
 
+/* Range thumbs must reach 0%/100%; shared field padding insets the track. */
+.field input[type="range"] {
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
 .field textarea {
   height: 72px;
   padding: 8px 10px;
