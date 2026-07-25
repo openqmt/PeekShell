@@ -142,9 +142,21 @@ onBeforeUnmount(() => {
           class="icon-btn"
           type="button"
           :title="t('sidebar.settings')"
+          :aria-label="t('sidebar.settings')"
           @click="ui.openDisplaySettingsModal()"
         >
-          ⚙
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+            <path
+              d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+              stroke-linecap="round"
+            />
+            <circle cx="5.5" cy="4.5" r="1.35" fill="currentColor" />
+            <circle cx="10.5" cy="8" r="1.35" fill="currentColor" />
+            <circle cx="6.5" cy="11.5" r="1.35" fill="currentColor" />
+          </svg>
         </button>
         <button
           class="icon-btn"
@@ -172,9 +184,21 @@ onBeforeUnmount(() => {
         class="icon-btn"
         type="button"
         :title="t('sidebar.settings')"
+        :aria-label="t('sidebar.settings')"
         @click="ui.openDisplaySettingsModal()"
       >
-        ⚙
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path
+            d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.4"
+            stroke-linecap="round"
+          />
+          <circle cx="5.5" cy="4.5" r="1.35" fill="currentColor" />
+          <circle cx="10.5" cy="8" r="1.35" fill="currentColor" />
+          <circle cx="6.5" cy="11.5" r="1.35" fill="currentColor" />
+        </svg>
       </button>
       <button
         class="icon-btn"
