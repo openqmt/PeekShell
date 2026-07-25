@@ -61,7 +61,7 @@ export const messages = {
         'displaySettings.aiPanel': '展示 AI 助手',
         'displaySettings.reset': '恢复默认',
         'displaySettings.sidebarEmpty': '请先添加主机',
-        'settingsModal.title': '设置',
+        'settingsModal.title': '软件设置',
         'settingsModal.sub': '显示偏好、模型配置与关于 PeekShell',
         'about.title': '关于我们',
         'about.version': '版本 {v}',
