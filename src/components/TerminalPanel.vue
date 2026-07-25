@@ -15,6 +15,7 @@ import * as api from '../api/tauri'
 import { useI18n } from '../i18n'
 import { useSessionsStore } from '../stores/sessions'
 import { matchShortcut, useTerminalPrefsStore, clampFontSize } from '../stores/terminalPrefs'
+import { useNoteStore } from '../stores/note'
 import { useUiStore } from '../stores/ui'
 import { startsWithCjkOrHangul } from '../terminal/cjk'
 import {
@@ -42,10 +43,12 @@ type CtxMenuState = {
 
 const sessions = useSessionsStore()
 const ui = useUiStore()
+const note = useNoteStore()
 const termPrefsStore = useTerminalPrefsStore()
 const { t } = useI18n()
 const { sessions: sessionList, activeSessionId } = storeToRefs(sessions)
 const { theme, displayPrefs } = storeToRefs(ui)
+const { aiChatEnabled } = storeToRefs(note)
 const { prefs: termPrefs } = storeToRefs(termPrefsStore)
 
 const hostEl = ref<HTMLElement | null>(null)
@@ -553,6 +556,7 @@ async function ensureTerm(sessionId: string) {
             return false
         }
         if (matchShortcut(ev, shortcuts.aiChat)) {
+            if (!aiChatEnabled.value) return true
             ev.preventDefault()
             ev.stopPropagation()
             aiSession.toggleCompose()

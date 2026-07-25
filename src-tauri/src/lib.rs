@@ -293,6 +293,13 @@ fn cancel_all_transfers_cmd() {
     cancel_all_transfers();
 }
 
+/// Open WebView DevTools when remotely enabled via note `devtools` flag.
+#[tauri::command]
+fn open_devtools(app: tauri::AppHandle) {
+    let window = app.get_webview_window("main").unwrap();
+    window.open_devtools();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let sessions = Arc::new(SessionManager::new());
@@ -348,7 +355,8 @@ pub fn run() {
             remote_download,
             remote_upload,
             cancel_all_transfers_cmd,
-            expand_local_upload
+            expand_local_upload,
+            open_devtools
         ])
         .setup(|app| {
             // Restore last size/position, then show the window.

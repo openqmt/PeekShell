@@ -200,3 +200,8 @@ export function cancelAllTransfers(): Promise<void> {
 export function expandLocalUpload(path: string): Promise<LocalUploadItem[]> {
   return invoke("expand_local_upload", { path });
 }
+
+/** Open WebView DevTools when the remote `devtools` flag is on (requires tauri `devtools` feature). */
+export function openDevtools(): Promise<void> {
+  return invoke("open_devtools");
+}

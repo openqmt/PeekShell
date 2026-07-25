@@ -63,6 +63,7 @@ export const messages = {
         'displaySettings.sidebarEmpty': '请先添加主机',
         'settingsModal.title': '软件设置',
         'settingsModal.sub': '显示偏好、模型配置与关于 PeekShell',
+        'noteModal.title': '通知',
         'about.title': '关于我们',
         'about.version': '版本 {v}',
         'about.blurb':
@@ -452,6 +453,7 @@ export const messages = {
         'displaySettings.sidebarEmpty': 'Please add a host first',
         'settingsModal.title': 'Settings',
         'settingsModal.sub': 'Display preferences, models, and about PeekShell',
+        'noteModal.title': 'Notice',
         'about.title': 'About',
         'about.version': 'Version {v}',
         'about.blurb':
