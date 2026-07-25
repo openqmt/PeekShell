@@ -7,6 +7,9 @@ import type { HostRecord } from "../types/host";
 
 export type ThemeMode = "dark" | "light";
 
+/** Sections in the app Settings modal left nav. */
+export type SettingsSection = "display" | "models" | "about";
+
 /** 各区域功能显隐偏好（持久化到 localStorage）。 */
 export interface DisplayPrefs {
   sidebar: {
@@ -193,8 +196,8 @@ export const useUiStore = defineStore("ui", () => {
   const sidebarWidth = ref(readStoredSidebarWidth());
   const hostsModalOpen = ref(false);
   const connectModalOpen = ref(false);
-  const aiSettingsModalOpen = ref(false);
   const displaySettingsModalOpen = ref(false);
+  const settingsSection = ref<SettingsSection>("display");
   const terminalSettingsModalOpen = ref(false);
   const editorSettingsModalOpen = ref(false);
   const explorerSettingsModalOpen = ref(false);
@@ -284,15 +287,12 @@ export const useUiStore = defineStore("ui", () => {
     editingHost.value = null;
   }
 
-  function openAiSettingsModal() {
-    aiSettingsModalOpen.value = true;
+  function setSettingsSection(section: SettingsSection) {
+    settingsSection.value = section;
   }
 
-  function closeAiSettingsModal() {
-    aiSettingsModalOpen.value = false;
-  }
-
-  function openDisplaySettingsModal() {
+  function openDisplaySettingsModal(section: SettingsSection = "display") {
+    settingsSection.value = section;
     displaySettingsModalOpen.value = true;
   }
 
@@ -341,8 +341,8 @@ export const useUiStore = defineStore("ui", () => {
     sidebarWidth,
     hostsModalOpen,
     connectModalOpen,
-    aiSettingsModalOpen,
     displaySettingsModalOpen,
+    settingsSection,
     terminalSettingsModalOpen,
     editorSettingsModalOpen,
     explorerSettingsModalOpen,
@@ -357,8 +357,7 @@ export const useUiStore = defineStore("ui", () => {
     closeHostsModal,
     openConnectModal,
     closeConnectModal,
-    openAiSettingsModal,
-    closeAiSettingsModal,
+    setSettingsSection,
     openDisplaySettingsModal,
     closeDisplaySettingsModal,
     openTerminalSettingsModal,

@@ -62,7 +62,7 @@ export const messages = {
         'displaySettings.reset': '恢复默认',
         'displaySettings.sidebarEmpty': '请先添加主机',
         'settingsModal.title': '设置',
-        'settingsModal.sub': '显示偏好与关于 PeekShell',
+        'settingsModal.sub': '显示偏好、模型配置与关于 PeekShell',
         'about.title': '关于我们',
         'about.version': '版本 {v}',
         'about.blurb':
@@ -313,13 +313,13 @@ export const messages = {
         'connect.testOk': '连接成功，认证通过。',
 
         'ai.title': 'Assist',
-        'ai.configure': '配置 AI 提供商',
         'ai.collapse': '折叠 AI 助手',
         'ai.expand': '展开 AI 助手',
         'ai.notConfigured': '未配置',
         'ai.ready':
             '已选择 {name} / {model}。可直接提问；连接主机后，命令才能按执行模式在远端运行。',
-        'ai.setup': '请先点击右上角设置按钮配置模型提供商。',
+        'ai.setup': '请先在设置中配置模型提供商。',
+        'ai.setupAction': '打开模型配置',
         'ai.placeholder':
             '例如：检查 nginx 错误日志（终端也可用 Ctrl+I 或中文直接提问）',
         'ai.context': '上下文：最近终端输出 · 当前主机指标',
@@ -363,10 +363,9 @@ export const messages = {
         'termAi.execFailed': '执行失败',
         'termAi.runShell': '→ 已按 shell 命令执行（仍在 AI 模式）',
 
-        'aiSettings.title': 'Assist 设置',
-        'aiSettings.aria': 'AI 提供商设置',
-        'aiSettings.sub': '配置模型提供商',
-        'aiSettings.add': '＋ 添加提供商',
+        'aiSettings.nav': '模型配置',
+        'aiSettings.add': '添加',
+        'aiSettings.newDraft': '新建提供商',
         'aiSettings.current': '当前',
         'aiSettings.empty': '尚未配置提供商',
         'aiSettings.displayName': '显示名称',
@@ -375,12 +374,9 @@ export const messages = {
         'aiSettings.kindAnthropic': 'Anthropic',
         'aiSettings.kindOllama': 'Ollama（本地）',
         'aiSettings.baseUrl': 'Base URL',
-        'aiSettings.model': '模型',
-        'aiSettings.models': '模型列表',
+        'aiSettings.models': '模型',
         'aiSettings.addModel': '添加',
-        'aiSettings.defaultModel': '默认',
-        'aiSettings.modelsHint':
-            '可添加多个模型；点击设为默认。对话顶栏可快速切换。',
+        'aiSettings.setDefault': '点击设为默认模型',
         'aiSettings.modelsRequired': '请至少添加一个模型。',
         'aiSettings.apiKey': 'API Key',
         'aiSettings.apiKeyOptional': 'API Key（可选）',
@@ -455,7 +451,7 @@ export const messages = {
         'displaySettings.reset': 'Reset defaults',
         'displaySettings.sidebarEmpty': 'Please add a host first',
         'settingsModal.title': 'Settings',
-        'settingsModal.sub': 'Display preferences and about PeekShell',
+        'settingsModal.sub': 'Display preferences, models, and about PeekShell',
         'about.title': 'About',
         'about.version': 'Version {v}',
         'about.blurb':
@@ -714,14 +710,13 @@ export const messages = {
         'connect.testOk': 'Connected — authentication succeeded.',
 
         'ai.title': 'Assist',
-        'ai.configure': 'Configure AI providers',
         'ai.collapse': 'Collapse AI panel',
         'ai.expand': 'Expand AI panel',
         'ai.notConfigured': 'Not configured',
         'ai.ready':
             'Selected {name} / {model}. Ask anytime; connect a host to run commands under the mode below.',
-        'ai.setup':
-            'Open settings (gear) to configure a model provider. API keys are stored in the OS keychain.',
+        'ai.setup': 'Configure a model provider in Settings first.',
+        'ai.setupAction': 'Open model settings',
         'ai.placeholder':
             'e.g. check nginx error logs (or Ctrl+I / CJK in the terminal)',
         'ai.context': 'Context: recent terminal output · host metrics',
@@ -765,11 +760,9 @@ export const messages = {
         'termAi.execFailed': 'Execution failed',
         'termAi.runShell': '→ ran as shell command (still in AI mode)',
 
-        'aiSettings.title': 'Assist settings',
-        'aiSettings.aria': 'AI provider settings',
-        'aiSettings.sub':
-            'Configure providers; API keys stay in the OS keychain',
-        'aiSettings.add': '+ Add provider',
+        'aiSettings.nav': 'Model config',
+        'aiSettings.add': 'Add',
+        'aiSettings.newDraft': 'New provider',
         'aiSettings.current': 'Active',
         'aiSettings.empty': 'No providers configured',
         'aiSettings.displayName': 'Display name',
@@ -778,12 +771,9 @@ export const messages = {
         'aiSettings.kindAnthropic': 'Anthropic',
         'aiSettings.kindOllama': 'Ollama (local)',
         'aiSettings.baseUrl': 'Base URL',
-        'aiSettings.model': 'Model',
         'aiSettings.models': 'Models',
         'aiSettings.addModel': 'Add',
-        'aiSettings.defaultModel': 'Default',
-        'aiSettings.modelsHint':
-            'Add multiple models; click one to set default. Switch quickly from the chat header.',
+        'aiSettings.setDefault': 'Click to set as default model',
         'aiSettings.modelsRequired': 'Add at least one model.',
         'aiSettings.apiKey': 'API Key',
         'aiSettings.apiKeyOptional': 'API Key (optional)',
@@ -793,7 +783,7 @@ export const messages = {
         'aiSettings.keyInput': 'Enter API Key',
         'aiSettings.clearKey': 'Delete saved API Key',
         'aiSettings.setActive': 'Set as active',
-        'aiSettings.save': 'Save settings',
+        'aiSettings.save': 'Save',
         'aiSettings.deleteConfirm': 'Delete provider “{name}”?',
     },
 } as const

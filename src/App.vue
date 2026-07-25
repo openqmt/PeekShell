@@ -2,7 +2,6 @@
 import { storeToRefs } from "pinia";
 import { computed, onMounted } from "vue";
 import AiPanel from "./components/AiPanel.vue";
-import AiSettingsModal from "./components/AiSettingsModal.vue";
 import ConnectModal from "./components/ConnectModal.vue";
 import DisplaySettingsModal from "./components/DisplaySettingsModal.vue";
 import HostListModal from "./components/HostListModal.vue";
@@ -25,7 +24,6 @@ const {
   sidebarWidth,
   hostsModalOpen,
   connectModalOpen,
-  aiSettingsModalOpen,
   displaySettingsModalOpen,
   terminalSettingsModalOpen,
   editorSettingsModalOpen,
@@ -68,7 +66,6 @@ const workspaceStyle = computed(() => {
 
     <HostListModal v-if="hostsModalOpen" />
     <ConnectModal v-if="connectModalOpen" />
-    <AiSettingsModal v-if="aiSettingsModalOpen" />
     <DisplaySettingsModal v-if="displaySettingsModalOpen" />
     <TerminalSettingsModal v-if="terminalSettingsModalOpen" />
     <EditorSettingsModal v-if="editorSettingsModalOpen" />

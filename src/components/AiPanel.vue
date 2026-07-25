@@ -184,9 +184,6 @@ onBeforeUnmount(() => {
               />
             </svg>
           </button>
-          <button class="icon-btn" type="button" :title="t('ai.configure')" @click="ui.openAiSettingsModal()">
-            ⚙
-          </button>
           <button class="icon-btn" type="button" :title="t('ai.collapse')" @click="aiCollapsed = true">
             »
           </button>
@@ -211,6 +208,13 @@ onBeforeUnmount(() => {
               </template>
               <template v-else>
                 {{ t("ai.setup") }}
+                <button
+                  type="button"
+                  class="setup-link"
+                  @click="ui.openDisplaySettingsModal('models')"
+                >
+                  {{ t("ai.setupAction") }}
+                </button>
               </template>
             </div>
           </div>
@@ -450,6 +454,23 @@ onBeforeUnmount(() => {
 
 .msg.assistant .content {
   color: var(--text-muted);
+}
+
+.setup-link {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.setup-link:hover {
+  text-decoration: underline;
 }
 
 .stream-caret {

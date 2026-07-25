@@ -1,21 +1,21 @@
 ﻿<script setup lang="ts">
 /**
- * App settings shell: left nav (display / about), right content pane.
+ * App settings shell: left nav (display / models / about), right content pane.
  * Display prefs control sidebar, explorer columns, AI panel, and accent color.
  */
 import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { storeToRefs } from "pinia";
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import appIcon from "../assets/app-icon.png";
 import { useI18n } from "../i18n";
 import {
   ACCENT_COLOR_PRESETS,
   normalizeAccentColor,
   useUiStore,
+  type SettingsSection,
 } from "../stores/ui";
-
-type SettingsSection = "display" | "about";
+import AiSettingsPane from "./AiSettingsPane.vue";
 
 const WEBSITE_URL = "https://www.openqmt.com/";
 const WEBSITE_LABEL = "https://www.openqmt.com";
@@ -24,10 +24,19 @@ const GITHUB_LABEL = "https://github.com/openqmt/PeekShell";
 
 const ui = useUiStore();
 const { t } = useI18n();
-const { displayPrefs, theme } = storeToRefs(ui);
+const { displayPrefs, theme, settingsSection } = storeToRefs(ui);
 
-const section = ref<SettingsSection>("display");
+const section = ref<SettingsSection>(settingsSection.value);
 const version = ref("…");
+
+watch(settingsSection, (next) => {
+  section.value = next;
+});
+
+function selectSection(next: SettingsSection) {
+  section.value = next;
+  ui.setSettingsSection(next);
+}
 
 const themeDefaultAccent = computed(() =>
   theme.value === "light" ? "#1f9d63" : "#3ecf8e"
@@ -101,15 +110,23 @@ async function openLink(url: string) {
             type="button"
             class="nav-item"
             :class="{ active: section === 'display' }"
-            @click="section = 'display'"
+            @click="selectSection('display')"
           >
             {{ t("displaySettings.title") }}
           </button>
           <button
             type="button"
             class="nav-item"
+            :class="{ active: section === 'models' }"
+            @click="selectSection('models')"
+          >
+            {{ t("aiSettings.nav") }}
+          </button>
+          <button
+            type="button"
+            class="nav-item"
             :class="{ active: section === 'about' }"
-            @click="section = 'about'"
+            @click="selectSection('about')"
           >
             {{ t("about.title") }}
           </button>
@@ -231,6 +248,10 @@ async function openLink(url: string) {
             </div>
           </div>
 
+          <div v-else-if="section === 'models'" class="pane-scroll models-pane">
+            <AiSettingsPane />
+          </div>
+
           <div v-else class="pane-scroll about-pane">
             <div class="about-hero">
               <img class="about-logo" :src="appIcon" alt="PeekShell" width="72" height="72" />
@@ -265,9 +286,9 @@ async function openLink(url: string) {
 
 <style scoped>
 .settings-modal {
-  width: min(640px, 100%);
-  height: min(520px, calc(100vh - 48px));
-  max-height: min(520px, calc(100vh - 48px));
+  width: min(680px, 100%);
+  height: min(540px, calc(100vh - 48px));
+  max-height: min(540px, calc(100vh - 48px));
 }
 
 .settings-modal :deep(.modal-head) {
@@ -520,6 +541,11 @@ async function openLink(url: string) {
   accent-color: var(--accent);
   cursor: pointer;
   flex-shrink: 0;
+}
+
+.models-pane {
+  display: flex;
+  flex-direction: column;
 }
 
 .about-pane {

@@ -1,0 +1,441 @@
+<script setup lang="ts">
+/**
+ * Model provider settings pane for the app Settings modal.
+ * Compact list + form: add/edit providers, models, and API keys.
+ */
+import { storeToRefs } from "pinia";
+import { computed, reactive, ref } from "vue";
+import { useI18n } from "../i18n";
+import { useAiStore } from "../stores/ai";
+import type { AiProviderKind, AiProviderRecord, AiProviderUpsert } from "../types/ai";
+import AppSelect from "./AppSelect.vue";
+
+const ai = useAiStore();
+const { t } = useI18n();
+const { providers, activeProviderId } = storeToRefs(ai);
+const saving = ref(false);
+const error = ref("");
+const selectedId = ref<string | null>(null);
+const modelDraft = ref("");
+
+const defaults: Record<AiProviderKind, { name: string; baseUrl: string; models: string[] }> = {
+  openAiCompatible: {
+    name: "OpenAI",
+    baseUrl: "https://api.openai.com/v1",
+    models: ["gpt-4.1-mini", "gpt-4.1"],
+  },
+  anthropic: {
+    name: "Anthropic",
+    baseUrl: "https://api.anthropic.com",
+    models: ["claude-sonnet-4-20250514"],
+  },
+  ollama: {
+    name: "Ollama",
+    baseUrl: "http://localhost:11434/v1",
+    models: ["qwen3"],
+  },
+};
+
+const form = reactive({
+  name: "",
+  kind: "openAiCompatible" as AiProviderKind,
+  baseUrl: "",
+  models: [] as string[],
+  activeModel: "",
+  apiKey: "",
+  clearApiKey: false,
+  hasApiKey: false,
+});
+
+const kindOptions = computed(() => [
+  { value: "openAiCompatible", label: t("aiSettings.kindOpenAi") },
+  { value: "anthropic", label: t("aiSettings.kindAnthropic") },
+  { value: "ollama", label: t("aiSettings.kindOllama") },
+]);
+
+const providerOptions = computed(() =>
+  providers.value.map((p) => ({
+    value: p.id,
+    label: activeProviderId.value === p.id ? `${p.name} · ${t("aiSettings.current")}` : p.name,
+  }))
+);
+
+const isNew = computed(() => selectedId.value === null);
+
+function newProvider(kind: AiProviderKind = "openAiCompatible") {
+  selectedId.value = null;
+  const preset = defaults[kind];
+  form.name = preset.name;
+  form.kind = kind;
+  form.baseUrl = preset.baseUrl;
+  form.models = [...preset.models];
+  form.activeModel = preset.models[0] ?? "";
+  form.apiKey = "";
+  form.clearApiKey = false;
+  form.hasApiKey = false;
+  modelDraft.value = "";
+  error.value = "";
+}
+
+function editProvider(provider: AiProviderRecord) {
+  selectedId.value = provider.id;
+  form.name = provider.name;
+  form.kind = provider.kind;
+  form.baseUrl = provider.baseUrl;
+  form.models = [...provider.models];
+  form.activeModel = provider.activeModel;
+  form.apiKey = "";
+  form.clearApiKey = false;
+  form.hasApiKey = provider.hasApiKey;
+  modelDraft.value = "";
+  error.value = "";
+}
+
+function onProviderPick(id: string) {
+  const provider = providers.value.find((p) => p.id === id);
+  if (provider) editProvider(provider);
+}
+
+function cancelNew() {
+  const next = ai.activeProvider ?? providers.value[0];
+  if (next) editProvider(next);
+}
+
+function onKindChange() {
+  const preset = defaults[form.kind];
+  form.baseUrl = preset.baseUrl;
+  form.models = [...preset.models];
+  form.activeModel = preset.models[0] ?? "";
+  if (!selectedId.value) form.name = preset.name;
+}
+
+function addModel() {
+  const model = modelDraft.value.trim();
+  if (!model) return;
+  if (!form.models.includes(model)) form.models.push(model);
+  if (!form.activeModel) form.activeModel = model;
+  modelDraft.value = "";
+}
+
+function removeModel(model: string) {
+  form.models = form.models.filter((item) => item !== model);
+  if (form.activeModel === model) form.activeModel = form.models[0] ?? "";
+}
+
+function onModelDraftKey(ev: KeyboardEvent) {
+  if (ev.key === "Enter") {
+    ev.preventDefault();
+    addModel();
+  }
+}
+
+async function save() {
+  error.value = "";
+  if (!form.models.length) {
+    error.value = t("aiSettings.modelsRequired");
+    return;
+  }
+  saving.value = true;
+  try {
+    const payload: AiProviderUpsert = {
+      id: selectedId.value ?? undefined,
+      name: form.name,
+      kind: form.kind,
+      baseUrl: form.baseUrl,
+      models: [...form.models],
+      activeModel: form.activeModel || form.models[0],
+      clearApiKey: form.clearApiKey,
+    };
+    if (form.apiKey) payload.apiKey = form.apiKey;
+    const saved = await ai.upsert(payload);
+    editProvider(saved);
+  } catch (e) {
+    error.value = String(e);
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function activate() {
+  if (!selectedId.value) return;
+  error.value = "";
+  try {
+    await ai.activate(selectedId.value);
+  } catch (e) {
+    error.value = String(e);
+  }
+}
+
+async function remove() {
+  if (!selectedId.value || !window.confirm(t("aiSettings.deleteConfirm", { name: form.name }))) return;
+  error.value = "";
+  try {
+    await ai.remove(selectedId.value);
+    const next = ai.activeProvider ?? providers.value[0];
+    if (next) editProvider(next);
+    else newProvider();
+  } catch (e) {
+    error.value = String(e);
+  }
+}
+
+const initial = ai.activeProvider ?? providers.value[0];
+if (initial) editProvider(initial);
+else newProvider();
+</script>
+
+<template>
+  <div class="ai-pane">
+    <div class="provider-bar">
+      <AppSelect
+        v-if="providers.length && !isNew"
+        class="provider-select"
+        :model-value="selectedId ?? ''"
+        :options="providerOptions"
+        @update:model-value="(v) => onProviderPick(String(v))"
+      />
+      <div v-else-if="isNew && providers.length" class="new-badge">{{ t("aiSettings.newDraft") }}</div>
+      <div v-else class="empty-hint">{{ t("aiSettings.empty") }}</div>
+      <button
+        v-if="isNew && providers.length"
+        type="button"
+        class="btn ghost md"
+        @click="cancelNew"
+      >
+        {{ t("common.cancel") }}
+      </button>
+      <button type="button" class="btn ghost md" @click="newProvider()">{{ t("aiSettings.add") }}</button>
+    </div>
+
+    <div v-if="error" class="error-banner">{{ error }}</div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label>{{ t("aiSettings.displayName") }}<span class="req">*</span></label>
+        <input v-model="form.name" type="text" :placeholder="t('aiSettings.namePlaceholder')" />
+      </div>
+      <div class="field">
+        <label>{{ t("aiSettings.kind") }}<span class="req">*</span></label>
+        <AppSelect
+          :model-value="form.kind"
+          :options="kindOptions"
+          @update:model-value="(v) => (form.kind = v as AiProviderKind)"
+          @change="onKindChange"
+        />
+      </div>
+      <div class="field full">
+        <label>{{ t("aiSettings.baseUrl") }}<span class="req">*</span></label>
+        <input v-model="form.baseUrl" type="url" placeholder="https://api.example.com/v1" />
+      </div>
+      <div class="field full">
+        <label>{{ t("aiSettings.models") }}<span class="req">*</span></label>
+        <div class="model-editor">
+          <div v-if="form.models.length" class="model-chips">
+            <button
+              v-for="model in form.models"
+              :key="model"
+              type="button"
+              class="model-chip"
+              :class="{ active: form.activeModel === model }"
+              :title="t('aiSettings.setDefault')"
+              @click="form.activeModel = model"
+            >
+              <span class="model-id">{{ model }}</span>
+              <span v-if="form.activeModel === model" class="default-dot" />
+              <span
+                class="model-remove"
+                role="button"
+                :aria-label="t('common.delete')"
+                @click.stop="removeModel(model)"
+              >×</span>
+            </button>
+          </div>
+          <div class="model-add-row">
+            <input
+              v-model="modelDraft"
+              type="text"
+              :placeholder="t('aiSettings.modelPlaceholder')"
+              @keydown="onModelDraftKey"
+            />
+            <button type="button" class="btn ghost md" @click="addModel">{{ t("aiSettings.addModel") }}</button>
+          </div>
+        </div>
+      </div>
+      <div class="field full">
+        <label>{{ form.kind === "ollama" ? t("aiSettings.apiKeyOptional") : t("aiSettings.apiKey") }}</label>
+        <input
+          v-model="form.apiKey"
+          type="password"
+          autocomplete="off"
+          :placeholder="form.hasApiKey ? t('aiSettings.keySaved') : t('aiSettings.keyInput')"
+          :disabled="form.clearApiKey"
+        />
+      </div>
+      <label v-if="form.hasApiKey" class="clear-key full">
+        <input v-model="form.clearApiKey" type="checkbox" />
+        {{ t("aiSettings.clearKey") }}
+      </label>
+    </div>
+
+    <div class="pane-actions">
+      <button
+        v-if="selectedId"
+        type="button"
+        class="btn danger md"
+        @click="remove"
+      >
+        {{ t("common.delete") }}
+      </button>
+      <button
+        v-if="selectedId && activeProviderId !== selectedId"
+        type="button"
+        class="btn ghost md"
+        @click="activate"
+      >
+        {{ t("aiSettings.setActive") }}
+      </button>
+      <button type="button" class="btn primary md save-btn" :disabled="saving" @click="save">
+        {{ saving ? t("common.saving") : t("aiSettings.save") }}
+      </button>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.ai-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 100%;
+}
+
+.provider-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.provider-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.empty-hint,
+.new-badge {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.new-badge {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.form-grid {
+  gap: 10px;
+}
+
+.model-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.model-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.model-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  margin: 0;
+  padding: 4px 6px 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-root);
+  color: var(--text);
+  font: 11px var(--font-mono);
+  cursor: pointer;
+}
+
+.model-chip:hover {
+  border-color: var(--accent-border);
+  background: var(--bg-hover);
+}
+
+.model-chip.active {
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+}
+
+.model-id {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.default-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.model-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.model-remove:hover {
+  color: var(--danger);
+  background: var(--bg-hover);
+}
+
+.model-add-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.clear-key {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.clear-key input {
+  accent-color: var(--danger);
+}
+
+.pane-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.save-btn {
+  margin-left: auto;
+}
+</style>
