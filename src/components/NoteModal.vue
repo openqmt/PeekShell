@@ -17,7 +17,7 @@ function onBackdrop(e: MouseEvent) {
 </script>
 
 <template>
-  <div v-if="modalOpen" class="overlay" @click="onBackdrop">
+  <div v-if="modalOpen" class="overlay overlay-top" @click="onBackdrop">
     <div class="modal sm note-modal" role="dialog" aria-labelledby="noteModalTitle">
       <div class="modal-head note-head">
         <h2 id="noteModalTitle">{{ t("noteModal.title") }}</h2>

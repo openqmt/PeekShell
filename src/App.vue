@@ -11,14 +11,17 @@ import TerminalPanel from "./components/TerminalPanel.vue";
 import TerminalSettingsModal from "./components/TerminalSettingsModal.vue";
 import EditorSettingsModal from "./components/EditorSettingsModal.vue";
 import ExplorerSettingsModal from "./components/ExplorerSettingsModal.vue";
+import UpdateModal from "./components/UpdateModal.vue";
 import { useAiStore } from "./stores/ai";
 import { useHostsStore } from "./stores/hosts";
 import { useNoteStore } from "./stores/note";
 import { useUiStore } from "./stores/ui";
+import { useUpdaterStore } from "./stores/updater";
 
 const ai = useAiStore();
 const hosts = useHostsStore();
 const note = useNoteStore();
+const updater = useUpdaterStore();
 const ui = useUiStore();
 const {
   sidebarCollapsed,
@@ -41,7 +44,11 @@ const showAiPanel = computed(() => displayPrefs.value.aiPanel && aiChatEnabled.v
 onMounted(() => {
   void hosts.refresh();
   void ai.refresh();
-  void note.refresh();
+  // Upgrade first so note can defer when both are available
+  void (async () => {
+    await updater.refresh();
+    await note.refresh();
+  })();
 });
 
 const workspaceStyle = computed(() => {
@@ -79,5 +86,6 @@ const workspaceStyle = computed(() => {
     <EditorSettingsModal v-if="editorSettingsModalOpen" />
     <ExplorerSettingsModal v-if="explorerSettingsModalOpen" />
     <NoteModal />
+    <UpdateModal />
   </div>
 </template>

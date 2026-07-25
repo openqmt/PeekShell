@@ -7,6 +7,7 @@ import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import * as api from "../api/tauri";
 import type { NoteConfig } from "../types/note";
+import { useUpdaterStore } from "./updater";
 
 const DISMISSED_KEY = "peekshell.note.dismissedFingerprint";
 
@@ -93,6 +94,25 @@ export const useNoteStore = defineStore("note", () => {
     return fingerprint(next) !== readDismissed();
   }
 
+  /**
+   * Open note modal unless an upgrade dialog is active.
+   * Upgrade takes priority; call again from updater.dismiss.
+   */
+  function offerModalIfNeeded() {
+    const next = config.value;
+    if (!next || !shouldShowModal(next)) return;
+    if (useUpdaterStore().modalOpen) {
+      modalOpen.value = false;
+      return;
+    }
+    modalOpen.value = true;
+  }
+
+  /** Hide without persisting dismiss — used when upgrade modal takes the foreground. */
+  function hideTemporarily() {
+    modalOpen.value = false;
+  }
+
   async function refresh() {
     const url = import.meta.env.VITE_NOTE_URL?.trim();
     if (!url) {
@@ -105,7 +125,7 @@ export const useNoteStore = defineStore("note", () => {
       const parsed = parseNoteConfig(await res.json());
       config.value = parsed;
       if (parsed && shouldShowModal(parsed)) {
-        modalOpen.value = true;
+        offerModalIfNeeded();
       }
     } catch {
       // Offline / bad JSON: keep defaults so local AI still works.
@@ -154,6 +174,8 @@ export const useNoteStore = defineStore("note", () => {
     noteText,
     openUrlTarget,
     refresh,
+    offerModalIfNeeded,
+    hideTemporarily,
     dismiss,
     confirm,
     tryOpenDevtools,
