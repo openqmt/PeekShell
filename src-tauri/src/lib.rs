@@ -295,8 +295,7 @@ fn cancel_all_transfers_cmd() {
 
 /// Open WebView DevTools when remotely enabled via note `devtools` flag.
 #[tauri::command]
-fn open_devtools(app: tauri::AppHandle) {
-    let window = app.get_webview_window("main").unwrap();
+fn open_devtools(window: tauri::WebviewWindow) {
     window.open_devtools();
 }
 
