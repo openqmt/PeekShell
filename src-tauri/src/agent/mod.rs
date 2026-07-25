@@ -63,11 +63,21 @@ pub async fn chat(
     let context = if has_session {
         let host = sessions.host_record_for_session(session_id).await?;
         let metrics = sessions.metrics(session_id).await.ok();
+        let cwd = sessions
+            .agent_cwd(session_id)
+            .await
+            .unwrap_or_else(|_| "~".into());
         let pty_tail = sessions
             .pty_output_tail(session_id, PTY_CONTEXT_CHARS)
             .await
             .unwrap_or_default();
-        build_context(&host.name, &host.host, metrics.as_ref(), &pty_tail)
+        build_context(
+            &host.name,
+            &host.host,
+            &cwd,
+            metrics.as_ref(),
+            &pty_tail,
+        )
     } else {
         "No SSH session connected. You may still answer questions and suggest commands, but they cannot be executed until the user connects a host.".to_string()
     };
@@ -425,12 +435,14 @@ Rules:
 fn build_context(
     host_name: &str,
     host_ip: &str,
+    cwd: &str,
     metrics: Option<&HostMetrics>,
     pty_tail: &str,
 ) -> String {
     let mut lines = vec![
         format!("Host name: {host_name}"),
         format!("Host address: {host_ip}"),
+        format!("Current working directory: {cwd}"),
     ];
     if let Some(m) = metrics {
         lines.push(format!(

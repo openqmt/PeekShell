@@ -17,7 +17,11 @@ import { useSessionsStore } from '../stores/sessions'
 import { matchShortcut, useTerminalPrefsStore, clampFontSize } from '../stores/terminalPrefs'
 import { useUiStore } from '../stores/ui'
 import { startsWithCjkOrHangul } from '../terminal/cjk'
-import { createTerminalAiSession, type TerminalAiSession } from '../terminal/terminalAiSession'
+import {
+    createTerminalAiSession,
+    type AiShellInjectResult,
+    type TerminalAiSession,
+} from '../terminal/terminalAiSession'
 import QuickCommandsPanel from './QuickCommandsPanel.vue'
 import RemoteExplorer from './RemoteExplorer.vue'
 
@@ -403,12 +407,15 @@ async function ensureTerm(sessionId: string) {
     let homeAbs: string | null = null
     let cwdPublishTimer: ReturnType<typeof setTimeout> | null = null
     const publishCwd = (rawCwd: string) => {
+        const trimmed = rawCwd.trim()
+        if (!trimmed) return
+        // Keep Agent exec cwd aligned with AI>/PS1 as soon as the prompt path changes.
+        void api.setSessionCwd(sessionId, trimmed).catch(() => {})
         if (cwdPublishTimer) clearTimeout(cwdPublishTimer)
         cwdPublishTimer = setTimeout(() => {
             cwdPublishTimer = null
             void (async () => {
-                let path = rawCwd.trim()
-                if (!path) return
+                let path = trimmed
                 try {
                     if (path === '~' || path.startsWith('~/')) {
                         if (!homeAbs) {
@@ -702,6 +709,15 @@ function scheduleTermFit() {
     })
 }
 
+/** Prefer AI shellRelay so quick commands do not leave AI mode with a raw PS1. */
+function tryRunQuickCommandInAi(command: string): AiShellInjectResult {
+    const id = activeSessionId.value
+    if (!id) return 'passthrough'
+    const entry = terms.get(id)
+    if (!entry) return 'passthrough'
+    return entry.aiSession.tryRunShellCommand(command)
+}
+
 watch(
     () => sessionList.value.map((s) => s.sessionId).join(','),
     async () => {
@@ -818,7 +834,10 @@ onBeforeUnmount(() => {
                         />
                     </svg>
                 </button>
-                <QuickCommandsPanel v-model:open="quickCommandsOpen" />
+                <QuickCommandsPanel
+                    v-model:open="quickCommandsOpen"
+                    :try-run-in-ai="tryRunQuickCommandInAi"
+                />
             </div>
         </div>
 

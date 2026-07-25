@@ -8,10 +8,15 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { useI18n, UNGROUPED_GROUP } from "../i18n";
 import { useQuickCommandsStore } from "../stores/quickCommands";
 import { useSessionsStore } from "../stores/sessions";
+import type { AiShellInjectResult } from "../terminal/terminalAiSession";
 import type { QuickCommand } from "../types/quickCommand";
 import AppSelect from "./AppSelect.vue";
 
-const props = defineProps<{ open: boolean }>();
+const props = defineProps<{
+  open: boolean;
+  /** When AI mode is active, run via shellRelay so the session stays on `AI>`. */
+  tryRunInAi?: (command: string) => AiShellInjectResult;
+}>();
 const emit = defineEmits<{ "update:open": [boolean] }>();
 
 const { t, groupLabel } = useI18n();
@@ -108,6 +113,16 @@ function saveForm() {
 async function runCommand(cmd: QuickCommand) {
   if (!activeSessionId.value) {
     statusMsg.value = t("quickCommands.needSession");
+    return;
+  }
+  const aiResult = props.tryRunInAi?.(cmd.command) ?? "passthrough";
+  if (aiResult === "handled") {
+    statusMsg.value = t("quickCommands.ran", { name: cmd.name });
+    close();
+    return;
+  }
+  if (aiResult === "busy") {
+    statusMsg.value = t("termAi.busy");
     return;
   }
   const raw = cmd.command.replace(/\r\n/g, "\n").replace(/\n/g, "\r");

@@ -71,6 +71,26 @@ function joinCwd(cwd: string, rel: string): string {
   return normalizePath(`${cwd}/${rel}`);
 }
 
+/** Single-quote for POSIX shells; keeps tilde paths usable via `cd ~/...`. */
+export function shellSingleQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+/**
+ * Prefix a shell line so it runs under the AI-tracked cwd.
+ * Needed because Agent `cd` uses a separate exec channel and does not move the PTY.
+ */
+export function wrapCommandWithCwd(cwd: string, command: string): string {
+  const cur = (cwd || "~").trim() || "~";
+  const cd =
+    cur === "~"
+      ? "cd ~"
+      : cur.startsWith("~/")
+        ? `cd ~/${shellSingleQuote(cur.slice(2))}`
+        : `cd -- ${shellSingleQuote(cur)}`;
+  return `${cd} && { ${command}; }`;
+}
+
 /**
  * Apply `cd` segments in a shell line (`cd /x && ls`, `cd ..`) onto a tracked cwd.
  * Ignores `cd -` (OLDPWD unknown).

@@ -121,6 +121,11 @@ export function ptyWrite(sessionId: string, data: string): Promise<void> {
   return invoke("pty_write", { sessionId, data });
 }
 
+/** Align Rust Agent exec cwd with the terminal AI>/PS1 path. */
+export function setSessionCwd(sessionId: string, cwd: string): Promise<void> {
+  return invoke("set_session_cwd", { sessionId, cwd });
+}
+
 export function ptyResize(sessionId: string, cols: number, rows: number): Promise<void> {
   return invoke("pty_resize", { sessionId, cols, rows });
 }

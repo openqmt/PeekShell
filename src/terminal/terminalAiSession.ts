@@ -13,6 +13,7 @@ import {
   looksLikeCommandEcho,
   looksLikeShellPrompt,
   stripAnsi,
+  wrapCommandWithCwd,
 } from "./ptyFilter";
 import {
   filterCompletions,
@@ -65,11 +66,19 @@ const SHELL_IDLE_MS = 280;
 /** Max wait in shellRelay before restoring AI> even if still noisy. */
 const SHELL_RELAY_MAX_MS = 8000;
 
+/** Result of injecting a UI-triggered shell line (e.g. quick command) into AI mode. */
+export type AiShellInjectResult = "handled" | "passthrough" | "busy";
+
 export interface TerminalAiSession {
   readonly phase: TerminalAiPhase;
   isCapturing(): boolean;
   toggleCompose(): void;
   enterAndSend(text: string): void;
+  /**
+   * Run a shell command via shellRelay while in AI compose (keeps `AI>` after).
+   * `passthrough` = not in AI mode (caller should write the PTY); `busy` = AI turn in flight.
+   */
+  tryRunShellCommand(command: string): AiShellInjectResult;
   tryHandleData(data: string): boolean;
   /**
    * Filter remote PTY bytes while in shellRelay.
@@ -296,6 +305,7 @@ export function createTerminalAiSession(
 
   /**
    * Keep `AI> ls` on screen; run on PTY; show only command output (no echo / no PS1).
+   * Prefix with tracked cwd so Agent `cd` (separate exec) still applies to shellRelay.
    */
   function runAsShell(command: string) {
     clearPromptTimer();
@@ -304,15 +314,43 @@ export function createTerminalAiSession(
     // Finish the compose line as typed: AI> /path# ls
     writelnLocal("");
     lineBuf = "";
-    relayCommand = command;
+    const wrapped = wrapCommandWithCwd(cwd, command);
+    relayCommand = wrapped;
     relayAwaitEcho = true;
     setCwd(applyCdFromCommand(cwd, command));
     setPhase("shellRelay");
-    options.runShell(command);
+    options.runShell(wrapped);
     relayMaxTimer = setTimeout(() => {
       relayMaxTimer = null;
       if (phase === "shellRelay") finishShellRelay();
     }, SHELL_RELAY_MAX_MS);
+  }
+
+  /**
+   * Quick commands / other UI: run through shellRelay so we stay in AI mode.
+   * Multi-line snippets are joined with `; ` (PTY Enter would otherwise split early).
+   */
+  function tryRunShellCommand(command: string): AiShellInjectResult {
+    if (phase === "shell") return "passthrough";
+    if (phase !== "compose") return "busy";
+
+    const joined = command
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .join("; ");
+    if (!joined) return "passthrough";
+
+    // Replace any in-progress AI> input with the injected command label.
+    writeLocal("\r\x1b[2K");
+    writePrompt();
+    const display = joined.split(";")[0]!.trim();
+    const more = joined.includes(";");
+    writeLocal(more ? `${display} …` : display);
+    runAsShell(joined);
+    return "handled";
   }
 
   /** Quiet exit: clear AI> line; refresh remote PS1 so shell looks ready. */
@@ -745,6 +783,7 @@ export function createTerminalAiSession(
     isCapturing: () => phase !== "shell",
     toggleCompose,
     enterAndSend,
+    tryRunShellCommand,
     tryHandleData,
     consumePtyOutput,
     notePtyOutput,

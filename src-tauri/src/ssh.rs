@@ -38,12 +38,17 @@ impl client::Handler for ClientHandler {
 /// 交互式终端滚动缓冲上限（字符），供 AI 上下文截取。
 const MAX_PTY_BUFFER_CHARS: usize = 24_000;
 
+/// Marker line appended after each agent exec so we can persist remote cwd.
+const CWD_MARKER: &str = "__PEEKSHELL_CWD__";
+
 struct LiveSession {
     handle: Handle<ClientHandler>,
     writer: mpsc::Sender<PtyCmd>,
     host_id: String,
     /// 与 PTY 读任务共享，记录最近终端输出。
     output_buf: Arc<Mutex<String>>,
+    /// Agent exec 的工作目录（独立 SSH exec 无状态，需在此跨命令保持）。
+    agent_cwd: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -214,6 +219,7 @@ impl SessionManager {
                 writer: writer_tx,
                 host_id: host.id,
                 output_buf,
+                agent_cwd: "~".into(),
             },
         );
 
@@ -355,11 +361,51 @@ impl SessionManager {
         Ok(strip_ansi_light(&raw))
     }
 
+    /// 当前 Agent exec 工作目录（可能是 `~` 或绝对路径）。
+    pub async fn agent_cwd(&self, session_id: &str) -> AppResult<String> {
+        let map = self.inner.lock().await;
+        let session = map
+            .get(session_id)
+            .ok_or_else(|| AppError::Message("会话不存在".into()))?;
+        Ok(session.agent_cwd.clone())
+    }
+
+    /// 与前端 AI>/PS1 跟踪的 cwd 对齐，供后续 Agent exec 使用。
+    pub async fn set_agent_cwd(&self, session_id: &str, cwd: &str) -> AppResult<()> {
+        let trimmed = cwd.trim();
+        if trimmed.is_empty() {
+            return Ok(());
+        }
+        let mut map = self.inner.lock().await;
+        let session = map
+            .get_mut(session_id)
+            .ok_or_else(|| AppError::Message("会话不存在".into()))?;
+        session.agent_cwd = trimmed.to_string();
+        Ok(())
+    }
+
     /// 在已连接主机上开非交互 exec，捕获 stdout/stderr/exit（不写入交互式 shell stdin）。
     /// 使用与指标采集相同的独立 SSH 通道，避免占用交互式 shell。
+    /// 每次在会话跟踪的 cwd 下执行，并在结束后用 `pwd` 回写 cwd。
     pub async fn exec_command(&self, session_id: &str, command: &str) -> AppResult<ExecResult> {
         let host = self.host_for_session(session_id).await?;
-        run_exec_result(&host, command).await
+        let cwd = {
+            let map = self.inner.lock().await;
+            map.get(session_id)
+                .map(|s| s.agent_cwd.clone())
+                .unwrap_or_else(|| "~".into())
+        };
+        let wrapped = wrap_command_with_cwd(&cwd, command);
+        let mut result = run_exec_result(&host, &wrapped).await?;
+        let (clean_stdout, new_cwd) = strip_cwd_marker(&result.stdout);
+        result.stdout = clean_stdout;
+        if let Some(path) = new_cwd {
+            let mut map = self.inner.lock().await;
+            if let Some(session) = map.get_mut(session_id) {
+                session.agent_cwd = path;
+            }
+        }
+        Ok(result)
     }
 
     /// 仅回显到前端终端（及 ring buffer），不写入远端 shell stdin，避免命令被执行两次。
@@ -721,6 +767,53 @@ async fn run_exec_bytes(host: &HostRecord, command: &str) -> AppResult<Vec<u8>> 
 
 fn shell_quote(value: &str) -> String {
     format!("'{}'", value.replace('\'', "'\\''"))
+}
+
+/// Build a `cd` that preserves tilde expansion (`~/x` must not be fully single-quoted).
+fn cd_to_tracked_cwd(cwd: &str) -> String {
+    let cwd = cwd.trim();
+    if cwd.is_empty() || cwd == "~" {
+        return "cd ~".into();
+    }
+    if let Some(rest) = cwd.strip_prefix("~/") {
+        return format!("cd ~/{}", shell_quote(rest));
+    }
+    format!("cd -- {}", shell_quote(cwd))
+}
+
+/// Run `command` under tracked cwd; always print a cwd marker for the next exec.
+fn wrap_command_with_cwd(cwd: &str, command: &str) -> String {
+    let cd = cd_to_tracked_cwd(cwd);
+    format!(
+        "{cd} || cd ~; __ps_ec=0; {{\n{command}\n}} || __ps_ec=$?; printf '\\n{marker}%s\\n' \"$(pwd -P 2>/dev/null || pwd)\"; exit $__ps_ec",
+        marker = CWD_MARKER,
+    )
+}
+
+/// Remove the trailing cwd marker line from exec stdout and return the new path if present.
+fn strip_cwd_marker(stdout: &str) -> (String, Option<String>) {
+    let mut new_cwd = None;
+    let mut kept: Vec<&str> = Vec::new();
+    for line in stdout.lines() {
+        if let Some(path) = line.strip_prefix(CWD_MARKER) {
+            let path = path.trim();
+            if !path.is_empty() {
+                new_cwd = Some(path.to_string());
+            }
+            continue;
+        }
+        kept.push(line);
+    }
+    // Preserve a trailing newline only when the original stdout had one (after marker trim).
+    let mut clean = kept.join("\n");
+    if stdout.ends_with('\n') && !clean.is_empty() {
+        clean.push('\n');
+    }
+    // Drop a single trailing blank line left by the marker separator.
+    if clean.ends_with("\n\n") {
+        clean.pop();
+    }
+    (clean, new_cwd)
 }
 
 fn normalize_remote_path(path: &str) -> AppResult<String> {

@@ -319,9 +319,9 @@ export const messages = {
         'ai.notConfigured': '未配置',
         'ai.ready':
             '已选择 {name} / {model}。可直接提问；连接主机后，命令才能按执行模式在远端运行。',
-        'ai.setup':
-            '请先点击右上角设置按钮配置模型提供商。API Key 将安全保存在系统钥匙串中。',
-        'ai.placeholder': '例如：检查 nginx 错误日志（终端也可用 Ctrl+I 或中文直接提问）',
+        'ai.setup': '请先点击右上角设置按钮配置模型提供商。',
+        'ai.placeholder':
+            '例如：检查 nginx 错误日志（终端也可用 Ctrl+I 或中文直接提问）',
         'ai.context': '上下文：最近终端输出 · 当前主机指标',
         'ai.send': '发送',
         'ai.sending': '发送中…',
@@ -351,7 +351,8 @@ export const messages = {
             '未连接主机：可正常对话，提议的命令不会在终端执行。',
 
         'termAi.banner': '── PeekShell AI ──',
-        'termAi.bannerHint': 'Ctrl+I 切换 · Esc 退出 · Linux 命令直接跑 · y/n 确认',
+        'termAi.bannerHint':
+            'Ctrl+I 切换 · Esc 退出 · Linux 命令直接跑 · y/n 确认',
         'termAi.exited': '已退出 AI 对话，回到 shell。',
         'termAi.thinking': '正在思考…',
         'termAi.busy': 'AI 正在处理上一请求，请稍候。',
@@ -364,7 +365,7 @@ export const messages = {
 
         'aiSettings.title': 'Assist 设置',
         'aiSettings.aria': 'AI 提供商设置',
-        'aiSettings.sub': '配置模型提供商；API Key 仅保存在系统钥匙串中',
+        'aiSettings.sub': '配置模型提供商',
         'aiSettings.add': '＋ 添加提供商',
         'aiSettings.current': '当前',
         'aiSettings.empty': '尚未配置提供商',
@@ -462,7 +463,8 @@ export const messages = {
         'about.websiteLabel': 'Website',
         'about.githubLabel': 'Open source',
         'about.principleLabel': 'Safety rule',
-        'about.principleValue': 'AI-proposed commands run only after your confirmation',
+        'about.principleValue':
+            'AI-proposed commands run only after your confirmation',
 
         'terminal.openFromHosts': 'Connect from host list',
         'terminal.empty':
@@ -635,7 +637,8 @@ export const messages = {
         'explorer.downloadDone': 'Download complete',
         'explorer.uploadDone': 'Upload complete',
         'explorer.dropUpload': 'Drop to upload into',
-        'explorer.dropNoFiles': 'Could not read dropped file paths — use Upload instead',
+        'explorer.dropNoFiles':
+            'Could not read dropped file paths — use Upload instead',
 
         'transfers.title': 'Transfers',
         'transfers.batchProgress': '{done}/{total}',
@@ -719,7 +722,8 @@ export const messages = {
             'Selected {name} / {model}. Ask anytime; connect a host to run commands under the mode below.',
         'ai.setup':
             'Open settings (gear) to configure a model provider. API keys are stored in the OS keychain.',
-        'ai.placeholder': 'e.g. check nginx error logs (or Ctrl+I / CJK in the terminal)',
+        'ai.placeholder':
+            'e.g. check nginx error logs (or Ctrl+I / CJK in the terminal)',
         'ai.context': 'Context: recent terminal output · host metrics',
         'ai.send': 'Send',
         'ai.sending': 'Sending…',
@@ -749,7 +753,8 @@ export const messages = {
             'No host connected: you can chat; suggested commands will not run on a terminal.',
 
         'termAi.banner': '── PeekShell AI ──',
-        'termAi.bannerHint': 'Ctrl+I toggle · Esc exit · Linux cmds run live · y/n confirm',
+        'termAi.bannerHint':
+            'Ctrl+I toggle · Esc exit · Linux cmds run live · y/n confirm',
         'termAi.exited': 'Left AI chat; back to shell.',
         'termAi.thinking': 'Thinking…',
         'termAi.busy': 'AI is still handling the previous request.',

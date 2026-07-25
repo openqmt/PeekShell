@@ -1,107 +1,107 @@
 /** 主机认证方式：密码或私钥文件。 */
-export type AuthType = "password" | "privateKey";
+export type AuthType = 'password' | 'privateKey'
 
-/** 主机连接配置（不含密钥明文，密钥由后端钥匙串保管）。 */
+/** 主机连接配置（不含密钥明文，密钥由后端保管）。 */
 export interface HostRecord {
-  id: string;
-  name: string;
-  group: string;
-  host: string;
-  port: number;
-  note: string;
-  username: string;
-  authType: AuthType;
-  /** 仅公钥模式：本地私钥路径 */
-  privateKeyPath?: string | null;
-  /** 是否已保存对应凭证（密码或私钥口令） */
-  hasSecret: boolean;
+    id: string
+    name: string
+    group: string
+    host: string
+    port: number
+    note: string
+    username: string
+    authType: AuthType
+    /** 仅公钥模式：本地私钥路径 */
+    privateKeyPath?: string | null
+    /** 是否已保存对应凭证（密码或私钥口令） */
+    hasSecret: boolean
 }
 
 /** 新建 / 编辑主机时前端提交的表单。 */
 export interface HostUpsert {
-  id?: string;
-  name: string;
-  group: string;
-  host: string;
-  port: number;
-  note: string;
-  username: string;
-  authType: AuthType;
-  password?: string;
-  privateKeyPath?: string;
-  passphrase?: string;
+    id?: string
+    name: string
+    group: string
+    host: string
+    port: number
+    note: string
+    username: string
+    authType: AuthType
+    password?: string
+    privateKeyPath?: string
+    passphrase?: string
 }
 
 /** 侧栏展示的远端主机指标快照。 */
 export interface ProcessMetrics {
-  name: string;
-  memoryMiB: number;
-  cpuPercent: number;
+    name: string
+    memoryMiB: number
+    cpuPercent: number
 }
 
 export interface HostMetrics {
-  ip: string;
-  os: string;
-  kernel: string;
-  arch: string;
-  hostname: string;
-  uptimeDays: number;
-  uptimeText: string;
-  loadAvg: string;
-  cpuPercent: number;
-  memUsedGiB: number;
-  memTotalGiB: number;
-  swapUsedMiB: number;
-  swapTotalMiB: number;
-  diskUsedGiB: number;
-  diskTotalGiB: number;
-  netIface: string;
-  netRxMBs: number;
-  netTxKBs: number;
-  netRxTotalGB: number;
-  netTxTotalGB: number;
-  topProcesses: ProcessMetrics[];
+    ip: string
+    os: string
+    kernel: string
+    arch: string
+    hostname: string
+    uptimeDays: number
+    uptimeText: string
+    loadAvg: string
+    cpuPercent: number
+    memUsedGiB: number
+    memTotalGiB: number
+    swapUsedMiB: number
+    swapTotalMiB: number
+    diskUsedGiB: number
+    diskTotalGiB: number
+    netIface: string
+    netRxMBs: number
+    netTxKBs: number
+    netRxTotalGB: number
+    netTxTotalGB: number
+    topProcesses: ProcessMetrics[]
 }
 
 export interface SessionInfo {
-  sessionId: string;
-  hostId: string;
-  title: string;
+    sessionId: string
+    hostId: string
+    title: string
 }
 
 export interface RemoteEntry {
-  name: string;
-  path: string;
-  isDir: boolean;
-  size: number;
-  fileType: string;
-  modified: string;
-  permissions: string;
-  group: string;
+    name: string
+    path: string
+    isDir: boolean
+    size: number
+    fileType: string
+    modified: string
+    permissions: string
+    group: string
 }
 
 export interface RemoteDirListing {
-  path: string;
-  entries: RemoteEntry[];
+    path: string
+    entries: RemoteEntry[]
 }
 
 export interface RemoteFileContent {
-  path: string;
-  name: string;
-  size: number;
-  fileType: string;
-  modified: string;
-  permissions: string;
-  group: string;
-  truncated: boolean;
-  content: string;
-  binary: boolean;
-  /** When set, `content` is base64 for an in-app image preview. */
-  imageMime: string | null;
+    path: string
+    name: string
+    size: number
+    fileType: string
+    modified: string
+    permissions: string
+    group: string
+    truncated: boolean
+    content: string
+    binary: boolean
+    /** When set, `content` is base64 for an in-app image preview. */
+    imageMime: string | null
 }
 
 export interface LocalUploadItem {
-  localPath: string;
-  remoteRelative: string;
-  isDir: boolean;
+    localPath: string
+    remoteRelative: string
+    isDir: boolean
 }

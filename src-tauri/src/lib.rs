@@ -148,6 +148,16 @@ async fn pty_write(
     state.write(&session_id, &data).await
 }
 
+/// Sync frontend-tracked cwd (AI>/PS1) into Agent exec so the next command starts there.
+#[tauri::command]
+async fn set_session_cwd(
+    state: tauri::State<'_, Arc<SessionManager>>,
+    session_id: String,
+    cwd: String,
+) -> AppResult<()> {
+    state.set_agent_cwd(&session_id, &cwd).await
+}
+
 #[tauri::command]
 async fn pty_resize(
     state: tauri::State<'_, Arc<SessionManager>>,
@@ -324,6 +334,7 @@ pub fn run() {
             test_host_connection,
             disconnect_session,
             pty_write,
+            set_session_cwd,
             pty_resize,
             fetch_host_metrics,
             list_remote_dir,
