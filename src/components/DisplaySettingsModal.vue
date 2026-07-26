@@ -18,8 +18,8 @@ import {
 import AiSettingsPane from './AiSettingsPane.vue'
 import { useNoteStore } from '../stores/note'
 
-const WEBSITE_URL = 'https://www.openqmt.com/'
-const WEBSITE_LABEL = 'https://www.openqmt.com'
+const WEBSITE_URL = 'https://www.peekshell.com/'
+const WEBSITE_LABEL = 'https://www.peekshell.com'
 const GITHUB_URL = 'https://github.com/openqmt/PeekShell'
 const GITHUB_LABEL = 'https://github.com/openqmt/PeekShell'
 
