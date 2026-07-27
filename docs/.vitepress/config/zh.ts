@@ -54,7 +54,7 @@ export const zh: LocaleSpecificConfig<DefaultTheme.Config> = {
 
     footer: {
       message: '基于 Tauri 2 · Rust · Vue 3 构建',
-      copyright: 'Copyright © PeekShell',
+      copyright: 'Copyright © PeekShell · <a href="mailto:1024xiaoshen@gmail.com">1024xiaoshen@gmail.com</a>',
     },
   },
 }

@@ -63,7 +63,7 @@ export const en: LocaleSpecificConfig<DefaultTheme.Config> = {
 
         footer: {
             message: 'Built with Tauri 2 · Rust · Vue 3',
-            copyright: 'Copyright © PeekShell',
+            copyright: 'Copyright © PeekShell · <a href="mailto:1024xiaoshen@gmail.com">1024xiaoshen@gmail.com</a>',
         },
     },
 }
