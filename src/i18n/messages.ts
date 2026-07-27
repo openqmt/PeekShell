@@ -32,7 +32,7 @@ export const messages = {
         'sidebar.os': '系统',
         'sidebar.kernel': '内核',
         'sidebar.arch': '架构',
-        'sidebar.uptime': '运行时间',
+        'sidebar.uptime': '运行',
         'sidebar.days': '{n} 天',
         'sidebar.resources': '资源',
         'sidebar.memory': '内存',

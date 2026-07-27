@@ -3,749 +3,975 @@
  * 左侧：当前会话主机概览，可折叠为窄条。
  * 有活动会话时每秒刷新一次主机指标。
  */
-import { storeToRefs } from "pinia";
-import { computed, onBeforeUnmount, ref, watch } from "vue";
-import { useI18n } from "../i18n";
-import { useSessionsStore } from "../stores/sessions";
-import { useUiStore, SIDEBAR_WIDTH_MAX, SIDEBAR_WIDTH_MIN } from "../stores/ui";
-import { useHostsStore } from "../stores/hosts";
+import { storeToRefs } from 'pinia'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { useI18n } from '../i18n'
+import { useSessionsStore } from '../stores/sessions'
+import { useUiStore, SIDEBAR_WIDTH_MAX, SIDEBAR_WIDTH_MIN } from '../stores/ui'
+import { useHostsStore } from '../stores/hosts'
 
-const QUICK_HOST_LIMIT = 10;
+const QUICK_HOST_LIMIT = 10
 
-const sessions = useSessionsStore();
-const hosts = useHostsStore();
-const ui = useUiStore();
-const { t, locale, toggleLocale, groupLabel } = useI18n();
-const { metrics, activeSession, connecting } = storeToRefs(sessions);
-const { hosts: hostList } = storeToRefs(hosts);
-const { sidebarCollapsed, sidebarWidth, theme, displayPrefs } = storeToRefs(ui);
+const sessions = useSessionsStore()
+const hosts = useHostsStore()
+const ui = useUiStore()
+const { t, locale, toggleLocale, groupLabel } = useI18n()
+const { metrics, activeSession, connecting } = storeToRefs(sessions)
+const { hosts: hostList } = storeToRefs(hosts)
+const { sidebarCollapsed, sidebarWidth, theme, displayPrefs } = storeToRefs(ui)
 
 /** First N hosts for one-click connect when the sidebar has no live metrics. */
-const quickHosts = computed(() => hostList.value.slice(0, QUICK_HOST_LIMIT));
+const quickHosts = computed(() => hostList.value.slice(0, QUICK_HOST_LIMIT))
 
 async function quickConnect(hostId: string) {
-  if (connecting.value) return;
-  try {
-    await sessions.connect(hostId);
-  } catch {
-    // sessions store already records error; keep sidebar quiet
-  }
+    if (connecting.value) return
+    try {
+        await sessions.connect(hostId)
+    } catch {
+        // sessions store already records error; keep sidebar quiet
+    }
 }
 
-const METRICS_INTERVAL_MS = 1000;
-let metricsTimer: ReturnType<typeof setInterval> | null = null;
-const metricsRefreshing = ref(false);
-const resizing = ref(false);
+const METRICS_INTERVAL_MS = 1000
+let metricsTimer: ReturnType<typeof setInterval> | null = null
+const metricsRefreshing = ref(false)
+const resizing = ref(false)
 
 async function pollMetrics() {
-  if (!activeSession.value || metricsRefreshing.value) return;
-  metricsRefreshing.value = true;
-  try {
-    await sessions.refreshMetrics();
-  } finally {
-    metricsRefreshing.value = false;
-  }
+    if (!activeSession.value || metricsRefreshing.value) return
+    metricsRefreshing.value = true
+    try {
+        await sessions.refreshMetrics()
+    } finally {
+        metricsRefreshing.value = false
+    }
 }
 
 function stopMetricsPolling() {
-  if (metricsTimer) {
-    clearInterval(metricsTimer);
-    metricsTimer = null;
-  }
+    if (metricsTimer) {
+        clearInterval(metricsTimer)
+        metricsTimer = null
+    }
 }
 
 function startMetricsPolling() {
-  stopMetricsPolling();
-  void pollMetrics();
-  metricsTimer = setInterval(() => {
-    void pollMetrics();
-  }, METRICS_INTERVAL_MS);
+    stopMetricsPolling()
+    void pollMetrics()
+    metricsTimer = setInterval(() => {
+        void pollMetrics()
+    }, METRICS_INTERVAL_MS)
 }
 
 watch(
-  activeSession,
-  (session) => {
-    if (session) startMetricsPolling();
-    else stopMetricsPolling();
-  },
-  { immediate: true }
-);
+    activeSession,
+    (session) => {
+        if (session) startMetricsPolling()
+        else stopMetricsPolling()
+    },
+    { immediate: true },
+)
 
 function barClass(pct: number) {
-  if (pct >= 85) return "bar danger";
-  if (pct >= 70) return "bar warn";
-  return "bar";
+    if (pct >= 85) return 'bar danger'
+    if (pct >= 70) return 'bar warn'
+    return 'bar'
 }
 
 function pct(used: number, total: number) {
-  if (!total) return 0;
-  return Math.min(100, Math.round((used / total) * 100));
+    if (!total) return 0
+    return Math.min(100, Math.round((used / total) * 100))
 }
 
 function hostMeta() {
-  if (!activeSession.value) return null;
-  return hosts.findById(activeSession.value.hostId);
+    if (!activeSession.value) return null
+    return hosts.findById(activeSession.value.hostId)
 }
 
 function onResizeStart(ev: MouseEvent) {
-  if (ev.button !== 0 || sidebarCollapsed.value) return;
-  ev.preventDefault();
-  resizing.value = true;
-  const startX = ev.clientX;
-  const startWidth = sidebarWidth.value;
-  const workspace = document.querySelector(".workspace");
-  workspace?.classList.add("is-resizing-sidebar");
+    if (ev.button !== 0 || sidebarCollapsed.value) return
+    ev.preventDefault()
+    resizing.value = true
+    const startX = ev.clientX
+    const startWidth = sidebarWidth.value
+    const workspace = document.querySelector('.workspace')
+    workspace?.classList.add('is-resizing-sidebar')
 
-  function onMove(moveEv: MouseEvent) {
-    const next = startWidth + (moveEv.clientX - startX);
-    ui.setSidebarWidth(Math.min(SIDEBAR_WIDTH_MAX, Math.max(SIDEBAR_WIDTH_MIN, next)));
-  }
+    function onMove(moveEv: MouseEvent) {
+        const next = startWidth + (moveEv.clientX - startX)
+        ui.setSidebarWidth(
+            Math.min(SIDEBAR_WIDTH_MAX, Math.max(SIDEBAR_WIDTH_MIN, next)),
+        )
+    }
 
-  function onUp() {
-    resizing.value = false;
-    workspace?.classList.remove("is-resizing-sidebar");
-    window.removeEventListener("mousemove", onMove);
-    window.removeEventListener("mouseup", onUp);
-    window.dispatchEvent(new Event("resize"));
-  }
+    function onUp() {
+        resizing.value = false
+        workspace?.classList.remove('is-resizing-sidebar')
+        window.removeEventListener('mousemove', onMove)
+        window.removeEventListener('mouseup', onUp)
+        window.dispatchEvent(new Event('resize'))
+    }
 
-  window.addEventListener("mousemove", onMove);
-  window.addEventListener("mouseup", onUp);
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
 }
 
 onBeforeUnmount(() => {
-  stopMetricsPolling();
-  document.querySelector(".workspace")?.classList.remove("is-resizing-sidebar");
-});
+    stopMetricsPolling()
+    document
+        .querySelector('.workspace')
+        ?.classList.remove('is-resizing-sidebar')
+})
 </script>
 
 <template>
-  <aside class="sidebar" :class="{ resizing }">
-    <div
-      v-if="!sidebarCollapsed"
-      class="sidebar-resize-handle"
-      :title="t('sidebar.resize')"
-      @mousedown="onResizeStart"
-    />
-    <div v-if="!sidebarCollapsed" class="sidebar-toolbar">
-      <span class="panel-title">{{ t("sidebar.host") }}</span>
-      <div class="toolbar-actions">
-        <button
-          class="icon-btn lang-btn"
-          type="button"
-          :title="t('sidebar.language')"
-          @click="toggleLocale()"
-        >
-          {{ locale === "zh" ? "EN" : "中" }}
-        </button>
-        <button
-          class="icon-btn"
-          type="button"
-          :title="t('sidebar.settings')"
-          :aria-label="t('sidebar.settings')"
-          @click="ui.openDisplaySettingsModal()"
-        >
-          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-            <path
-              d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.4"
-              stroke-linecap="round"
-            />
-            <circle cx="5.5" cy="4.5" r="1.35" fill="currentColor" />
-            <circle cx="10.5" cy="8" r="1.35" fill="currentColor" />
-            <circle cx="6.5" cy="11.5" r="1.35" fill="currentColor" />
-          </svg>
-        </button>
-        <button
-          class="icon-btn"
-          type="button"
-          :title="theme === 'dark' ? t('sidebar.themeToLight') : t('sidebar.themeToDark')"
-          @click="ui.toggleTheme()"
-        >
-          {{ theme === "dark" ? "☀" : "☾" }}
-        </button>
-        <button class="icon-btn" type="button" :title="t('sidebar.collapse')" @click="sidebarCollapsed = true">«</button>
-      </div>
-    </div>
-
-    <div v-if="sidebarCollapsed" class="sidebar-rail">
-      <button class="icon-btn" type="button" :title="t('sidebar.expand')" @click="sidebarCollapsed = false">»</button>
-      <button
-        class="icon-btn lang-btn"
-        type="button"
-        :title="t('sidebar.language')"
-        @click="toggleLocale()"
-      >
-        {{ locale === "zh" ? "EN" : "中" }}
-      </button>
-      <button
-        class="icon-btn"
-        type="button"
-        :title="t('sidebar.settings')"
-        :aria-label="t('sidebar.settings')"
-        @click="ui.openDisplaySettingsModal()"
-      >
-        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-          <path
-            d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.4"
-            stroke-linecap="round"
-          />
-          <circle cx="5.5" cy="4.5" r="1.35" fill="currentColor" />
-          <circle cx="10.5" cy="8" r="1.35" fill="currentColor" />
-          <circle cx="6.5" cy="11.5" r="1.35" fill="currentColor" />
-        </svg>
-      </button>
-      <button
-        class="icon-btn"
-        type="button"
-        :title="theme === 'dark' ? t('sidebar.themeToLight') : t('sidebar.themeToDark')"
-        @click="ui.toggleTheme()"
-      >
-        {{ theme === "dark" ? "☀" : "☾" }}
-      </button>
-      <span
-        class="rail-status"
-        :class="{ on: !!activeSession, connecting: connecting && !activeSession }"
-        :title="t('sidebar.status')"
-      />
-      <span class="rail-cpu">CPU {{ Math.round(activeSession && metrics ? metrics.cpuPercent : 0) }}%</span>
-    </div>
-
-    <div v-else class="sidebar-body">
-      <div
-        class="host-switcher"
-        :class="{ connected: !!activeSession, connecting: connecting && !activeSession }"
-        role="button"
-        tabindex="0"
-        @click="ui.openHostsModal()"
-      >
-        <span class="status" />
-        <div class="names">
-          <strong>{{ activeSession?.title ?? t("sidebar.disconnected") }}</strong>
-          <span>{{ hostMeta() ? groupLabel(hostMeta()!.group) : t("sidebar.selectHost") }}</span>
-        </div>
-        <span class="chev" aria-hidden="true">
-          <svg viewBox="0 0 16 16" width="14" height="14" fill="none">
-            <path
-              d="M6 3.5 10.5 8 6 12.5"
-              stroke="currentColor"
-              stroke-width="1.6"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-        </span>
-      </div>
-
-      <div class="info-scroll">
-        <div v-if="!activeSession || !metrics" class="info-card muted">
-          <template v-if="connecting">
-            {{ t("sidebar.connecting") }}
-          </template>
-          <div v-else-if="quickHosts.length" class="quick-hosts">
-            <button
-              v-for="host in quickHosts"
-              :key="host.id"
-              type="button"
-              class="quick-host"
-              :title="`${host.host}:${host.port}`"
-              :disabled="connecting"
-              @click="quickConnect(host.id)"
-            >
-              <span class="quick-host-main">
-                <svg
-                  class="quick-host-icon"
-                  viewBox="0 0 16 16"
-                  width="14"
-                  height="14"
-                  fill="none"
-                  aria-hidden="true"
+    <aside class="sidebar" :class="{ resizing }">
+        <div
+            v-if="!sidebarCollapsed"
+            class="sidebar-resize-handle"
+            :title="t('sidebar.resize')"
+            @mousedown="onResizeStart"
+        />
+        <div v-if="!sidebarCollapsed" class="sidebar-toolbar">
+            <span class="panel-title">{{ t('sidebar.host') }}</span>
+            <div class="toolbar-actions">
+                <button
+                    class="icon-btn lang-btn"
+                    type="button"
+                    :title="t('sidebar.language')"
+                    @click="toggleLocale()"
                 >
-                  <rect
-                    x="2.5"
-                    y="2.5"
-                    width="11"
-                    height="8"
-                    rx="1.5"
-                    stroke="currentColor"
-                    stroke-width="1.4"
-                  />
-                  <path
-                    d="M6 13.5h4M8 10.5v3"
-                    stroke="currentColor"
-                    stroke-width="1.4"
-                    stroke-linecap="round"
-                  />
-                </svg>
-                <span class="quick-host-name">{{ host.name }}</span>
-              </span>
-              <span class="quick-host-user">{{ host.username }}</span>
-            </button>
-          </div>
-          <template v-else>
-            {{ t("displaySettings.sidebarEmpty") }}
-          </template>
+                    {{ locale === 'zh' ? 'EN' : '中' }}
+                </button>
+                <button
+                    class="icon-btn"
+                    type="button"
+                    :title="t('sidebar.settings')"
+                    :aria-label="t('sidebar.settings')"
+                    @click="ui.openDisplaySettingsModal()"
+                >
+                    <svg
+                        viewBox="0 0 16 16"
+                        width="14"
+                        height="14"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.4"
+                            stroke-linecap="round"
+                        />
+                        <circle
+                            cx="5.5"
+                            cy="4.5"
+                            r="1.35"
+                            fill="currentColor"
+                        />
+                        <circle cx="10.5" cy="8" r="1.35" fill="currentColor" />
+                        <circle
+                            cx="6.5"
+                            cy="11.5"
+                            r="1.35"
+                            fill="currentColor"
+                        />
+                    </svg>
+                </button>
+                <button
+                    class="icon-btn"
+                    type="button"
+                    :title="
+                        theme === 'dark'
+                            ? t('sidebar.themeToLight')
+                            : t('sidebar.themeToDark')
+                    "
+                    @click="ui.toggleTheme()"
+                >
+                    {{ theme === 'dark' ? '☀' : '☾' }}
+                </button>
+                <button
+                    class="icon-btn"
+                    type="button"
+                    :title="t('sidebar.collapse')"
+                    @click="sidebarCollapsed = true"
+                >
+                    «
+                </button>
+            </div>
         </div>
-        <template v-else>
-          <div v-if="displayPrefs.sidebar.system" class="info-card">
-            <h3>{{ t("sidebar.system") }}</h3>
-            <dl class="kv">
-              <dt>IP</dt><dd>{{ metrics.ip }}</dd>
-              <dt>{{ t("sidebar.os") }}</dt><dd>{{ metrics.os || "—" }}</dd>
-              <dt>{{ t("sidebar.kernel") }}</dt><dd>{{ metrics.kernel || "—" }}</dd>
-              <dt>{{ t("sidebar.arch") }}</dt><dd>{{ metrics.arch || "—" }}</dd>
-              <dt>{{ t("sidebar.uptime") }}</dt><dd>{{ t("sidebar.days", { n: metrics.uptimeDays }) }}</dd>
-            </dl>
-          </div>
 
-          <div v-if="displayPrefs.sidebar.resources" class="info-card">
-            <h3>{{ t("sidebar.resources") }}</h3>
-            <div class="metric">
-              <span class="label">CPU</span>
-              <div :class="barClass(metrics.cpuPercent)">
-                <i :style="{ width: metrics.cpuPercent + '%' }" />
-                <span class="value">{{ Math.round(metrics.cpuPercent) }}%</span>
-              </div>
-            </div>
-            <div class="metric">
-              <span class="label">{{ t("sidebar.memory") }}</span>
-              <div :class="barClass(pct(metrics.memUsedGiB, metrics.memTotalGiB))">
-                <i :style="{ width: pct(metrics.memUsedGiB, metrics.memTotalGiB) + '%' }" />
-                <span class="value">{{ metrics.memUsedGiB.toFixed(1) }} / {{ metrics.memTotalGiB.toFixed(1) }} GiB</span>
-              </div>
-            </div>
-            <div class="metric">
-              <span class="label">{{ t("sidebar.swap") }}</span>
-              <div :class="barClass(pct(metrics.swapUsedMiB, metrics.swapTotalMiB))">
-                <i :style="{ width: pct(metrics.swapUsedMiB, metrics.swapTotalMiB) + '%' }" />
-                <span class="value">{{ Math.round(metrics.swapUsedMiB) }} / {{ Math.round(metrics.swapTotalMiB) }} MiB</span>
-              </div>
-            </div>
-            <div class="metric">
-              <span class="label">{{ t("sidebar.disk") }}</span>
-              <div :class="barClass(pct(metrics.diskUsedGiB, metrics.diskTotalGiB))">
-                <i :style="{ width: pct(metrics.diskUsedGiB, metrics.diskTotalGiB) + '%' }" />
-                <span class="value">{{ metrics.diskUsedGiB.toFixed(1) }} / {{ metrics.diskTotalGiB.toFixed(1) }} GiB</span>
-              </div>
-            </div>
-          </div>
+        <div v-if="sidebarCollapsed" class="sidebar-rail">
+            <button
+                class="icon-btn"
+                type="button"
+                :title="t('sidebar.expand')"
+                @click="sidebarCollapsed = false"
+            >
+                »
+            </button>
+            <button
+                class="icon-btn lang-btn"
+                type="button"
+                :title="t('sidebar.language')"
+                @click="toggleLocale()"
+            >
+                {{ locale === 'zh' ? 'EN' : '中' }}
+            </button>
+            <button
+                class="icon-btn"
+                type="button"
+                :title="t('sidebar.settings')"
+                :aria-label="t('sidebar.settings')"
+                @click="ui.openDisplaySettingsModal()"
+            >
+                <svg
+                    viewBox="0 0 16 16"
+                    width="14"
+                    height="14"
+                    aria-hidden="true"
+                >
+                    <path
+                        d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                        stroke-linecap="round"
+                    />
+                    <circle cx="5.5" cy="4.5" r="1.35" fill="currentColor" />
+                    <circle cx="10.5" cy="8" r="1.35" fill="currentColor" />
+                    <circle cx="6.5" cy="11.5" r="1.35" fill="currentColor" />
+                </svg>
+            </button>
+            <button
+                class="icon-btn"
+                type="button"
+                :title="
+                    theme === 'dark'
+                        ? t('sidebar.themeToLight')
+                        : t('sidebar.themeToDark')
+                "
+                @click="ui.toggleTheme()"
+            >
+                {{ theme === 'dark' ? '☀' : '☾' }}
+            </button>
+            <span
+                class="rail-status"
+                :class="{
+                    on: !!activeSession,
+                    connecting: connecting && !activeSession,
+                }"
+                :title="t('sidebar.status')"
+            />
+            <span class="rail-cpu"
+                >CPU
+                {{
+                    Math.round(
+                        activeSession && metrics ? metrics.cpuPercent : 0,
+                    )
+                }}%</span
+            >
+        </div>
 
-          <div v-if="displayPrefs.sidebar.processes" class="info-card">
-            <h3>{{ t("sidebar.processes") }}</h3>
-            <div v-if="metrics.topProcesses.length" class="process-table">
-              <div class="process-head">
-                <span>{{ t("sidebar.process") }}</span>
-                <span>{{ t("sidebar.memory") }}</span>
-                <span>CPU</span>
-              </div>
-              <div
-                v-for="(process, index) in metrics.topProcesses"
-                :key="`${process.name}-${index}`"
-                class="process-row"
-              >
-                <span class="process-name" :title="process.name">{{ process.name }}</span>
-                <span>{{ process.memoryMiB.toFixed(1) }} MiB</span>
-                <span>{{ process.cpuPercent.toFixed(1) }}%</span>
-              </div>
+        <div v-else class="sidebar-body">
+            <div
+                class="host-switcher"
+                :class="{
+                    connected: !!activeSession,
+                    connecting: connecting && !activeSession,
+                }"
+                role="button"
+                tabindex="0"
+                @click="ui.openHostsModal()"
+            >
+                <span class="status" />
+                <div class="names">
+                    <strong>{{
+                        activeSession?.title ?? t('sidebar.disconnected')
+                    }}</strong>
+                    <span>{{
+                        hostMeta()
+                            ? groupLabel(hostMeta()!.group)
+                            : t('sidebar.selectHost')
+                    }}</span>
+                </div>
+                <span class="chev" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none">
+                        <path
+                            d="M6 3.5 10.5 8 6 12.5"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
+                </span>
             </div>
-            <div v-else class="process-empty">{{ t("sidebar.noProcesses") }}</div>
-          </div>
 
-          <div v-if="displayPrefs.sidebar.network" class="info-card">
-            <h3>{{ t("sidebar.network", { iface: metrics.netIface }) }}</h3>
-            <div class="net-row">
-              <span class="dir">↓ RX</span>
-              <span class="rate">{{ metrics.netRxMBs.toFixed(1) }} MB/s</span>
-              <span class="total">{{ t("sidebar.totalGb", { n: metrics.netRxTotalGB.toFixed(0) }) }}</span>
-            </div>
-            <div class="net-row">
-              <span class="dir">↑ TX</span>
-              <span class="rate">{{ metrics.netTxKBs.toFixed(0) }} KB/s</span>
-              <span class="total">{{ t("sidebar.totalGb", { n: metrics.netTxTotalGB.toFixed(0) }) }}</span>
-            </div>
-          </div>
+            <div class="info-scroll">
+                <div v-if="!activeSession || !metrics" class="info-card muted">
+                    <template v-if="connecting">
+                        {{ t('sidebar.connecting') }}
+                    </template>
+                    <div v-else-if="quickHosts.length" class="quick-hosts">
+                        <button
+                            v-for="host in quickHosts"
+                            :key="host.id"
+                            type="button"
+                            class="quick-host"
+                            :title="`${host.host}:${host.port}`"
+                            :disabled="connecting"
+                            @click="quickConnect(host.id)"
+                        >
+                            <span class="quick-host-main">
+                                <svg
+                                    class="quick-host-icon"
+                                    viewBox="0 0 16 16"
+                                    width="14"
+                                    height="14"
+                                    fill="none"
+                                    aria-hidden="true"
+                                >
+                                    <rect
+                                        x="2.5"
+                                        y="2.5"
+                                        width="11"
+                                        height="8"
+                                        rx="1.5"
+                                        stroke="currentColor"
+                                        stroke-width="1.4"
+                                    />
+                                    <path
+                                        d="M6 13.5h4M8 10.5v3"
+                                        stroke="currentColor"
+                                        stroke-width="1.4"
+                                        stroke-linecap="round"
+                                    />
+                                </svg>
+                                <span class="quick-host-name">{{
+                                    host.name
+                                }}</span>
+                            </span>
+                            <span class="quick-host-user">{{
+                                host.username
+                            }}</span>
+                        </button>
+                    </div>
+                    <template v-else>
+                        {{ t('displaySettings.sidebarEmpty') }}
+                    </template>
+                </div>
+                <template v-else>
+                    <div v-if="displayPrefs.sidebar.system" class="info-card">
+                        <h3>{{ t('sidebar.system') }}</h3>
+                        <dl class="kv">
+                            <dt>IP</dt>
+                            <dd>{{ metrics.ip }}</dd>
+                            <dt>{{ t('sidebar.os') }}</dt>
+                            <dd>{{ metrics.os || '—' }}</dd>
+                            <dt>{{ t('sidebar.kernel') }}</dt>
+                            <dd>{{ metrics.kernel || '—' }}</dd>
+                            <dt>{{ t('sidebar.arch') }}</dt>
+                            <dd>{{ metrics.arch || '—' }}</dd>
+                            <dt>{{ t('sidebar.uptime') }}</dt>
+                            <dd>
+                                {{
+                                    t('sidebar.days', { n: metrics.uptimeDays })
+                                }}
+                            </dd>
+                        </dl>
+                    </div>
 
-          <div
-            v-if="
-              !displayPrefs.sidebar.system &&
-              !displayPrefs.sidebar.resources &&
-              !displayPrefs.sidebar.processes &&
-              !displayPrefs.sidebar.network
-            "
-            class="info-card muted"
-          >
-            {{ t("displaySettings.sidebarEmpty") }}
-          </div>
-        </template>
-      </div>
-    </div>
-  </aside>
+                    <div
+                        v-if="displayPrefs.sidebar.resources"
+                        class="info-card"
+                    >
+                        <h3>{{ t('sidebar.resources') }}</h3>
+                        <div class="metric">
+                            <span class="label">CPU</span>
+                            <div :class="barClass(metrics.cpuPercent)">
+                                <i
+                                    :style="{ width: metrics.cpuPercent + '%' }"
+                                />
+                                <span class="value"
+                                    >{{ Math.round(metrics.cpuPercent) }}%</span
+                                >
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <span class="label">{{ t('sidebar.memory') }}</span>
+                            <div
+                                :class="
+                                    barClass(
+                                        pct(
+                                            metrics.memUsedGiB,
+                                            metrics.memTotalGiB,
+                                        ),
+                                    )
+                                "
+                            >
+                                <i
+                                    :style="{
+                                        width:
+                                            pct(
+                                                metrics.memUsedGiB,
+                                                metrics.memTotalGiB,
+                                            ) + '%',
+                                    }"
+                                />
+                                <span class="value"
+                                    >{{ metrics.memUsedGiB.toFixed(1) }} /
+                                    {{ metrics.memTotalGiB.toFixed(1) }}
+                                    GiB</span
+                                >
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <span class="label">{{ t('sidebar.swap') }}</span>
+                            <div
+                                :class="
+                                    barClass(
+                                        pct(
+                                            metrics.swapUsedMiB,
+                                            metrics.swapTotalMiB,
+                                        ),
+                                    )
+                                "
+                            >
+                                <i
+                                    :style="{
+                                        width:
+                                            pct(
+                                                metrics.swapUsedMiB,
+                                                metrics.swapTotalMiB,
+                                            ) + '%',
+                                    }"
+                                />
+                                <span class="value"
+                                    >{{ Math.round(metrics.swapUsedMiB) }} /
+                                    {{ Math.round(metrics.swapTotalMiB) }}
+                                    MiB</span
+                                >
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <span class="label">{{ t('sidebar.disk') }}</span>
+                            <div
+                                :class="
+                                    barClass(
+                                        pct(
+                                            metrics.diskUsedGiB,
+                                            metrics.diskTotalGiB,
+                                        ),
+                                    )
+                                "
+                            >
+                                <i
+                                    :style="{
+                                        width:
+                                            pct(
+                                                metrics.diskUsedGiB,
+                                                metrics.diskTotalGiB,
+                                            ) + '%',
+                                    }"
+                                />
+                                <span class="value"
+                                    >{{ metrics.diskUsedGiB.toFixed(1) }} /
+                                    {{ metrics.diskTotalGiB.toFixed(1) }}
+                                    GiB</span
+                                >
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="displayPrefs.sidebar.processes"
+                        class="info-card"
+                    >
+                        <h3>{{ t('sidebar.processes') }}</h3>
+                        <div
+                            v-if="metrics.topProcesses.length"
+                            class="process-table"
+                        >
+                            <div class="process-head">
+                                <span>{{ t('sidebar.process') }}</span>
+                                <span>{{ t('sidebar.memory') }}</span>
+                                <span>CPU</span>
+                            </div>
+                            <div
+                                v-for="(process, index) in metrics.topProcesses"
+                                :key="`${process.name}-${index}`"
+                                class="process-row"
+                            >
+                                <span
+                                    class="process-name"
+                                    :title="process.name"
+                                    >{{ process.name }}</span
+                                >
+                                <span
+                                    >{{
+                                        process.memoryMiB.toFixed(1)
+                                    }}
+                                    MiB</span
+                                >
+                                <span
+                                    >{{ process.cpuPercent.toFixed(1) }}%</span
+                                >
+                            </div>
+                        </div>
+                        <div v-else class="process-empty">
+                            {{ t('sidebar.noProcesses') }}
+                        </div>
+                    </div>
+
+                    <div v-if="displayPrefs.sidebar.network" class="info-card">
+                        <h3>
+                            {{
+                                t('sidebar.network', {
+                                    iface: metrics.netIface,
+                                })
+                            }}
+                        </h3>
+                        <div class="net-row">
+                            <span class="dir">↓ RX</span>
+                            <span class="rate"
+                                >{{ metrics.netRxMBs.toFixed(1) }} MB/s</span
+                            >
+                            <span class="total">{{
+                                t('sidebar.totalGb', {
+                                    n: metrics.netRxTotalGB.toFixed(0),
+                                })
+                            }}</span>
+                        </div>
+                        <div class="net-row">
+                            <span class="dir">↑ TX</span>
+                            <span class="rate"
+                                >{{ metrics.netTxKBs.toFixed(0) }} KB/s</span
+                            >
+                            <span class="total">{{
+                                t('sidebar.totalGb', {
+                                    n: metrics.netTxTotalGB.toFixed(0),
+                                })
+                            }}</span>
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="
+                            !displayPrefs.sidebar.system &&
+                            !displayPrefs.sidebar.resources &&
+                            !displayPrefs.sidebar.processes &&
+                            !displayPrefs.sidebar.network
+                        "
+                        class="info-card muted"
+                    >
+                        {{ t('displaySettings.sidebarEmpty') }}
+                    </div>
+                </template>
+            </div>
+        </div>
+    </aside>
 </template>
 
 <style scoped>
 .sidebar {
-  position: relative;
-  background: var(--bg-panel);
-  border-right: 1px solid var(--border-soft);
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
+    position: relative;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border-soft);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .sidebar-resize-handle {
-  position: absolute;
-  top: 0;
-  right: -3px;
-  z-index: 5;
-  width: 6px;
-  height: 100%;
-  cursor: ew-resize;
+    position: absolute;
+    top: 0;
+    right: -3px;
+    z-index: 5;
+    width: 6px;
+    height: 100%;
+    cursor: ew-resize;
 }
 
 .sidebar-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 4px 0 10px;
-  min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 4px 0 10px;
+    min-height: 32px;
 }
 
 .toolbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 0;
+    display: flex;
+    align-items: center;
+    gap: 0;
 }
 
 .lang-btn {
-  font-size: 11px;
-  /* font-weight: 700; */
-  letter-spacing: 0.02em;
+    font-size: 11px;
+    /* font-weight: 700; */
+    letter-spacing: 0.02em;
 }
 
 .panel-title {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--text-dim);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-dim);
 }
 
 .sidebar-rail {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 6px 0 10px;
-  gap: 6px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 0 10px;
+    gap: 6px;
 }
 
 .rail-status {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--text-dim);
-  box-shadow: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    box-shadow: none;
 }
 
 .rail-status.on {
-  background: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+    background: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .rail-status.connecting {
-  background: var(--warn);
-  box-shadow: 0 0 0 3px var(--warn-dim);
+    background: var(--warn);
+    box-shadow: 0 0 0 3px var(--warn-dim);
 }
 
 .rail-cpu {
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-dim);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
 }
 
 .sidebar-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 .host-switcher {
-  margin: 6px 8px 0;
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg-elevated);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+    margin: 6px 8px 0;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition:
+        border-color 0.15s ease,
+        background 0.15s ease;
 }
 
 .host-switcher:hover {
-  background: var(--bg-hover);
+    background: var(--bg-hover);
 }
 
 .host-switcher.connected {
-  border-color: var(--accent-border);
-  background: var(--accent-dim);
+    border-color: var(--accent-border);
+    background: var(--accent-dim);
 }
 
 .host-switcher.connecting {
-  border-color: rgba(230, 162, 60, 0.35);
-  background: var(--warn-dim);
+    border-color: rgba(230, 162, 60, 0.35);
+    background: var(--warn-dim);
 }
 
 .host-switcher .status {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--text-dim);
-  box-shadow: none;
-  flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    box-shadow: none;
+    flex-shrink: 0;
 }
 
 .host-switcher.connected .status {
-  background: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+    background: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .host-switcher.connecting .status {
-  background: var(--warn);
-  box-shadow: 0 0 0 3px var(--warn-dim);
+    background: var(--warn);
+    box-shadow: 0 0 0 3px var(--warn-dim);
 }
 
-.names { flex: 1; min-width: 0; }
-.names strong { display: block; font-size: 13px; }
-.names span { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+.names {
+    flex: 1;
+    min-width: 0;
+}
+.names strong {
+    display: block;
+    font-size: 13px;
+}
+.names span {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
 .chev {
-  color: var(--text-dim);
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  transition: color 0.15s ease, transform 0.15s ease;
+    color: var(--text-dim);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    transition:
+        color 0.15s ease,
+        transform 0.15s ease;
 }
 
 .host-switcher:hover .chev {
-  color: var(--accent);
-  transform: translateX(1px);
+    color: var(--accent);
+    transform: translateX(1px);
 }
 
 .info-scroll {
-  flex: 1;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding: 6px 8px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+    flex: 1;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 6px 8px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .info-card {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  border-radius: 6px;
-  padding: 8px 10px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    padding: 8px 10px;
 }
 
 .info-card.muted {
-  color: var(--text-muted);
-  font-size: 13px;
-  line-height: 1.4;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.4;
 }
 
 .quick-hosts {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .quick-host {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-  margin: 0;
-  padding: 5px 8px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  font-size: 13px;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    margin: 0;
+    padding: 5px 8px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        background 0.12s ease,
+        color 0.12s ease;
 }
 
 .quick-host-main {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
 }
 
 .quick-host-icon {
-  flex-shrink: 0;
-  color: var(--text-dim);
+    flex-shrink: 0;
+    color: var(--text-dim);
 }
 
 .quick-host-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .quick-host-user {
-  flex-shrink: 0;
-  max-width: 42%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--text-muted);
+    flex-shrink: 0;
+    max-width: 42%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
 }
 
 .quick-host:hover:not(:disabled) {
-  background: var(--bg-hover);
-  color: var(--accent);
+    background: var(--bg-hover);
+    color: var(--accent);
 }
 
 .quick-host:hover:not(:disabled) .quick-host-icon,
 .quick-host:hover:not(:disabled) .quick-host-user {
-  color: var(--accent);
+    color: var(--accent);
 }
 
 .quick-host:disabled {
-  opacity: 0.55;
-  cursor: default;
+    opacity: 0.55;
+    cursor: default;
 }
 
 .info-card h3 {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--text-dim);
-  margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
 }
 
 .kv {
-  display: grid;
-  grid-template-columns: 68px 1fr;
-  gap: 4px 6px;
-  font-size: 13px;
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    gap: 4px 6px;
+    font-size: 13px;
 }
 
-.kv dt { color: var(--text-dim); font-size: 12px; }
-.kv dd { font-family: var(--font-mono); font-size: 12.5px; word-break: break-all; }
+.kv dt {
+    color: var(--text-dim);
+    font-size: 12px;
+}
+.kv dd {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    word-break: break-all;
+}
 
 .metric {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 6px;
-  align-items: center;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 6px;
+    align-items: center;
 }
-.metric + .metric { margin-top: 5px; }
+.metric + .metric {
+    margin-top: 5px;
+}
 .metric .label {
-  font-size: 12px;
-  color: var(--text-dim);
+    font-size: 12px;
+    color: var(--text-dim);
 }
 
 .bar {
-  position: relative;
-  height: 16px;
-  border-radius: 999px;
-  background: var(--bg-root);
-  overflow: hidden;
-  border: 1px solid var(--border-soft);
-  min-width: 0;
+    position: relative;
+    height: 16px;
+    border-radius: 999px;
+    background: var(--bg-root);
+    overflow: hidden;
+    border: 1px solid var(--border-soft);
+    min-width: 0;
 }
 .bar > i {
-  display: block;
-  height: 100%;
-  background: var(--accent);
+    display: block;
+    height: 100%;
+    background: var(--accent);
 }
-.bar.warn > i { background: var(--warn); }
-.bar.danger > i { background: var(--danger); }
+.bar.warn > i {
+    background: var(--warn);
+}
+.bar.danger > i {
+    background: var(--danger);
+}
 .bar .value {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  font-family: var(--font-mono);
-  font-size: 12.5px;
-  color: var(--text);
-  text-shadow: 0 0 3px var(--bg-root);
-  pointer-events: none;
-  white-space: nowrap;
-  padding: 0 8px;
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--text);
+    text-shadow: 0 0 3px var(--bg-root);
+    pointer-events: none;
+    white-space: nowrap;
+    padding: 0 8px;
 }
 
 .process-table {
-  font-family: var(--font-mono);
-  font-size: 12px;
+    font-family: var(--font-mono);
+    font-size: 12px;
 }
 
 .process-head,
 .process-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 68px 42px;
-  gap: 6px;
-  align-items: center;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 68px 42px;
+    gap: 6px;
+    align-items: center;
 }
 
 .process-head {
-  padding-bottom: 4px;
-  color: var(--text-dim);
-  border-bottom: 1px solid var(--border-soft);
+    padding-bottom: 4px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border-soft);
 }
 
 .process-row {
-  padding: 3px 0;
-  color: var(--text-muted);
-  border-bottom: 1px solid var(--border-soft);
+    padding: 3px 0;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-soft);
 }
 
-.process-row:last-child { border-bottom: none; }
-.process-head span:not(:first-child),
-.process-row span:not(:first-child) { text-align: right; }
-.process-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text);
+.process-row:last-child {
+    border-bottom: none;
 }
-.process-empty { color: var(--text-dim); font-size: 12px; }
+.process-head span:not(:first-child),
+.process-row span:not(:first-child) {
+    text-align: right;
+}
+.process-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text);
+}
+.process-empty {
+    color: var(--text-dim);
+    font-size: 12px;
+}
 
 .net-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  font-size: 12.5px;
-  padding: 2px 0;
-  font-family: var(--font-mono);
-  white-space: nowrap;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    padding: 2px 0;
+    font-family: var(--font-mono);
+    white-space: nowrap;
 }
 .net-row .dir {
-  flex-shrink: 0;
-  width: 3.2em;
-  color: var(--text-dim);
+    flex-shrink: 0;
+    width: 3.2em;
+    color: var(--text-dim);
 }
-.net-row .rate { color: var(--term-cyan); }
-.net-row .total { color: var(--text-muted); font-size: 11.5px; }
+.net-row .rate {
+    color: var(--term-cyan);
+}
+.net-row .total {
+    color: var(--text-muted);
+    font-size: 11.5px;
+}
 </style>
