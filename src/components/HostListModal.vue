@@ -46,12 +46,12 @@ const confirmBusy = ref(false)
 const nameDialogTitle = computed(() =>
     nameDialog.value?.mode === 'rename'
         ? t('hosts.rename')
-        : t('hosts.addGroup')
+        : t('hosts.addGroup'),
 )
 const nameDialogLabel = computed(() =>
     nameDialog.value?.mode === 'rename'
         ? t('hosts.renameGroupPrompt')
-        : t('hosts.newGroupPrompt')
+        : t('hosts.newGroupPrompt'),
 )
 const confirmMessage = computed(() => {
     const dialog = confirmDialog.value
@@ -64,7 +64,7 @@ const confirmMessage = computed(() => {
 function persistCollapsed() {
     localStorage.setItem(
         COLLAPSED_GROUPS_KEY,
-        JSON.stringify([...collapsedGroups.value])
+        JSON.stringify([...collapsedGroups.value]),
     )
 }
 
@@ -82,11 +82,11 @@ watch(
         if (open.length <= 1) return
         const keep = open[0]
         collapsedGroups.value = new Set(
-            list.map(([g]) => g).filter((g) => g !== keep)
+            list.map(([g]) => g).filter((g) => g !== keep),
         )
         persistCollapsed()
     },
-    { immediate: true }
+    { immediate: true },
 )
 
 function isGroupOpen(group: string) {
@@ -227,7 +227,11 @@ function onBackdrop(e: MouseEvent) {
 
 <template>
     <div class="overlay" @click="onBackdrop">
-        <div class="modal hosts-modal" role="dialog" aria-labelledby="hostsTitle">
+        <div
+            class="modal hosts-modal"
+            role="dialog"
+            aria-labelledby="hostsTitle"
+        >
             <div class="modal-head">
                 <div>
                     <h2 id="hostsTitle">{{ t('hosts.title') }}</h2>
@@ -236,17 +240,17 @@ function onBackdrop(e: MouseEvent) {
                 <div class="modal-tools">
                     <button
                         type="button"
-                        class="btn primary"
-                        @click="ui.openConnectModal(null)"
-                    >
-                        {{ t('hosts.addConnection') }}
-                    </button>
-                    <button
-                        type="button"
                         class="btn ghost"
                         @click="openCreateGroup"
                     >
                         {{ t('hosts.addGroup') }}
+                    </button>
+                    <button
+                        type="button"
+                        class="btn primary"
+                        @click="ui.openConnectModal(null)"
+                    >
+                        {{ t('hosts.addConnection') }}
                     </button>
                     <button
                         type="button"
@@ -349,9 +353,9 @@ function onBackdrop(e: MouseEvent) {
                                     <div class="meta">
                                         <strong>{{ host.name }}</strong>
                                         <span>
-                                            {{ host.username }}@{{ host.host }}:{{
-                                                host.port
-                                            }}
+                                            {{ host.username }}@{{
+                                                host.host
+                                            }}:{{ host.port }}
                                             ·
                                             {{
                                                 host.authType === 'password'
@@ -359,11 +363,9 @@ function onBackdrop(e: MouseEvent) {
                                                     : t('hosts.authKey')
                                             }}
                                         </span>
-                                        <span
-                                            v-if="host.note"
-                                            class="note"
-                                            >{{ host.note }}</span
-                                        >
+                                        <span v-if="host.note" class="note">{{
+                                            host.note
+                                        }}</span>
                                     </div>
                                     <div class="row-actions" @click.stop>
                                         <button
@@ -374,7 +376,12 @@ function onBackdrop(e: MouseEvent) {
                                             :disabled="!!connectingHostId"
                                             @click="ui.openConnectModal(host)"
                                         >
-                                            <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                                            <svg
+                                                viewBox="0 0 16 16"
+                                                width="13"
+                                                height="13"
+                                                aria-hidden="true"
+                                            >
                                                 <path
                                                     d="M9.2 3.6 12.4 6.8M3.5 12.5l1.1-3.9L11.2 2l3.1 3.1-6.6 6.6-3.9 1.1z"
                                                     fill="none"
@@ -388,7 +395,11 @@ function onBackdrop(e: MouseEvent) {
                                         <button
                                             type="button"
                                             class="row-icon-btn primary"
-                                            :class="{ busy: connectingHostId === host.id }"
+                                            :class="{
+                                                busy:
+                                                    connectingHostId ===
+                                                    host.id,
+                                            }"
                                             :title="
                                                 connectingHostId === host.id
                                                     ? t('common.connecting')
@@ -403,7 +414,9 @@ function onBackdrop(e: MouseEvent) {
                                             @click="connect(host.id)"
                                         >
                                             <svg
-                                                v-if="connectingHostId !== host.id"
+                                                v-if="
+                                                    connectingHostId !== host.id
+                                                "
                                                 viewBox="0 0 16 16"
                                                 width="13"
                                                 height="13"
@@ -414,7 +427,11 @@ function onBackdrop(e: MouseEvent) {
                                                     fill="currentColor"
                                                 />
                                             </svg>
-                                            <span v-else class="row-spin" aria-hidden="true" />
+                                            <span
+                                                v-else
+                                                class="row-spin"
+                                                aria-hidden="true"
+                                            />
                                         </button>
                                         <button
                                             type="button"
@@ -422,9 +439,19 @@ function onBackdrop(e: MouseEvent) {
                                             :title="t('common.delete')"
                                             :aria-label="t('common.delete')"
                                             :disabled="!!connectingHostId"
-                                            @click="openRemoveHost(host.id, host.name)"
+                                            @click="
+                                                openRemoveHost(
+                                                    host.id,
+                                                    host.name,
+                                                )
+                                            "
                                         >
-                                            <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                                            <svg
+                                                viewBox="0 0 16 16"
+                                                width="13"
+                                                height="13"
+                                                aria-hidden="true"
+                                            >
                                                 <path
                                                     d="M3.5 5h9M6 5V3.8h4V5M5.2 5l.5 7.2h4.6L10.8 5"
                                                     fill="none"
@@ -547,7 +574,7 @@ function onBackdrop(e: MouseEvent) {
 
 .hosts-modal {
     width: min(560px, 100%);
-    min-height: min(560px, calc(100vh - 48px));
+    min-height: min(360px, calc(100vh - 48px));
 }
 
 .hosts-modal :deep(.modal-head) {
@@ -576,7 +603,9 @@ function onBackdrop(e: MouseEvent) {
     border-radius: 8px;
     overflow: hidden;
     background: var(--bg-elevated);
-    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    transition:
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
 }
 
 .mgr-group.open {
@@ -595,7 +624,9 @@ function onBackdrop(e: MouseEvent) {
     font-weight: 600;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.2s ease;
+    transition:
+        background 0.15s ease,
+        border-color 0.2s ease;
 }
 
 .mgr-group.open .mgr-group-head {
@@ -615,7 +646,10 @@ function onBackdrop(e: MouseEvent) {
     color: var(--text-dim);
     background: var(--bg-root);
     border: 1px solid var(--border-soft);
-    transition: transform 0.22s ease, color 0.15s ease, border-color 0.15s ease;
+    transition:
+        transform 0.22s ease,
+        color 0.15s ease,
+        border-color 0.15s ease;
 }
 
 .mgr-group:not(.open) .chev {
