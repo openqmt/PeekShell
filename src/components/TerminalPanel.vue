@@ -333,7 +333,7 @@ function onTermContextMenu(ev: MouseEvent) {
         !!entry?.term.hasSelection() && !!entry.term.getSelection()
     const pad = 8
     const menuW = 180
-    const menuH = hasSelection ? 180 : 120
+    const menuH = hasSelection ? 200 : 148
     const x = Math.min(ev.clientX, window.innerWidth - menuW - pad)
     const y = Math.min(ev.clientY, window.innerHeight - menuH - pad)
     ctxMenu.value = { x: Math.max(pad, x), y: Math.max(pad, y), hasSelection }
@@ -916,11 +916,11 @@ onBeforeUnmount(() => {
                     <button type="button" class="ctx-item" @click="ctxCopy">
                         {{ t('terminal.ctxCopy') }}
                     </button>
-                    <button type="button" class="ctx-item" @click="ctxPaste">
-                        {{ t('terminal.ctxPaste') }}
-                    </button>
                     <div class="ctx-sep" />
                 </template>
+                <button type="button" class="ctx-item" @click="ctxPaste">
+                    {{ t('terminal.ctxPaste') }}
+                </button>
                 <button type="button" class="ctx-item" @click="ctxFind">
                     {{ t('terminal.ctxFind') }}
                 </button>
