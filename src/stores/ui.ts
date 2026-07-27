@@ -42,11 +42,11 @@ const AI_PANEL_WIDTH_KEY = 'peekshell.aiPanelWidth'
 const SIDEBAR_WIDTH_KEY = 'peekshell.sidebarWidth'
 
 export const AI_PANEL_WIDTH_DEFAULT = 380
-export const AI_PANEL_WIDTH_MIN = 240
+export const AI_PANEL_WIDTH_MIN = 260
 export const AI_PANEL_WIDTH_MAX = 640
 
 export const SIDEBAR_WIDTH_DEFAULT = 300
-export const SIDEBAR_WIDTH_MIN = 180
+export const SIDEBAR_WIDTH_MIN = 220
 export const SIDEBAR_WIDTH_MAX = 420
 
 function clampAiPanelWidth(value: number) {
