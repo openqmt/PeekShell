@@ -559,7 +559,7 @@ onBeforeUnmount(() => {
 
 .info-card.muted {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
 }
 
@@ -582,7 +582,7 @@ onBeforeUnmount(() => {
   background: transparent;
   color: var(--text);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   text-align: left;
   cursor: pointer;
   transition: background 0.12s ease, color 0.12s ease;
@@ -614,7 +614,7 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
@@ -634,7 +634,7 @@ onBeforeUnmount(() => {
 }
 
 .info-card h3 {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -644,13 +644,13 @@ onBeforeUnmount(() => {
 
 .kv {
   display: grid;
-  grid-template-columns: 64px 1fr;
+  grid-template-columns: 68px 1fr;
   gap: 4px 6px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
-.kv dt { color: var(--text-dim); font-size: 11px; }
-.kv dd { font-family: var(--font-mono); font-size: 11.5px; word-break: break-all; }
+.kv dt { color: var(--text-dim); font-size: 12px; }
+.kv dd { font-family: var(--font-mono); font-size: 12.5px; word-break: break-all; }
 
 .metric {
   display: grid;
@@ -660,7 +660,7 @@ onBeforeUnmount(() => {
 }
 .metric + .metric { margin-top: 5px; }
 .metric .label {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-dim);
 }
 
@@ -687,7 +687,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: flex-end;
   font-family: var(--font-mono);
-  font-size: 11.5px;
+  font-size: 12.5px;
   color: var(--text);
   text-shadow: 0 0 3px var(--bg-root);
   pointer-events: none;
@@ -697,7 +697,7 @@ onBeforeUnmount(() => {
 
 .process-table {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 12px;
 }
 
 .process-head,
@@ -729,17 +729,23 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   color: var(--text);
 }
-.process-empty { color: var(--text-dim); font-size: 11px; }
+.process-empty { color: var(--text-dim); font-size: 12px; }
 
 .net-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 11.5px;
+  gap: 8px;
+  font-size: 12.5px;
   padding: 2px 0;
   font-family: var(--font-mono);
+  white-space: nowrap;
 }
-.net-row .dir { color: var(--text-dim); width: 28px; }
+.net-row .dir {
+  flex-shrink: 0;
+  width: 3.2em;
+  color: var(--text-dim);
+}
 .net-row .rate { color: var(--term-cyan); }
-.net-row .total { color: var(--text-muted); font-size: 10.5px; }
+.net-row .total { color: var(--text-muted); font-size: 11.5px; }
 </style>

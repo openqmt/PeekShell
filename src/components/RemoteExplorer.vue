@@ -45,7 +45,8 @@ const ATTR_COL_WIDTHS: Record<AttrColKey, string> = {
   colName: "minmax(120px, 1.6fr)",
   colSize: "72px",
   colType: "88px",
-  colModified: "118px",
+  // Fits `YYYY-MM-DD HH:MM` at the attr-row mono size without wrapping.
+  colModified: "148px",
   colPermissions: "88px",
   colGroup: "72px",
 };
@@ -2411,7 +2412,7 @@ onBeforeUnmount(() => {
   background: var(--bg-root);
   color: var(--text);
   padding: 0 8px;
-  font-size: 12px;
+  font-size: 13px;
   font-family: var(--font-mono);
   outline: none;
 }
@@ -2422,7 +2423,7 @@ onBeforeUnmount(() => {
 
 .error-line {
   padding: 4px 10px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--danger);
   background: var(--danger-dim);
 }
@@ -2451,12 +2452,12 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 1px 6px;
-  min-height: 22px;
+  padding: 2px 6px;
+  min-height: 24px;
   border: none;
   background: transparent;
   color: var(--text);
-  font-size: 11px;
+  font-size: 12.5px;
   line-height: 1.25;
   text-align: left;
 }
@@ -2519,7 +2520,7 @@ onBeforeUnmount(() => {
 .kind {
   flex-shrink: 0;
   margin-right: 0;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.03em;
   color: var(--text-dim);
@@ -2533,15 +2534,15 @@ onBeforeUnmount(() => {
 }
 
 .kind-slot :deep(.kind-icon) {
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
   margin-right: 3px;
 }
 
 .kind-slot :deep(.kind-icon.windows),
 .kind-slot :deep(.kind-icon.macos) {
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
   margin-right: 3px;
 }
 
@@ -2585,7 +2586,7 @@ onBeforeUnmount(() => {
 .placeholder {
   padding: 18px 12px;
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: 13px;
   text-align: center;
 }
 
@@ -2594,8 +2595,16 @@ onBeforeUnmount(() => {
   display: grid;
   gap: 8px;
   align-items: center;
-  padding: 5px 10px;
-  font-size: 11px;
+  padding: 6px 10px;
+  font-size: 12.5px;
+}
+
+.attr-head > span,
+.attr-row > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .attr-head {
@@ -2647,7 +2656,7 @@ onBeforeUnmount(() => {
 
 .trunc-banner {
   padding: 4px 10px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--warn);
   background: var(--warn-dim);
   border-bottom: 1px solid var(--border-soft);
@@ -2670,7 +2679,7 @@ onBeforeUnmount(() => {
   border-radius: 6px;
   background: var(--bg-root);
   color: var(--text);
-  font-size: 11px;
+  font-size: 12px;
   cursor: pointer;
 }
 
@@ -2737,7 +2746,7 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
   border: none;
   resize: none;
-  font-size: 11.5px;
+  font-size: 13px;
   line-height: 1.45;
   font-family: var(--font-mono);
   white-space: pre-wrap;
@@ -2753,7 +2762,7 @@ onBeforeUnmount(() => {
 
 .status-line {
   padding: 4px 10px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--accent);
   background: var(--accent-dim);
 }
