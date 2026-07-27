@@ -68,7 +68,7 @@ watch(
         if (session) startMetricsPolling()
         else stopMetricsPolling()
     },
-    { immediate: true },
+    { immediate: true }
 )
 
 function barClass(pct: number) {
@@ -99,7 +99,7 @@ function onResizeStart(ev: MouseEvent) {
     function onMove(moveEv: MouseEvent) {
         const next = startWidth + (moveEv.clientX - startX)
         ui.setSidebarWidth(
-            Math.min(SIDEBAR_WIDTH_MAX, Math.max(SIDEBAR_WIDTH_MIN, next)),
+            Math.min(SIDEBAR_WIDTH_MAX, Math.max(SIDEBAR_WIDTH_MIN, next))
         )
     }
 
@@ -266,7 +266,7 @@ onBeforeUnmount(() => {
                 >CPU
                 {{
                     Math.round(
-                        activeSession && metrics ? metrics.cpuPercent : 0,
+                        activeSession && metrics ? metrics.cpuPercent : 0
                     )
                 }}%</span
             >
@@ -404,8 +404,8 @@ onBeforeUnmount(() => {
                                     barClass(
                                         pct(
                                             metrics.memUsedGiB,
-                                            metrics.memTotalGiB,
-                                        ),
+                                            metrics.memTotalGiB
+                                        )
                                     )
                                 "
                             >
@@ -414,7 +414,7 @@ onBeforeUnmount(() => {
                                         width:
                                             pct(
                                                 metrics.memUsedGiB,
-                                                metrics.memTotalGiB,
+                                                metrics.memTotalGiB
                                             ) + '%',
                                     }"
                                 />
@@ -432,8 +432,8 @@ onBeforeUnmount(() => {
                                     barClass(
                                         pct(
                                             metrics.swapUsedMiB,
-                                            metrics.swapTotalMiB,
-                                        ),
+                                            metrics.swapTotalMiB
+                                        )
                                     )
                                 "
                             >
@@ -442,7 +442,7 @@ onBeforeUnmount(() => {
                                         width:
                                             pct(
                                                 metrics.swapUsedMiB,
-                                                metrics.swapTotalMiB,
+                                                metrics.swapTotalMiB
                                             ) + '%',
                                     }"
                                 />
@@ -460,8 +460,8 @@ onBeforeUnmount(() => {
                                     barClass(
                                         pct(
                                             metrics.diskUsedGiB,
-                                            metrics.diskTotalGiB,
-                                        ),
+                                            metrics.diskTotalGiB
+                                        )
                                     )
                                 "
                             >
@@ -470,7 +470,7 @@ onBeforeUnmount(() => {
                                         width:
                                             pct(
                                                 metrics.diskUsedGiB,
-                                                metrics.diskTotalGiB,
+                                                metrics.diskTotalGiB
                                             ) + '%',
                                     }"
                                 />
@@ -597,7 +597,7 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 4px 0 10px;
+    padding: 0px 4px 0 10px;
     min-height: 32px;
 }
 
@@ -673,9 +673,7 @@ onBeforeUnmount(() => {
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    transition:
-        border-color 0.15s ease,
-        background 0.15s ease;
+    transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .host-switcher:hover {
@@ -729,9 +727,7 @@ onBeforeUnmount(() => {
     display: grid;
     place-items: center;
     flex-shrink: 0;
-    transition:
-        color 0.15s ease,
-        transform 0.15s ease;
+    transition: color 0.15s ease, transform 0.15s ease;
 }
 
 .host-switcher:hover .chev {
@@ -784,9 +780,7 @@ onBeforeUnmount(() => {
     font-size: 13px;
     text-align: left;
     cursor: pointer;
-    transition:
-        background 0.12s ease,
-        color 0.12s ease;
+    transition: background 0.12s ease, color 0.12s ease;
 }
 
 .quick-host-main {
