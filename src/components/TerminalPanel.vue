@@ -14,7 +14,12 @@ import { storeToRefs } from 'pinia'
 import * as api from '../api/tauri'
 import { useI18n } from '../i18n'
 import { useSessionsStore } from '../stores/sessions'
-import { matchShortcut, useTerminalPrefsStore, clampFontSize } from '../stores/terminalPrefs'
+import {
+    clampFontSize,
+    matchShortcut,
+    resolveBackgroundImage,
+    useTerminalPrefsStore,
+} from '../stores/terminalPrefs'
 import { useNoteStore } from '../stores/note'
 import { useUiStore } from '../stores/ui'
 import { startsWithCjkOrHangul } from '../terminal/cjk'
@@ -59,11 +64,15 @@ const ctxMenu = ref<CtxMenuState | null>(null)
 const findOpen = ref(false)
 const findQuery = ref('')
 
+const termBgImageUrl = computed(() =>
+    resolveBackgroundImage(termPrefs.value.backgroundImage)
+)
+
 const hostSurfaceStyle = computed(() => {
     // Track UI theme so "follow theme" surfaces refresh with --term-bg.
     void theme.value
     const scheme = termPrefs.value.colorScheme
-    const img = termPrefs.value.backgroundImage.trim()
+    const img = termBgImageUrl.value
     // Prefer CSS var when following UI theme so host stays in sync without a stale hex snapshot.
     const themeBg = img
         ? 'rgba(0, 0, 0, 0)'
@@ -84,8 +93,7 @@ const hostSurfaceStyle = computed(() => {
 })
 
 const hostOverlayStyle = computed(() => {
-    const img = termPrefs.value.backgroundImage.trim()
-    if (!img) return undefined
+    if (!termBgImageUrl.value) return undefined
     // Dim the image slightly for text contrast; higher opacity = more visible image.
     const dim = Math.min(
         0.85,
@@ -113,7 +121,7 @@ function themeColorsFromCss() {
 
 function readTermTheme() {
     const scheme = termPrefs.value.colorScheme
-    const hasBgImage = !!termPrefs.value.backgroundImage.trim()
+    const hasBgImage = !!resolveBackgroundImage(termPrefs.value.backgroundImage)
     let base =
         scheme === 'custom'
             ? {
@@ -150,7 +158,7 @@ function readTermTheme() {
 
 function applyTermTheme() {
     const next = readTermTheme()
-    const hasBgImage = !!termPrefs.value.backgroundImage.trim()
+    const hasBgImage = !!resolveBackgroundImage(termPrefs.value.backgroundImage)
     for (const [, entry] of terms) {
         entry.term.options.allowTransparency = hasBgImage
         entry.term.options.theme = next
@@ -384,7 +392,7 @@ async function ensureTerm(sessionId: string) {
         fontSize: termPrefs.value.fontSize,
         theme: readTermTheme(),
         // Required for theme.background rgba(0,0,0,0) so the host background image shows through
-        allowTransparency: !!termPrefs.value.backgroundImage.trim(),
+        allowTransparency: !!resolveBackgroundImage(termPrefs.value.backgroundImage),
         // SearchAddon decorations use registerDecoration (still proposed in xterm 6)
         allowProposedApi: true,
         // 避免右键自动选词，以便区分「选区菜单」与「空白菜单」
@@ -848,12 +856,12 @@ onBeforeUnmount(() => {
         <div
             ref="hostEl"
             class="term-host"
-            :class="{ 'has-bg-image': !!termPrefs.backgroundImage.trim() }"
+            :class="{ 'has-bg-image': !!termBgImageUrl }"
             :style="hostSurfaceStyle"
             @contextmenu="onTermContextMenu"
         >
             <div
-                v-if="termPrefs.backgroundImage.trim()"
+                v-if="termBgImageUrl"
                 class="term-bg-overlay"
                 :style="hostOverlayStyle"
             />

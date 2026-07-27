@@ -6,9 +6,13 @@ import { storeToRefs } from "pinia";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "../i18n";
 import {
+  BACKGROUND_IMAGE_PRESETS,
+  backgroundPresetId,
   clampFontSize,
   FONT_PRESETS,
   FONT_SIZE_PRESETS,
+  presetBackgroundValue,
+  type BackgroundImagePresetId,
   useTerminalPrefsStore,
 } from "../stores/terminalPrefs";
 import { useUiStore } from "../stores/ui";
@@ -18,6 +22,29 @@ const ui = useUiStore();
 const termPrefs = useTerminalPrefsStore();
 const { t } = useI18n();
 const { prefs } = storeToRefs(termPrefs);
+
+const selectedBgPresetId = computed(() => backgroundPresetId(prefs.value.backgroundImage));
+
+function selectBgPreset(id: BackgroundImagePresetId) {
+  prefs.value.backgroundImage = presetBackgroundValue(id);
+}
+
+function selectCustomBackground(src: string) {
+  prefs.value.backgroundImage = src;
+}
+
+function clearBackground() {
+  prefs.value.backgroundImage = "";
+}
+
+function removeCustomBackground(index: number) {
+  const removed = prefs.value.customBackgroundImages[index];
+  if (removed == null) return;
+  prefs.value.customBackgroundImages.splice(index, 1);
+  if (prefs.value.backgroundImage === removed) {
+    prefs.value.backgroundImage = "";
+  }
+}
 
 const colorSchemeOptions = computed(() => [
   { value: "theme", label: t("terminalSettings.schemeTheme") },
@@ -105,15 +132,15 @@ function pickBackground() {
     const reader = new FileReader();
     reader.onload = () => {
       const result = String(reader.result ?? "");
-      if (result.startsWith("data:")) prefs.value.backgroundImage = result;
+      if (!result.startsWith("data:")) return;
+      if (!prefs.value.customBackgroundImages.includes(result)) {
+        prefs.value.customBackgroundImages.push(result);
+      }
+      prefs.value.backgroundImage = result;
     };
     reader.readAsDataURL(file);
   };
   input.click();
-}
-
-function clearBackground() {
-  prefs.value.backgroundImage = "";
 }
 
 onMounted(() => {
@@ -213,24 +240,78 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="section-label">{{ t("terminalSettings.background") }}</div>
-        <div class="bg-row">
-          <input
-            v-model="prefs.backgroundImage"
-            type="text"
-            class="bg-input"
-            :placeholder="t('terminalSettings.bgPlaceholder')"
-            spellcheck="false"
-          />
-          <button type="button" class="btn ghost md" @click="pickBackground">
-            {{ t("terminalSettings.pickImage") }}
-          </button>
+        <div class="bg-presets" role="listbox" :aria-label="t('terminalSettings.bgPresets')">
           <button
             type="button"
-            class="btn ghost md"
-            :disabled="!prefs.backgroundImage"
+            class="bg-preset none"
+            role="option"
+            :aria-selected="!prefs.backgroundImage"
+            :class="{ active: !prefs.backgroundImage }"
+            :title="t('terminalSettings.bgNone')"
             @click="clearBackground"
           >
-            {{ t("common.delete") }}
+            <span class="bg-preset-label">{{ t("terminalSettings.bgNone") }}</span>
+          </button>
+          <button
+            v-for="preset in BACKGROUND_IMAGE_PRESETS"
+            :key="preset.id"
+            type="button"
+            class="bg-preset"
+            role="option"
+            :aria-selected="selectedBgPresetId === preset.id"
+            :class="{ active: selectedBgPresetId === preset.id }"
+            :title="preset.id"
+            :style="{ backgroundImage: `url(${preset.src})` }"
+            @click="selectBgPreset(preset.id)"
+          />
+          <div
+            v-for="(src, index) in prefs.customBackgroundImages"
+            :key="`custom-${index}`"
+            class="bg-preset-wrap"
+          >
+            <button
+              type="button"
+              class="bg-preset"
+              role="option"
+              :aria-selected="prefs.backgroundImage === src"
+              :class="{ active: prefs.backgroundImage === src }"
+              :title="t('terminalSettings.pickImage')"
+              :style="{ backgroundImage: `url(${src})` }"
+              @click="selectCustomBackground(src)"
+            />
+            <button
+              type="button"
+              class="bg-preset-remove"
+              :title="t('common.delete')"
+              :aria-label="t('common.delete')"
+              @click.stop="removeCustomBackground(index)"
+            >
+              <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path
+                  d="M3 3l6 6M9 3L3 9"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </button>
+          </div>
+          <button
+            type="button"
+            class="bg-preset add"
+            :title="t('terminalSettings.pickImage')"
+            :aria-label="t('terminalSettings.pickImage')"
+            @click="pickBackground"
+          >
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="none" aria-hidden="true">
+              <path
+                d="M8 3.2v9.6M3.2 8h9.6"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+              />
+            </svg>
           </button>
         </div>
         <label class="field">
@@ -347,7 +428,7 @@ onBeforeUnmount(() => {
 
 .field-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 8px;
 }
 
@@ -524,22 +605,90 @@ onBeforeUnmount(() => {
   line-height: 1.4;
 }
 
-.bg-row {
+.bg-presets {
   display: flex;
-  gap: 6px;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
-.bg-input {
-  flex: 1;
-  min-width: 0;
-  height: 30px;
-  padding: 0 8px;
+.bg-preset-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.bg-preset {
+  width: 64px;
+  height: 40px;
+  padding: 0;
   border-radius: 6px;
   border: 1px solid var(--border);
-  background: var(--bg-root);
-  color: var(--text);
-  font-size: 12px;
+  background-color: var(--bg-elevated);
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bg-preset.none,
+.bg-preset.add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.bg-preset.none {
+  background-image: linear-gradient(
+    135deg,
+    transparent 46%,
+    var(--danger) 46%,
+    var(--danger) 54%,
+    transparent 54%
+  );
+}
+
+.bg-preset.add:hover {
+  color: var(--accent);
+}
+
+.bg-preset-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.bg-preset:hover {
+  border-color: var(--accent-border);
+}
+
+.bg-preset.active {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.bg-preset-remove {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 0;
+  z-index: 1;
+}
+
+.bg-preset-remove:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: var(--danger-dim);
 }
 
 .foot-spacer {
