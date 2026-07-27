@@ -429,8 +429,8 @@ function onAboutLogoClick() {
 <style scoped>
 .settings-modal {
     width: min(680px, 100%);
-    height: min(540px, calc(100vh - 48px));
-    max-height: min(540px, calc(100vh - 48px));
+    height: min(520px, calc(100vh - 48px));
+    max-height: min(520px, calc(100vh - 48px));
 }
 
 .settings-modal :deep(.modal-head) {
