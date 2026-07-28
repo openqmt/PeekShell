@@ -115,6 +115,7 @@ export const useNoteStore = defineStore("note", () => {
 
   async function refresh() {
     const url = import.meta.env.VITE_NOTE_URL?.trim();
+    console.log("refresh note config", url);
     if (!url) {
       loaded.value = true;
       return;
