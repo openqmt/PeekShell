@@ -1,54 +1,24 @@
 <script setup lang="ts">
 /**
  * Download center for docs.
- * Fetches the latest GitHub release and recommends the best asset for the
- * visitor's current OS and CPU architecture.
+ * Prefers build-time data from docs/static/releases.data.ts.
+ * If prefetch failed (empty snapshot), falls back to a client GitHub fetch.
  */
 import { computed, onMounted, ref, watch } from 'vue'
 import { useData } from 'vitepress'
-
-const RELEASES_URL = 'https://api.github.com/repos/openqmt/PeekShell/releases'
+import { data as releasesData } from '../static/releases.data'
+import {
+  normalizeReleases,
+  RELEASES_URL,
+  type ArchKey,
+  type GithubRelease,
+  type PackageKey,
+  type PlatformKey,
+  type ReleaseAsset,
+} from '../static/parseReleases'
 
 type LocaleKey = 'zh' | 'en'
-type PlatformKey = 'windows' | 'macos' | 'linux'
-type ArchKey = 'x64' | 'arm64'
-type PackageKey =
-  | 'exe'
-  | 'msi'
-  | 'dmg'
-  | 'app'
-  | 'deb'
-  | 'rpm'
-  | 'appimage'
 type MatchTier = 'perfect' | 'archFallback' | 'osFallback'
-
-type AssetEntry = {
-  id: string
-  name: string
-  url: string
-  size: number
-  downloads: number
-  updatedAt: string
-  platform: PlatformKey
-  arch: ArchKey
-  packageType: PackageKey
-}
-
-type ReleaseResponse = {
-  name?: string
-  tag_name?: string
-  html_url?: string
-  draft?: boolean
-  prerelease?: boolean
-  assets?: Array<{
-    id?: number
-    name?: string
-    size?: number
-    updated_at?: string
-    download_count?: number
-    browser_download_url?: string
-  }>
-}
 
 type DetectedSystem = {
   platform: PlatformKey | null
@@ -56,13 +26,13 @@ type DetectedSystem = {
 }
 
 type Recommendation = {
-  asset: AssetEntry
+  asset: ReleaseAsset
   tier: MatchTier
 }
 
 type ArchGroup = {
   arch: ArchKey
-  assets: AssetEntry[]
+  assets: ReleaseAsset[]
 }
 
 const COPY = {
@@ -130,15 +100,16 @@ const localeKey = computed<LocaleKey>(() =>
 )
 const ui = computed(() => COPY[localeKey.value])
 
-const loading = ref(true)
+const version = ref(releasesData.version)
+const htmlUrl = ref(releasesData.htmlUrl)
+const assets = ref<ReleaseAsset[]>(releasesData.assets)
+const loading = ref(!releasesData.assets.length)
 const error = ref('')
-const release = ref<{
-  version: string
-  htmlUrl: string
-} | null>(null)
-const assets = ref<AssetEntry[]>([])
+
 const detectedSystem = ref<DetectedSystem>({ platform: null, arch: null })
-const activePlatform = ref<PlatformKey>('windows')
+const activePlatform = ref<PlatformKey>(
+  releasesData.assets[0]?.platform ?? 'windows',
+)
 
 const recommendation = computed<Recommendation | null>(() => {
   if (!assets.value.length) return null
@@ -267,79 +238,7 @@ function readUserAgentDataArch(): string {
   return navigatorWithUserAgentData.userAgentData?.architecture || ''
 }
 
-function parsePlatform(name: string): PlatformKey | null {
-  const lower = name.toLowerCase()
-  if (
-    lower.endsWith('.exe') ||
-    lower.endsWith('.msi') ||
-    lower.includes('windows')
-  ) {
-    return 'windows'
-  }
-  if (
-    lower.endsWith('.dmg') ||
-    lower.endsWith('.app.tar.gz') ||
-    lower.includes('darwin')
-  ) {
-    return 'macos'
-  }
-  if (
-    lower.endsWith('.appimage') ||
-    lower.endsWith('.deb') ||
-    lower.endsWith('.rpm') ||
-    lower.includes('linux')
-  ) {
-    return 'linux'
-  }
-  return null
-}
-
-function parsePackageType(name: string): PackageKey | null {
-  const lower = name.toLowerCase()
-  if (lower.endsWith('.exe')) return 'exe'
-  if (lower.endsWith('.msi')) return 'msi'
-  if (lower.endsWith('.dmg')) return 'dmg'
-  if (lower.endsWith('.app.tar.gz')) return 'app'
-  if (lower.endsWith('.deb')) return 'deb'
-  if (lower.endsWith('.rpm')) return 'rpm'
-  if (lower.endsWith('.appimage')) return 'appimage'
-  return null
-}
-
-function parseAsset(
-  raw: NonNullable<ReleaseResponse['assets']>[number],
-): AssetEntry | null {
-  const name = raw.name || ''
-  const url = raw.browser_download_url || ''
-  if (
-    !name ||
-    !url ||
-    name.endsWith('.sig') ||
-    name === 'latest.json' ||
-    name === 'update.json'
-  ) {
-    return null
-  }
-
-  const platform = parsePlatform(name)
-  const arch = normalizeArch(name.toLowerCase())
-  const packageType = parsePackageType(name)
-  if (!platform || !arch || !packageType) return null
-
-  return {
-    id: String(raw.id || name),
-    name,
-    url,
-    size: raw.size || 0,
-    downloads: raw.download_count || 0,
-    updatedAt: raw.updated_at || '',
-    platform,
-    arch,
-    packageType,
-  }
-}
-
-function packageRank(asset: AssetEntry): number {
+function packageRank(asset: ReleaseAsset): number {
   const ranks: Record<PlatformKey, PackageKey[]> = {
     windows: ['exe', 'msi', 'app', 'dmg', 'deb', 'rpm', 'appimage'],
     macos: ['dmg', 'app', 'exe', 'msi', 'deb', 'rpm', 'appimage'],
@@ -348,7 +247,7 @@ function packageRank(asset: AssetEntry): number {
   return ranks[asset.platform].indexOf(asset.packageType)
 }
 
-function sortAssets(list: AssetEntry[]): AssetEntry[] {
+function sortAssets(list: ReleaseAsset[]): ReleaseAsset[] {
   return [...list].sort((a, b) => {
     if (a.arch !== b.arch) return a.arch === 'x64' ? -1 : 1
     const packageOrder = packageRank(a) - packageRank(b)
@@ -357,7 +256,7 @@ function sortAssets(list: AssetEntry[]): AssetEntry[] {
   })
 }
 
-function pickPreferredAsset(list: AssetEntry[]): AssetEntry | null {
+function pickPreferredAsset(list: ReleaseAsset[]): ReleaseAsset | null {
   const [first] = sortAssets(list)
   return first || null
 }
@@ -374,7 +273,7 @@ function formatSize(size: number): string {
   return `${value >= 100 ? value.toFixed(0) : value.toFixed(1)} ${units[unitIndex]}`
 }
 
-function isRecommended(asset: AssetEntry): boolean {
+function isRecommended(asset: ReleaseAsset): boolean {
   return recommendation.value?.asset.id === asset.id
 }
 
@@ -382,39 +281,34 @@ function platformCount(platform: PlatformKey): number {
   return assets.value.filter((asset) => asset.platform === platform).length
 }
 
-async function loadRelease() {
+function applySnapshot(snapshot: {
+  version: string
+  htmlUrl: string
+  assets: ReleaseAsset[]
+}) {
+  version.value = snapshot.version
+  htmlUrl.value = snapshot.htmlUrl
+  assets.value = snapshot.assets
+  if (detectedSystem.value.platform) {
+    activePlatform.value = detectedSystem.value.platform
+  } else if (snapshot.assets[0]) {
+    activePlatform.value = snapshot.assets[0].platform
+  }
+}
+
+async function loadClientFallback() {
   loading.value = true
   error.value = ''
-
   try {
     const res = await fetch(RELEASES_URL, {
       headers: { Accept: 'application/vnd.github+json' },
       cache: 'no-store',
     })
     if (!res.ok) throw new Error(String(res.status))
-
-    const payload = (await res.json()) as ReleaseResponse[]
-    const latest = payload.find((item) => !item.draft && !item.prerelease)
-    if (!latest) throw new Error('no-release')
-
-    release.value = {
-      version: latest.tag_name || latest.name || '',
-      htmlUrl:
-        latest.html_url ||
-        (latest.tag_name
-          ? `https://github.com/openqmt/PeekShell/releases/tag/${latest.tag_name}`
-          : 'https://github.com/openqmt/PeekShell/releases'),
-    }
-
-    assets.value = (latest.assets || [])
-      .map((asset) => parseAsset(asset))
-      .filter((asset): asset is AssetEntry => Boolean(asset))
-
-    if (detectedSystem.value.platform) {
-      activePlatform.value = detectedSystem.value.platform
-    } else if (recommendation.value) {
-      activePlatform.value = recommendation.value.asset.platform
-    }
+    const payload = (await res.json()) as GithubRelease[]
+    const snapshot = normalizeReleases(payload)
+    if (!snapshot.assets.length) throw new Error('empty')
+    applySnapshot(snapshot)
   } catch {
     error.value = ui.value.error
   } finally {
@@ -426,8 +320,12 @@ onMounted(async () => {
   detectedSystem.value = detectSystem()
   if (detectedSystem.value.platform) {
     activePlatform.value = detectedSystem.value.platform
+  } else if (recommendation.value) {
+    activePlatform.value = recommendation.value.asset.platform
   }
-  await loadRelease()
+
+  // Prefetch empty (e.g. GitHub 504 at build) → fetch once in the browser.
+  if (!assets.value.length) await loadClientFallback()
 })
 </script>
 
@@ -450,7 +348,7 @@ onMounted(async () => {
           <p class="dl-recommend-hint">{{ matchHint }}</p>
           <p class="dl-recommend-file">{{ recommendation.asset.name }}</p>
           <div class="dl-recommend-stats">
-            <span v-if="release">{{ release.version }}</span>
+            <span v-if="version">{{ version }}</span>
             <span>{{ deviceLabel }}</span>
             <span>{{ formatSize(recommendation.asset.size) }}</span>
           </div>
@@ -465,9 +363,8 @@ onMounted(async () => {
             {{ ui.directDownload }}
           </a>
           <a
-            v-if="release"
             class="dl-btn dl-btn-ghost"
-            :href="release.htmlUrl"
+            :href="htmlUrl"
             target="_blank"
             rel="noreferrer"
           >

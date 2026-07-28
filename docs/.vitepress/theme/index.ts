@@ -1,7 +1,7 @@
 import { h } from 'vue'
 import DefaultTheme from 'vitepress/theme'
-import DownloadPage from './components/DownloadPage.vue'
-import SiteNoteModal from './components/SiteNoteModal.vue'
+import DownloadPage from '../../components/DownloadPage.vue'
+import SiteNoteModal from '../../components/SiteNoteModal.vue'
 import './custom.css'
 
 export default {
