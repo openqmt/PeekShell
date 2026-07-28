@@ -128,11 +128,6 @@ jobs:
               if: matrix.enabled && (runner.os == 'Linux' || runner.os == 'macOS')
               run: rm -rf ./dist
 
-            - name: Remove dist folder (Windows)
-              if: ${{ matrix.enabled && runner.os == 'Windows' }}
-              run: Remove-Item -Recurse -Force ./dist
-              shell: pwsh
-
             - name: Get project version
               if: ${{ matrix.enabled }}
               run: |
