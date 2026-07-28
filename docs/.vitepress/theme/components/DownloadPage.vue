@@ -552,6 +552,12 @@ onMounted(async () => {
   padding: calc(var(--vp-nav-height, 64px) + 32px) 24px 72px;
 }
 
+@media (max-width: 960px) {
+  .download-page {
+    padding: calc(var(--vp-nav-height, 64px) + 12px) 20px 56px;
+  }
+}
+
 /* —— States —— */
 .dl-state {
   padding: 28px 20px;
@@ -833,7 +839,7 @@ onMounted(async () => {
 
 @media (max-width: 760px) {
   .download-page {
-    padding: calc(var(--vp-nav-height, 64px) + 20px) 16px 56px;
+    padding: calc(var(--vp-nav-height, 64px) + 8px) 16px 48px;
     gap: 22px;
   }
 
