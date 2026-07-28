@@ -358,9 +358,7 @@ onMounted(async () => {
         <template v-else>
             <article v-if="recommendation" class="dl-recommend">
                 <div class="dl-recommend-main">
-                    <span class="dl-recommend-kicker">{{
-                        ui.recommended
-                    }}</span>
+                    <span class="dl-recommend-kicker">{{ ui.recommended }}</span>
                     <h1>
                         {{ platformLabel(recommendation.asset.platform) }}
                         {{ archLabel(recommendation.asset.arch) }}
@@ -444,17 +442,9 @@ onMounted(async () => {
                                     rel="noreferrer"
                                 >
                                     <div class="dl-row-main">
-                                        <strong>
-                                            {{
-                                                packageLabel(asset.packageType)
-                                            }}
-                                            <span
-                                                v-if="isRecommended(asset)"
-                                                class="dl-row-badge"
-                                            >
-                                                {{ ui.recommended }}
-                                            </span>
-                                        </strong>
+                                        <strong>{{
+                                            packageLabel(asset.packageType)
+                                        }}</strong>
                                         <span class="dl-row-name">{{
                                             asset.name
                                         }}</span>
@@ -529,15 +519,22 @@ onMounted(async () => {
 }
 
 .dl-recommend-kicker {
-    color: var(--vp-c-brand-1);
-    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: var(--vp-c-brand-1);
+    color: #fff;
+    font-size: 13px;
     font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    box-shadow: 0 2px 8px
+        color-mix(in srgb, var(--vp-c-brand-1) 35%, transparent);
 }
 
 .dl-recommend-main h1 {
-    margin: 8px 0 6px;
+    margin: 12px 0 6px;
     font-size: clamp(22px, 3vw, 28px);
     line-height: 1.2;
     letter-spacing: -0.02em;
@@ -745,20 +742,7 @@ onMounted(async () => {
 }
 
 .dl-row-main strong {
-    display: inline-flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
     font-size: 15px;
-}
-
-.dl-row-badge {
-    padding: 2px 7px;
-    border-radius: 999px;
-    background: var(--vp-c-brand-1);
-    color: #fff;
-    font-size: 11px;
-    font-weight: 700;
 }
 
 .dl-row-name {
