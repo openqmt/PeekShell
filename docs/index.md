@@ -21,9 +21,6 @@ hero:
         - theme: alt
           text: 了解更多
           link: /guide/
-        - theme: alt
-          text: GitHub
-          link: https://github.com/openqmt/PeekShell
 
 features:
     - title: 主机管理
