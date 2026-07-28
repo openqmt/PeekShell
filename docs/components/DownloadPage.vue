@@ -103,7 +103,7 @@ const PROXY_PREFIXES = {
 } as const
 
 const localeKey = computed<LocaleKey>(() =>
-    (lang.value || '').toLowerCase().startsWith('en') ? 'en' : 'zh',
+    (lang.value || '').toLowerCase().startsWith('en') ? 'en' : 'zh'
 )
 const ui = computed(() => COPY[localeKey.value])
 // gh-proxy mirrors are mainly useful for CN; other locales use GitHub directly.
@@ -117,7 +117,7 @@ const error = ref('')
 
 const detectedSystem = ref<DetectedSystem>({ platform: null, arch: null })
 const activePlatform = ref<PlatformKey>(
-    releasesData.assets[0]?.platform ?? 'windows',
+    releasesData.assets[0]?.platform ?? 'windows'
 )
 
 const recommendation = computed<Recommendation | null>(() => {
@@ -129,15 +129,15 @@ const recommendation = computed<Recommendation | null>(() => {
             assets.value.filter(
                 (asset) =>
                     asset.platform === system.platform &&
-                    asset.arch === system.arch,
-            ),
+                    asset.arch === system.arch
+            )
         )
         if (exact) return { asset: exact, tier: 'perfect' }
     }
 
     if (system.platform) {
         const sameOs = pickPreferredAsset(
-            assets.value.filter((asset) => asset.platform === system.platform),
+            assets.value.filter((asset) => asset.platform === system.platform)
         )
         if (sameOs) return { asset: sameOs, tier: 'archFallback' }
     }
@@ -154,7 +154,7 @@ const tabPlatforms = computed(() => {
 
 const activeArchGroups = computed<ArchGroup[]>(() => {
     const list = sortAssets(
-        assets.value.filter((asset) => asset.platform === activePlatform.value),
+        assets.value.filter((asset) => asset.platform === activePlatform.value)
     )
     const groups: ArchGroup[] = []
     // macOS: Apple Silicon first — most Macs are arm64 now.
@@ -186,7 +186,7 @@ watch(
     () => detectedSystem.value.platform,
     (platform) => {
         if (platform) activePlatform.value = platform
-    },
+    }
 )
 
 function platformLabel(platform: PlatformKey): string {
@@ -298,13 +298,15 @@ function formatSize(size: number): string {
         value /= 1024
         unitIndex += 1
     }
-    return `${value >= 100 ? value.toFixed(0) : value.toFixed(1)} ${units[unitIndex]}`
+    return `${value >= 100 ? value.toFixed(0) : value.toFixed(1)} ${
+        units[unitIndex]
+    }`
 }
 
 /** Prefix GitHub asset URL with a gh-proxy mirror for faster access in CN. */
 function proxyDownloadUrl(
     url: string,
-    kind: keyof typeof PROXY_PREFIXES = 'default',
+    kind: keyof typeof PROXY_PREFIXES = 'default'
 ): string {
     return `${PROXY_PREFIXES[kind]}${url}`
 }
@@ -384,9 +386,9 @@ onMounted(async () => {
                         {{ packageLabel(recommendation.asset.packageType) }}
                     </h1>
                     <p class="dl-recommend-hint">{{ matchHint }}</p>
-                    <p class="dl-recommend-file">
+                    <!-- <p class="dl-recommend-file">
                         {{ recommendation.asset.name }}
-                    </p>
+                    </p> -->
                     <div class="dl-recommend-stats">
                         <span v-if="version">{{ version }}</span>
                         <span>{{ deviceLabel }}</span>
@@ -548,8 +550,7 @@ onMounted(async () => {
     border: 1px solid
         color-mix(in srgb, var(--vp-c-brand-1) 28%, var(--vp-c-divider));
     border-radius: 20px;
-    background:
-        radial-gradient(
+    background: radial-gradient(
             circle at top right,
             var(--vp-c-brand-soft),
             transparent 42%
@@ -617,10 +618,7 @@ onMounted(async () => {
     font-size: 14px;
     font-weight: 650;
     text-decoration: none;
-    transition:
-        background 0.15s ease,
-        border-color 0.15s ease,
-        color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .dl-btn-primary {
@@ -691,9 +689,7 @@ onMounted(async () => {
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition:
-        background 0.15s ease,
-        color 0.15s ease;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
 .dl-tab em {
@@ -766,9 +762,7 @@ onMounted(async () => {
     background: var(--vp-c-bg);
     color: inherit;
     text-decoration: none;
-    transition:
-        border-color 0.15s ease,
-        background 0.15s ease,
+    transition: border-color 0.15s ease, background 0.15s ease,
         transform 0.15s ease;
 }
 
