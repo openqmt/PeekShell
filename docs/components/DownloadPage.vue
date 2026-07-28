@@ -44,6 +44,8 @@ const COPY = {
         otherDownloads: '其他平台',
         githubRelease: 'GitHub Release',
         directDownload: '立即下载',
+        proxyDownload: '加速下载1',
+        proxyDownloadV6: '加速下载2',
         exactMatch: '已匹配当前系统与架构',
         archFallback: '已匹配当前系统，架构为可用备选',
         osFallback: '未能识别设备，展示默认热门安装包',
@@ -95,11 +97,17 @@ const COPY = {
 
 const { lang } = useData()
 const platformOrder: PlatformKey[] = ['windows', 'macos', 'linux']
+const PROXY_PREFIXES = {
+    default: 'https://gh-proxy.org/',
+    v6: 'https://v6.gh-proxy.org/',
+} as const
 
 const localeKey = computed<LocaleKey>(() =>
     (lang.value || '').toLowerCase().startsWith('en') ? 'en' : 'zh',
 )
 const ui = computed(() => COPY[localeKey.value])
+// gh-proxy mirrors are mainly useful for CN; other locales use GitHub directly.
+const isZh = computed(() => localeKey.value === 'zh')
 
 const version = ref(releasesData.version)
 const htmlUrl = ref(releasesData.htmlUrl)
@@ -293,6 +301,14 @@ function formatSize(size: number): string {
     return `${value >= 100 ? value.toFixed(0) : value.toFixed(1)} ${units[unitIndex]}`
 }
 
+/** Prefix GitHub asset URL with a gh-proxy mirror for faster access in CN. */
+function proxyDownloadUrl(
+    url: string,
+    kind: keyof typeof PROXY_PREFIXES = 'default',
+): string {
+    return `${PROXY_PREFIXES[kind]}${url}`
+}
+
 function isRecommended(asset: ReleaseAsset): boolean {
     return recommendation.value?.asset.id === asset.id
 }
@@ -358,7 +374,9 @@ onMounted(async () => {
         <template v-else>
             <article v-if="recommendation" class="dl-recommend">
                 <div class="dl-recommend-main">
-                    <span class="dl-recommend-kicker">{{ ui.recommended }}</span>
+                    <span class="dl-recommend-kicker">{{
+                        ui.recommended
+                    }}</span>
                     <h1>
                         {{ platformLabel(recommendation.asset.platform) }}
                         {{ archLabel(recommendation.asset.arch) }}
@@ -376,7 +394,28 @@ onMounted(async () => {
                     </div>
                 </div>
                 <div class="dl-recommend-actions">
+                    <template v-if="isZh">
+                        <a
+                            class="dl-btn dl-btn-primary"
+                            :href="proxyDownloadUrl(recommendation.asset.url)"
+                            target="_blank"
+                            rel="noreferrer"
+                        >
+                            {{ COPY.zh.proxyDownload }}
+                        </a>
+                        <a
+                            class="dl-btn dl-btn-proxy"
+                            :href="
+                                proxyDownloadUrl(recommendation.asset.url, 'v6')
+                            "
+                            target="_blank"
+                            rel="noreferrer"
+                        >
+                            {{ COPY.zh.proxyDownloadV6 }}
+                        </a>
+                    </template>
                     <a
+                        v-else
                         class="dl-btn dl-btn-primary"
                         :href="recommendation.asset.url"
                         target="_blank"
@@ -565,7 +604,7 @@ onMounted(async () => {
 .dl-recommend-actions {
     display: grid;
     gap: 10px;
-    min-width: 168px;
+    min-width: 188px;
 }
 
 .dl-btn {
@@ -591,6 +630,18 @@ onMounted(async () => {
 
 .dl-btn-primary:hover {
     background: var(--vp-c-brand-2);
+}
+
+.dl-btn-proxy {
+    border: 1px solid
+        color-mix(in srgb, var(--vp-c-brand-1) 45%, var(--vp-c-divider));
+    color: var(--vp-c-brand-1);
+    background: color-mix(in srgb, var(--vp-c-brand-soft) 70%, var(--vp-c-bg));
+}
+
+.dl-btn-proxy:hover {
+    border-color: var(--vp-c-brand-1);
+    background: var(--vp-c-brand-soft);
 }
 
 .dl-btn-ghost {
