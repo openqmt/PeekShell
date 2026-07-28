@@ -24,7 +24,7 @@ const { t } = useI18n()
 
 const HEIGHT_KEY = 'peekshell.explorerHeight'
 const WIDTH_KEY = 'peekshell.explorerEntriesWidth'
-const MIN_HEIGHT = 120
+const MIN_HEIGHT = 220
 const MAX_HEIGHT = 640
 const DEFAULT_HEIGHT = 240
 const MIN_ENTRIES_WIDTH = 140
