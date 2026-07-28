@@ -1,6 +1,6 @@
 [package]
 name = "peekshell"
-version = "0.1.0"
+version = "0.1.1"
 description = "Lightweight SSH client with AI assist"
 authors = ["PeekShell"]
 edition = "2021"
