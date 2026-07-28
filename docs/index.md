@@ -1,12 +1,12 @@
 ---
 layout: home
 title: PeekShell
-titleTemplate: 跨平台AI SSH客户端
+titleTemplate: 跨平台 AI SSH客户端
 description: PeekShell — 轻量跨平台 SSH 客户端，支持主机管理、多标签终端、远程文件与确认式 AI Agent。
 
 hero:
     name: PeekShell
-    text: AI 跨平台 SSH 客户端
+    text: 跨平台 AI SSH 客户端
     tagline: 主机管理 · 多标签终端 · 远程文件 · 确认式 AI Agent
     image:
         src: /app-icon.png
