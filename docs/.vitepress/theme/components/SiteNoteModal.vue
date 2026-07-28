@@ -1,14 +1,27 @@
 <script setup lang="ts">
 /**
  * Site-wide announcement from remote pslnotes.json.
- * Shows when webShow is true and zh.note is non-empty.
+ * Shows when webShow is true and the locale note is non-empty.
+ * Locale copy follows VitePress lang (zh / en / ja / ko), with fallback.
  * repeatShow=false: dismiss once per fingerprint (localStorage).
  */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useData } from 'vitepress'
 
 const NOTE_URL = 'https://files.openqmt.com/files/pslnotes.json'
 const DISMISSED_KEY = 'peekshell.web.note.dismissedFingerprint'
+
+type NoteLocale = 'zh' | 'en' | 'ja' | 'ko'
+
+const UI_COPY: Record<
+  NoteLocale,
+  { title: string; confirm: string; close: string }
+> = {
+  zh: { title: '通知', confirm: '确定', close: '关闭' },
+  en: { title: 'Notice', confirm: 'OK', close: 'Close' },
+  ja: { title: 'お知らせ', confirm: 'OK', close: '閉じる' },
+  ko: { title: '알림', confirm: '확인', close: '닫기' },
+}
 
 const { lang } = useData()
 
@@ -17,16 +30,21 @@ const noteText = ref('')
 const openUrlTarget = ref('')
 const repeatShow = ref(true)
 const fingerprint = ref('')
+const remote = ref<Record<string, unknown> | null>(null)
 
-const title = computed(() =>
-  (lang.value || '').startsWith('zh') ? '通知' : 'Notice',
-)
-const confirmLabel = computed(() =>
-  (lang.value || '').startsWith('zh') ? '确定' : 'OK',
-)
-const closeLabel = computed(() =>
-  (lang.value || '').startsWith('zh') ? '关闭' : 'Close',
-)
+const localeKey = computed<NoteLocale>(() => {
+  const l = (lang.value || '').toLowerCase()
+  if (l.startsWith('zh')) return 'zh'
+  if (l.startsWith('ja')) return 'ja'
+  if (l.startsWith('ko')) return 'ko'
+  if (l.startsWith('en')) return 'en'
+  return 'zh'
+})
+
+const ui = computed(() => UI_COPY[localeKey.value])
+const title = computed(() => ui.value.title)
+const confirmLabel = computed(() => ui.value.confirm)
+const closeLabel = computed(() => ui.value.close)
 
 function asBool(value: unknown, fallback: boolean): boolean {
   return typeof value === 'boolean' ? value : fallback
@@ -63,6 +81,57 @@ function buildFingerprint(payload: {
   )
 }
 
+/** Prefer current site locale, then zh → en → ja → ko. */
+function pickNote(raw: Record<string, unknown>, key: NoteLocale): string {
+  const order: NoteLocale[] = [key, 'zh', 'en', 'ja', 'ko']
+  const seen = new Set<NoteLocale>()
+  for (const k of order) {
+    if (seen.has(k)) continue
+    seen.add(k)
+    const block = raw[k]
+    if (!block || typeof block !== 'object') continue
+    const note = asString((block as Record<string, unknown>).note).trim()
+    if (note) return note
+  }
+  return ''
+}
+
+function applyRemote() {
+  const raw = remote.value
+  if (!raw || !asBool(raw.webShow, false)) {
+    open.value = false
+    return
+  }
+
+  const text = pickNote(raw, localeKey.value)
+  if (!text) {
+    open.value = false
+    return
+  }
+
+  const version = asString(raw.version)
+  const pubDate = asString(raw.pub_date)
+  const openUrl = asString(raw.openUrl).trim()
+  const repeat = asBool(raw.repeatShow, true)
+  const fp = buildFingerprint({
+    version,
+    pub_date: pubDate,
+    openUrl,
+    note: text,
+  })
+
+  if (!repeat && fp === readDismissed()) {
+    open.value = false
+    return
+  }
+
+  noteText.value = text
+  openUrlTarget.value = openUrl
+  repeatShow.value = repeat
+  fingerprint.value = fp
+  open.value = true
+}
+
 function dismiss() {
   if (!repeatShow.value && fingerprint.value) {
     writeDismissed(fingerprint.value)
@@ -81,38 +150,16 @@ function onBackdrop(e: MouseEvent) {
   if (e.target === e.currentTarget) dismiss()
 }
 
+watch(localeKey, () => {
+  if (remote.value) applyRemote()
+})
+
 onMounted(async () => {
   try {
     const res = await fetch(NOTE_URL, { cache: 'no-store' })
     if (!res.ok) return
-    const raw = (await res.json()) as Record<string, unknown>
-    if (!asBool(raw.webShow, false)) return
-
-    const zh =
-      raw.zh && typeof raw.zh === 'object'
-        ? (raw.zh as Record<string, unknown>)
-        : {}
-    const text = asString(zh.note).trim()
-    if (!text) return
-
-    const version = asString(raw.version)
-    const pubDate = asString(raw.pub_date)
-    const openUrl = asString(raw.openUrl).trim()
-    const repeat = asBool(raw.repeatShow, true)
-    const fp = buildFingerprint({
-      version,
-      pub_date: pubDate,
-      openUrl,
-      note: text,
-    })
-
-    if (!repeat && fp === readDismissed()) return
-
-    noteText.value = text
-    openUrlTarget.value = openUrl
-    repeatShow.value = repeat
-    fingerprint.value = fp
-    open.value = true
+    remote.value = (await res.json()) as Record<string, unknown>
+    applyRemote()
   } catch {
     // Offline / CORS / bad JSON: skip silently
   }
@@ -260,15 +307,17 @@ onMounted(async () => {
 
 @media (max-width: 480px) {
   .ps-note-overlay {
-    align-items: flex-end;
-    padding: 0;
+    align-items: flex-start;
+    padding: max(10vh, env(safe-area-inset-top))
+      max(12px, env(safe-area-inset-right))
+      max(16px, env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
   }
 
   .ps-note-modal {
     width: 100%;
-    max-height: min(88vh, 640px);
-    border-radius: 16px 16px 0 0;
-    padding-bottom: env(safe-area-inset-bottom);
+    max-height: min(80vh, 560px);
+    border-radius: 14px;
   }
 
   .ps-note-head {
