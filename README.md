@@ -1,30 +1,23 @@
-# PeekShell
+<div align="center">
+  <img
+    src="https://peekshell.com/app-icon.png"
+    alt="PeekShell terminal-style logo with a white chevron and a teal cursor bar on a black background"
+    width="128"
+  />
+  <h1>PeekShell</h1>
+  <p>
+    A lightweight, cross-platform SSH client built with Tauri 2, Rust, and Vue 3.
+    Includes an AI agent that asks for confirmation before executing actions.
+  </p>
+</div>
 
-A lightweight, cross-platform SSH client built with Tauri 2, Rust, and Vue 3, featuring an AI agent that asks for confirmation before executing actions (Phase 2).
+<h2>Documentation</h2>
+<ul>
+  <li>Official site: <a href="https://peekshell.com">peekshell.com</a></li>
+  <li>User guide: <a href="https://peekshell.com/guide/">peekshell.com/guide</a></li>
+  <li>Download: <a href="https://peekshell.com/download/">peekshell.com/download</a></li>
+</ul>
 
-## Documentation
 
-- Official site / docs (VitePress, zh / en): see [`docs/`](./docs/)
-- [Plan.md](./Plan.md) — Architecture and roadmap
-- [AGENT.md](./AGENT.md) — Coding standards
-- [Preview.html](./Preview.html) — UI design preview
-
-```bash
-npm run docs:dev      # preview docs at http://localhost:5173
-npm run docs:build
-npm run docs:preview
-```
-
-## Development
-
-```bash
-npm install
-npm run tauri-dev
-```
-
-## Build
-
-```bash
-npm run build
-npx tauri build
-```
+<h2>Bug reports &amp; suggestions</h2>
+<p>Please open an <a href="https://github.com/openqmt/PeekShell/issues">issue</a>.</p>
