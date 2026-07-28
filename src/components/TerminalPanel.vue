@@ -65,7 +65,7 @@ const findOpen = ref(false)
 const findQuery = ref('')
 
 const termBgImageUrl = computed(() =>
-    resolveBackgroundImage(termPrefs.value.backgroundImage)
+    resolveBackgroundImage(termPrefs.value.backgroundImage),
 )
 
 const hostSurfaceStyle = computed(() => {
@@ -97,7 +97,7 @@ const hostOverlayStyle = computed(() => {
     // Dim the image slightly for text contrast; higher opacity = more visible image.
     const dim = Math.min(
         0.85,
-        Math.max(0, 1 - termPrefs.value.backgroundOpacity)
+        Math.max(0, 1 - termPrefs.value.backgroundOpacity),
     )
     return { backgroundColor: `rgba(10, 13, 16, ${dim})` }
 })
@@ -132,22 +132,22 @@ function readTermTheme() {
                   selectionInactiveBackground: 'rgba(62, 207, 142, 0.22)',
               }
             : scheme === 'dark'
-            ? {
-                  background: '#0a0d10',
-                  foreground: '#d6dde6',
-                  cursor: '#3ecf8e',
-                  selectionBackground: 'rgba(62, 207, 142, 0.4)',
-                  selectionInactiveBackground: 'rgba(62, 207, 142, 0.22)',
-              }
-            : scheme === 'light'
-            ? {
-                  background: '#fbfcfd',
-                  foreground: '#1a2330',
-                  cursor: '#1f9d63',
-                  selectionBackground: 'rgba(31, 157, 99, 0.38)',
-                  selectionInactiveBackground: 'rgba(31, 157, 99, 0.22)',
-              }
-            : themeColorsFromCss()
+              ? {
+                    background: '#0a0d10',
+                    foreground: '#d6dde6',
+                    cursor: '#3ecf8e',
+                    selectionBackground: 'rgba(62, 207, 142, 0.4)',
+                    selectionInactiveBackground: 'rgba(62, 207, 142, 0.22)',
+                }
+              : scheme === 'light'
+                ? {
+                      background: '#fbfcfd',
+                      foreground: '#1a2330',
+                      cursor: '#1f9d63',
+                      selectionBackground: 'rgba(31, 157, 99, 0.38)',
+                      selectionInactiveBackground: 'rgba(31, 157, 99, 0.22)',
+                  }
+                : themeColorsFromCss()
 
     // xterm needs a real transparent color + allowTransparency to show the host background image
     if (hasBgImage) {
@@ -166,14 +166,14 @@ function applyTermTheme() {
         if (root) {
             root.style.backgroundColor = hasBgImage ? 'transparent' : ''
             const viewport = root.querySelector(
-                '.xterm-viewport'
+                '.xterm-viewport',
             ) as HTMLElement | null
             if (viewport)
                 viewport.style.backgroundColor = hasBgImage
                     ? 'transparent'
                     : next.background
             const screen = root.querySelector(
-                '.xterm-screen'
+                '.xterm-screen',
             ) as HTMLElement | null
             if (screen)
                 screen.style.backgroundColor = hasBgImage ? 'transparent' : ''
@@ -392,7 +392,9 @@ async function ensureTerm(sessionId: string) {
         fontSize: termPrefs.value.fontSize,
         theme: readTermTheme(),
         // Required for theme.background rgba(0,0,0,0) so the host background image shows through
-        allowTransparency: !!resolveBackgroundImage(termPrefs.value.backgroundImage),
+        allowTransparency: !!resolveBackgroundImage(
+            termPrefs.value.backgroundImage,
+        ),
         // SearchAddon decorations use registerDecoration (still proposed in xterm 6)
         allowProposedApi: true,
         // 避免右键自动选词，以便区分「选区菜单」与「空白菜单」
@@ -430,7 +432,10 @@ async function ensureTerm(sessionId: string) {
                 try {
                     if (path === '~' || path.startsWith('~/')) {
                         if (!homeAbs) {
-                            const homeListing = await api.listRemoteDir(sessionId, '~')
+                            const homeListing = await api.listRemoteDir(
+                                sessionId,
+                                '~',
+                            )
                             homeAbs = homeListing.path
                         }
                         path =
@@ -553,7 +558,7 @@ async function ensureTerm(sessionId: string) {
             ev.preventDefault()
             ev.stopPropagation()
             openFind(
-                term.hasSelection() ? term.getSelection() : findQuery.value
+                term.hasSelection() ? term.getSelection() : findQuery.value,
             )
             return false
         }
@@ -579,11 +584,7 @@ async function ensureTerm(sessionId: string) {
         }
         // Ctrl/Cmd + / - ：放大 / 缩小终端字号（= 与 + 均可放大）
         if ((ev.ctrlKey || ev.metaKey) && !ev.altKey) {
-            if (
-                ev.key === '=' ||
-                ev.key === '+' ||
-                ev.code === 'NumpadAdd'
-            ) {
+            if (ev.key === '=' || ev.key === '+' || ev.code === 'NumpadAdd') {
                 ev.preventDefault()
                 ev.stopPropagation()
                 adjustTermFontSize(1)
@@ -625,7 +626,14 @@ async function ensureTerm(sessionId: string) {
         }
     })
 
-    terms.set(sessionId, { term, fit, search, unlisten, aiSession, disposeCwdPublish })
+    terms.set(sessionId, {
+        term,
+        fit,
+        search,
+        unlisten,
+        aiSession,
+        disposeCwdPublish,
+    })
     showOnly(sessionId)
     void sessions.resize(term.cols, term.rows)
 }
@@ -737,7 +745,7 @@ watch(
             await ensureTerm(s.sessionId)
         }
         if (activeSessionId.value) showOnly(activeSessionId.value)
-    }
+    },
 )
 
 watch(theme, async () => {
@@ -751,7 +759,7 @@ watch(
     () => {
         applyTermPrefs()
     },
-    { deep: true }
+    { deep: true },
 )
 
 watch(
@@ -759,7 +767,7 @@ watch(
     async () => {
         await nextTick()
         onResize()
-    }
+    },
 )
 
 let hostResizeObserver: ResizeObserver | null = null
