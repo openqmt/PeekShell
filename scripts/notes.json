@@ -1,0 +1,42 @@
+{
+    "version": "",
+    "show": true,
+    "webShow": false,
+    "appShow": true,
+    "pub_date": "2026-07-06T04:00:09.755Z",
+    "openUrl": "https://www.bilibili.com/",
+    "repeatShow": true,
+    "login": false,
+    "register": false,
+    "search": false,
+    "learn": false,
+    "aichat": true,
+    "aipage": false,
+    "rightBtn": false,
+    "devtools": true,
+    "payMethods": [
+        "wechat",
+        "code",
+        "alipay"
+    ],
+    "zh": {
+        "note": "你好你好",
+        "always": "",
+        "contact": ""
+    },
+    "en": {
+        "note": "yingyu",
+        "always": "",
+        "contact": ""
+    },
+    "ja": {
+        "note": "riyu",
+        "always": "",
+        "contact": ""
+    },
+    "ko": {
+        "note": "hanyu",
+        "always": "",
+        "contact": ""
+    }
+}
