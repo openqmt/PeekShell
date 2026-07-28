@@ -149,7 +149,8 @@ const activeArchGroups = computed<ArchGroup[]>(() => {
         assets.value.filter((asset) => asset.platform === activePlatform.value),
     )
     const groups: ArchGroup[] = []
-    for (const arch of ['x64', 'arm64'] as ArchKey[]) {
+    // macOS: Apple Silicon first — most Macs are arm64 now.
+    for (const arch of preferredArchs(activePlatform.value)) {
         const archAssets = list.filter((asset) => asset.arch === arch)
         if (archAssets.length) groups.push({ arch, assets: archAssets })
     }
@@ -240,6 +241,12 @@ function readUserAgentDataArch(): string {
     return navigatorWithUserAgentData.userAgentData?.architecture || ''
 }
 
+function preferredArchs(platform: PlatformKey): ArchKey[] {
+    // Prefer arm64 on macOS: Apple Silicon is the common case; Intel is fallback.
+    if (platform === 'macos') return ['arm64', 'x64']
+    return ['x64', 'arm64']
+}
+
 function packageRank(asset: ReleaseAsset): number {
     const ranks: Record<PlatformKey, PackageKey[]> = {
         windows: ['exe', 'msi', 'app', 'dmg', 'deb', 'rpm', 'appimage'],
@@ -251,7 +258,18 @@ function packageRank(asset: ReleaseAsset): number {
 
 function sortAssets(list: ReleaseAsset[]): ReleaseAsset[] {
     return [...list].sort((a, b) => {
-        if (a.arch !== b.arch) return a.arch === 'x64' ? -1 : 1
+        if (a.platform !== b.platform) {
+            return (
+                platformOrder.indexOf(a.platform) -
+                platformOrder.indexOf(b.platform)
+            )
+        }
+        if (a.arch !== b.arch) {
+            return (
+                preferredArchs(a.platform).indexOf(a.arch) -
+                preferredArchs(a.platform).indexOf(b.arch)
+            )
+        }
         const packageOrder = packageRank(a) - packageRank(b)
         if (packageOrder !== 0) return packageOrder
         return a.name.localeCompare(b.name)
