@@ -13,6 +13,9 @@ hero:
         alt: PeekShell
     actions:
         - theme: brand
+          text: 立即下载
+          link: /download/
+        - theme: brand
           text: 快速开始
           link: /guide/getting-started
         - theme: alt

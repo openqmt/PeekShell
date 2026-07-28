@@ -13,6 +13,9 @@ hero:
     alt: PeekShell
   actions:
     - theme: brand
+      text: Download now
+      link: /en/download/
+    - theme: brand
       text: Quick start
       link: /en/guide/getting-started
     - theme: alt
