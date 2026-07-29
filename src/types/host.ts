@@ -48,6 +48,7 @@ export interface HostMetrics {
     uptimeDays: number
     uptimeText: string
     loadAvg: string
+    cpuCores: number
     cpuPercent: number
     memUsedGiB: number
     memTotalGiB: number

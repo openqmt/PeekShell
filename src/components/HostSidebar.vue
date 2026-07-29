@@ -393,7 +393,11 @@ onBeforeUnmount(() => {
                                     :style="{ width: metrics.cpuPercent + '%' }"
                                 />
                                 <span class="value"
-                                    >{{ Math.round(metrics.cpuPercent) }}%</span
+                                    >{{ Math.round(metrics.cpuPercent) }}%{{
+                                        metrics.cpuCores > 0
+                                            ? ` / ${t('sidebar.cpuCores', { n: metrics.cpuCores })}`
+                                            : ''
+                                    }}</span
                                 >
                             </div>
                         </div>
