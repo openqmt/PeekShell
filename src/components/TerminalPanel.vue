@@ -417,6 +417,7 @@ async function ensureTerm(sessionId: string) {
     }
 
     // Track the current input line so local "cls" / CJK→AI can intercept without running remotely.
+    // Skipped while the alternate screen is active (vim / less / htop / …).
     let homeAbs: string | null = null
     let cwdPublishTimer: ReturnType<typeof setTimeout> | null = null
     const publishCwd = (rawCwd: string) => {
@@ -475,8 +476,20 @@ async function ensureTerm(sessionId: string) {
         }
     }
     let lineBuf = ''
+    // vim/less/htop use the alternate screen — never apply shell-line intercepts there.
+    const isAltScreen = () => term.buffer.active.type === 'alternate'
+    term.buffer.onBufferChange(() => {
+        lineBuf = ''
+    })
     term.onData((data) => {
         if (aiSession.tryHandleData(data)) return
+
+        // Fullscreen TUI: pass every keystroke through (CJK/cls must not steal Enter).
+        if (isAltScreen()) {
+            lineBuf = ''
+            void api.ptyWrite(sessionId, data)
+            return
+        }
 
         if (data === '\r' || data === '\n' || data === '\r\n') {
             if (lineBuf.trim().toLowerCase() === 'cls') {
@@ -538,6 +551,31 @@ async function ensureTerm(sessionId: string) {
 
     term.attachCustomKeyEventHandler((ev) => {
         if (ev.type !== 'keydown') return true
+        // In vim/less/etc., let Ctrl+V / Ctrl+W / Ctrl+I reach the app.
+        // Still allow copy when there is a selection.
+        if (isAltScreen()) {
+            if (
+                (ev.ctrlKey || ev.metaKey) &&
+                !ev.altKey &&
+                !ev.shiftKey &&
+                ev.key.toLowerCase() === 'c' &&
+                copyTermSelection(term)
+            ) {
+                ev.preventDefault()
+                ev.stopPropagation()
+                return false
+            }
+            const shortcuts = termPrefs.value.shortcuts
+            if (
+                matchShortcut(ev, shortcuts.copy) &&
+                copyTermSelection(term)
+            ) {
+                ev.preventDefault()
+                ev.stopPropagation()
+                return false
+            }
+            return true
+        }
         const shortcuts = termPrefs.value.shortcuts
 
         if (matchShortcut(ev, shortcuts.paste)) {
@@ -697,6 +735,11 @@ function isFormTypingTarget(target: EventTarget | null): boolean {
 
 function onTabShortcutKeydown(ev: KeyboardEvent) {
     if (isFormTypingTarget(ev.target)) return
+    // Don't steal Ctrl+N / Ctrl+W from vim and other fullscreen TUIs.
+    const active = activeSessionId.value
+        ? terms.get(activeSessionId.value)
+        : undefined
+    if (active?.term.buffer.active.type === 'alternate') return
     const shortcuts = termPrefs.value.shortcuts
     if (matchShortcut(ev, shortcuts.newSession)) {
         ev.preventDefault()
