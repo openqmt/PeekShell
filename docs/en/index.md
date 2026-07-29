@@ -6,7 +6,7 @@ description: PeekShell — lightweight cross-platform SSH client with host manag
 
 hero:
   name: PeekShell
-  text: Lightweight cross-platform SSH client
+  text: Lightweight Ai SSH client
   tagline: Hosts · multi-tab terminal · remote files · confirmation-first AI agent
   image:
     src: /app-icon.png
