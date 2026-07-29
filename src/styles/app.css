@@ -77,12 +77,6 @@ body,
     font-family: var(--font-ui);
 }
 
-/* 全局细滚动条：Firefox + Chromium / WebView2 */
-* {
-    scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-}
-
 *::-webkit-scrollbar {
     width: var(--scrollbar-size);
     height: var(--scrollbar-size);
@@ -107,6 +101,12 @@ body,
 
 *::-webkit-scrollbar-corner {
     background: transparent;
+}
+
+*::-webkit-scrollbar-button{
+    width: 0;
+    height: 0;
+    display: none;
 }
 
 button,
