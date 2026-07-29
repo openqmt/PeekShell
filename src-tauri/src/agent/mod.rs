@@ -450,8 +450,8 @@ fn build_context(
             m.os, m.kernel, m.arch, m.hostname
         ));
         lines.push(format!(
-            "Uptime: {} | load: {} | CPU: {:.0}% | mem: {:.1}/{:.1} GiB",
-            m.uptime_text, m.load_avg, m.cpu_percent, m.mem_used_gi_b, m.mem_total_gi_b
+            "Uptime: {} | load: {} | CPU: {} cores {:.0}% | mem: {:.1}/{:.1} GiB",
+            m.uptime_text, m.load_avg, m.cpu_cores, m.cpu_percent, m.mem_used_gi_b, m.mem_total_gi_b
         ));
     }
     let redacted = redact_secrets(pty_tail);

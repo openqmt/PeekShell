@@ -93,7 +93,8 @@ export function buildSeoHead(ctx: TransformContext): HeadConfig[] {
     ['link', { rel: 'alternate', hreflang: 'en', href: enUrl }],
     [
       'link',
-      { rel: 'alternate', hreflang: 'x-default', href: zhUrl },
+      // Unsupported browser languages fall back to English.
+      { rel: 'alternate', hreflang: 'x-default', href: enUrl },
     ],
 
     ['meta', { name: 'keywords', content: KEYWORDS[locale] }],

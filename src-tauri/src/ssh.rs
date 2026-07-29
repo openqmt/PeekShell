@@ -132,6 +132,7 @@ pub struct HostMetrics {
     pub uptime_days: u64,
     pub uptime_text: String,
     pub load_avg: String,
+    pub cpu_cores: u32,
     pub cpu_percent: f64,
     pub mem_used_gi_b: f64,
     pub mem_total_gi_b: f64,
@@ -630,6 +631,11 @@ echo "ARCH=$(uname -m)"
 echo "OS=${OS:-Linux}"
 echo "UPTIME=$(uptime)"
 echo "LOAD=$(cut -d' ' -f1-3 /proc/loadavg 2>/dev/null)"
+CPU_CORES=$(nproc 2>/dev/null)
+if [ -z "$CPU_CORES" ] || [ "$CPU_CORES" = "0" ]; then
+  CPU_CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null)
+fi
+echo "CPU_CORES=${CPU_CORES:-0}"
 echo "MEM=$(free -b 2>/dev/null | awk '/^Mem:/{print $2,$3}')"
 echo "SWAP=$(free -b 2>/dev/null | awk '/^Swap:/{print $2,$3}')"
 echo "DISK=$(df -B1 / 2>/dev/null | awk 'NR==2{print $2,$3}')"
@@ -1758,6 +1764,7 @@ fn parse_metrics(host: &HostRecord, raw: &str) -> HostMetrics {
         uptime_days: extract_uptime_days(&uptime_text),
         uptime_text,
         load_avg: get("LOAD").to_string(),
+        cpu_cores: get("CPU_CORES").parse().unwrap_or(0),
         cpu_percent,
         mem_used_gi_b: bytes_to_gib(mem_used),
         mem_total_gi_b: bytes_to_gib(mem_total),

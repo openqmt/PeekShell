@@ -2,15 +2,20 @@ import { createPinia } from "pinia";
 import { createApp } from "vue";
 import { createGtag } from "vue-gtag";
 import App from "./App.vue";
-import { applyAccentColor, applyLocale, applyTheme, normalizeAccentColor } from "./stores/ui";
+import {
+  applyAccentColor,
+  applyLocale,
+  applyTheme,
+  normalizeAccentColor,
+  resolveInitialLocale,
+} from "./stores/ui";
 import { installWebViewGuards } from "./utils/installWebViewGuards";
 import "./styles/app.css";
 
 // 首屏前应用主题与语言，避免闪一下错误配色/文案
 const storedTheme = localStorage.getItem("peekshell.theme");
 applyTheme(storedTheme === "light" ? "light" : "dark");
-const storedLocale = localStorage.getItem("peekshell.locale");
-applyLocale(storedLocale === "en" ? "en" : "zh");
+applyLocale(resolveInitialLocale());
 try {
   const raw = localStorage.getItem("peekshell.displayPrefs");
   if (raw) {

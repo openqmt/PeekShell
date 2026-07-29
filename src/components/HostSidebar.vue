@@ -393,7 +393,11 @@ onBeforeUnmount(() => {
                                     :style="{ width: metrics.cpuPercent + '%' }"
                                 />
                                 <span class="value"
-                                    >{{ Math.round(metrics.cpuPercent) }}%</span
+                                    >{{ Math.round(metrics.cpuPercent) }}%{{
+                                        metrics.cpuCores > 0
+                                            ? ` / ${t('sidebar.cpuCores', { n: metrics.cpuCores })}`
+                                            : ''
+                                    }}</span
                                 >
                             </div>
                         </div>
@@ -839,7 +843,7 @@ onBeforeUnmount(() => {
 
 .kv {
     display: grid;
-    grid-template-columns: 24px 1fr;
+    grid-template-columns: 34px 1fr;
     gap: 4px 6px;
     font-size: 13px;
 }

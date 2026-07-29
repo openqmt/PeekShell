@@ -150,9 +150,38 @@ function readStoredTheme(): ThemeMode {
     return raw === 'light' ? 'light' : 'dark'
 }
 
-function readStoredLocale(): Locale {
+/**
+ * Map OS / browser language list to app locale.
+ * Prefer Chinese when any preferred language is zh*; otherwise English.
+ */
+export function detectSystemLocale(): Locale {
+    const list =
+        typeof navigator !== 'undefined' && navigator.languages?.length
+            ? navigator.languages
+            : [
+                  typeof navigator !== 'undefined'
+                      ? navigator.language
+                      : 'en',
+              ]
+    for (const entry of list) {
+        const lang = String(entry || '').toLowerCase()
+        if (lang.startsWith('zh')) return 'zh'
+        if (lang.startsWith('en')) return 'en'
+    }
+    return 'en'
+}
+
+/** Stored preference if set; otherwise detect once from the system and persist. */
+export function resolveInitialLocale(): Locale {
     const raw = localStorage.getItem(LOCALE_KEY)
-    return raw === 'en' ? 'en' : 'zh'
+    if (raw === 'en' || raw === 'zh') return raw
+    const detected = detectSystemLocale()
+    try {
+        localStorage.setItem(LOCALE_KEY, detected)
+    } catch {
+        // private mode / blocked storage
+    }
+    return detected
 }
 
 function readStoredDisplayPrefs(): DisplayPrefs {
@@ -200,7 +229,7 @@ export async function syncTauriTheme(mode: ThemeMode) {
 
 export const useUiStore = defineStore('ui', () => {
     const theme = ref<ThemeMode>(readStoredTheme())
-    const locale = ref<Locale>(readStoredLocale())
+    const locale = ref<Locale>(resolveInitialLocale())
     const displayPrefs = reactive<DisplayPrefs>(readStoredDisplayPrefs())
     const sidebarCollapsed = ref(false)
     const aiCollapsed = ref(true)

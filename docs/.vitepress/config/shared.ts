@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { defineConfig } from 'vitepress'
+import { LOCALE_REDIRECT_SCRIPT } from '../localePreference'
 import {
   DEFAULT_DESCRIPTION,
   SITE_NAME,
@@ -55,6 +56,8 @@ export const shared = defineConfig({
     ['link', { rel: 'apple-touch-icon', href: '/logo.png' }],
     ['meta', { name: 'theme-color', content: '#0f766e' }],
     ['meta', { name: 'application-name', content: SITE_NAME }],
+    // Prefer browser language before first paint; unsupported locales → English.
+    ['script', {}, LOCALE_REDIRECT_SCRIPT],
     [
       'script',
       {
