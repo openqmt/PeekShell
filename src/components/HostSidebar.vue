@@ -843,7 +843,7 @@ onBeforeUnmount(() => {
 
 .kv {
     display: grid;
-    grid-template-columns: 24px 1fr;
+    grid-template-columns: 34px 1fr;
     gap: 4px 6px;
     font-size: 13px;
 }
