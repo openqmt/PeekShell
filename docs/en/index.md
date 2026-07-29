@@ -21,9 +21,6 @@ hero:
     - theme: alt
       text: Learn more
       link: /en/guide/
-    - theme: alt
-      text: GitHub
-      link: https://github.com/openqmt/PeekShell
 
 features:
   - title: Host management
