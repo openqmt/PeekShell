@@ -9,7 +9,7 @@ PeekShell is a lightweight cross-platform SSH client for Windows, macOS, and Lin
 
 ## Why PeekShell
 
-Classic SSH clients are powerful but often heavy. Pure AI assistants can run dangerous commands on remote hosts by mistake. PeekShell combines both, with a hard rule: **never auto-execute by default — every AI-proposed command needs your approval**.
+Classic SSH clients are powerful but often heavy. Pure AI assistants can run dangerous commands on remote hosts by mistake. PeekShell combines both, with a hard rule: **default is Confirm all** — nothing is written to the remote host until you approve. You can switch to Smart or Auto run when appropriate; see [AI assistant](/en/guide/ai-agent).
 
 ## Stack
 
@@ -30,9 +30,9 @@ Classic SSH clients are powerful but often heavy. Pure AI assistants can run dan
 - Remote file browsing and transfers
 - Chinese / English UI
 - Dark / light themes
-
-The AI agent is on the roadmap: provider settings and chat entry points are in place; the full propose → confirm → execute → feedback loop is still being finished.
+- AI assistant (Confirm all / Smart / Auto run)
 
 ## Next
 
 Continue with [Quick start](/en/guide/getting-started) to run PeekShell from source.
+Or jump to [AI assistant](/en/guide/ai-agent) for the three execution modes.
