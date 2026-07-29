@@ -564,13 +564,13 @@ onMounted(async () => {
     min-height: 28px;
     padding: 0 12px;
     border-radius: 999px;
-    background: var(--vp-c-brand-1);
+    background: var(--vp-button-brand-bg);
     color: #fff;
     font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.02em;
     box-shadow: 0 2px 8px
-        color-mix(in srgb, var(--vp-c-brand-1) 35%, transparent);
+        color-mix(in srgb, var(--vp-button-brand-bg) 35%, transparent);
 }
 
 .dl-recommend-main h1 {
@@ -622,12 +622,12 @@ onMounted(async () => {
 }
 
 .dl-btn-primary {
-    background: var(--vp-c-brand-1);
+    background: var(--vp-button-brand-bg);
     color: #fff;
 }
 
 .dl-btn-primary:hover {
-    background: var(--vp-c-brand-2);
+    background: var(--vp-button-brand-hover-bg);
 }
 
 .dl-btn-proxy {
@@ -709,10 +709,10 @@ onMounted(async () => {
 }
 
 .dl-tab.active {
-    background: var(--vp-c-brand-1);
+    background: var(--vp-button-brand-bg);
     color: #fff;
     box-shadow: 0 2px 8px
-        color-mix(in srgb, var(--vp-c-brand-1) 35%, transparent);
+        color-mix(in srgb, var(--vp-button-brand-bg) 35%, transparent);
 }
 
 .dl-tab.active em {
