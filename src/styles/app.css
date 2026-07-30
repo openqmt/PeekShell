@@ -93,12 +93,6 @@ body,
     background-clip: content-box;
 }
 
-*::-webkit-scrollbar-thumb:hover {
-    background: var(--scrollbar-thumb-hover);
-    border: 2px solid transparent;
-    background-clip: content-box;
-}
-
 *::-webkit-scrollbar-corner {
     background: transparent;
 }
