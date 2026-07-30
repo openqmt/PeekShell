@@ -14,6 +14,12 @@
     #0ea5e9 100%
   );
   --vp-home-hero-image-filter: blur(44px);
+
+  /* Thin, low-contrast scrollbars for page + sidebar */
+  --scrollbar-size: 8px;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: rgba(60, 60, 67, 0.28);
+  --scrollbar-thumb-hover: rgba(60, 60, 67, 0.48);
 }
 
 .dark {
@@ -29,6 +35,48 @@
     #0d9488 70%,
     #38bdf8 100%
   );
+
+  --scrollbar-thumb: rgba(235, 235, 245, 0.28);
+  --scrollbar-thumb-hover: rgba(235, 235, 245, 0.48);
+}
+
+/* Global scrollbar: Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* Global scrollbar: Chromium / Safari */
+*::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-button {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 /* Hero logo glow: animate background when hovering the logo */
