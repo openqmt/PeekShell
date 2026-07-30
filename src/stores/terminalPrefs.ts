@@ -83,7 +83,7 @@ export function backgroundPresetId(stored: string): BackgroundImagePresetId | nu
 export const DEFAULT_TERMINAL_PREFS: TerminalPrefs = {
   fontFamily: "IBM Plex Mono, ui-monospace, monospace",
   fontSize: 13,
-  colorScheme: "theme",
+  colorScheme: "custom",
   customColors: {
     background: "#0a0d10",
     foreground: "#d6dde6",
