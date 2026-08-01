@@ -19,7 +19,7 @@ const content =
     'version: ' + versionObj.version + '\n' + 'build time: ' + now + '\n'
 console.log('version.txt content', content)
 
-fs.writeFileSync(path.join(distPath, 'version.txt'), content)
+fs.writeFileSync(path.join(distPath, `v${versionObj.version}.txt`), content)
 
 // 输出 zip 文件路径
 const outputPath = path.join(__dirname, `${versionObj.version}.zip`)
