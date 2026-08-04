@@ -1,67 +1,55 @@
 {
-    "version": "0.1.2",
-    "notes": "",
-    "pub_date": "2026-07-28T14:20:20.754Z",
-    "platforms": {
-        "darwin-aarch64": {
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaGxQY3lsUllFajdwcS8zUTNJZUI1NERBbm83OVAxc05Mc0Z3bFlBMTRHY3JtcFI4QU5rWWh5dlBUdWpjeTV2cUJaRW1kR2pIQi9iVU5zTVRpZkp0dGdJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1MjQ3NDkyCWZpbGU6UGVla1NoZWxsLmFwcC50YXIuZ3oKM2hEMzExcHI4SldudkpIVlBNMnFHZWR6VUl6bXc2N0U2aFQ5anRXb2UzTzNZU2ZacGd5SDNhcXRnZjl6b3VXWUxya0ZGb1gwRDBJQk12QklFZ0xTQnc9PQo=",
-            "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.2/PeekShell_aarch64.app.tar.gz"
-        },
-        "darwin-aarch64-app": {
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaGxQY3lsUllFajdwcS8zUTNJZUI1NERBbm83OVAxc05Mc0Z3bFlBMTRHY3JtcFI4QU5rWWh5dlBUdWpjeTV2cUJaRW1kR2pIQi9iVU5zTVRpZkp0dGdJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1MjQ3NDkyCWZpbGU6UGVla1NoZWxsLmFwcC50YXIuZ3oKM2hEMzExcHI4SldudkpIVlBNMnFHZWR6VUl6bXc2N0U2aFQ5anRXb2UzTzNZU2ZacGd5SDNhcXRnZjl6b3VXWUxya0ZGb1gwRDBJQk12QklFZ0xTQnc9PQo=",
-            "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.2/PeekShell_aarch64.app.tar.gz"
-        },
-        "darwin-x86_64": {
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaG10ditabTNveW16SXJoYWJyZ0pNN0RuVklJZFBqbHNZY2xySTZJYjV2S1V6ZUtDUzdSMjNXaXFTZ1QwVSsybWx4WXQ0ejdFS1pDRFJ6c3FDVk9CNFF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1MjQ4Mjk4CWZpbGU6UGVla1NoZWxsLmFwcC50YXIuZ3oKWkhnQ282NHZaMU04eUtmczVCNXUveEtUUyt2dWxRZFM0cE95OGxsOVhYT2RPcVFydk11Y1ZWVTdIajNIRk1zQXU1UTBBUktBZmdXSTZoMFo5SlR3QVE9PQo=",
-            "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.2/PeekShell_x64.app.tar.gz"
-        },
-        "darwin-x86_64-app": {
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaG10ditabTNveW16SXJoYWJyZ0pNN0RuVklJZFBqbHNZY2xySTZJYjV2S1V6ZUtDUzdSMjNXaXFTZ1QwVSsybWx4WXQ0ejdFS1pDRFJ6c3FDVk9CNFF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1MjQ4Mjk4CWZpbGU6UGVla1NoZWxsLmFwcC50YXIuZ3oKWkhnQ282NHZaMU04eUtmczVCNXUveEtUUyt2dWxRZFM0cE95OGxsOVhYT2RPcVFydk11Y1ZWVTdIajNIRk1zQXU1UTBBUktBZmdXSTZoMFo5SlR3QVE9PQo=",
-            "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.2/PeekShell_x64.app.tar.gz"
-        },
-        "windows-aarch64": {
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaHBqZ1c2cUFXbS9HbTR0RDBRMzFCN2d4VnF6N1lsbURaRXBWS2pEQm84amRQRS8yTnpIU3AvOVpkTlQ3ZHRsQTJUQnJHKzdhVVo3a0g0Q3U0SEhBRmdFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1MjQ4MzE5CWZpbGU6UGVla1NoZWxsXzAuMS4yX2FybTY0X2VuLVVTLm1zaQpZNXoxREdKU05hSW1MbmRZNjZTampwQTZlMU1DTEV6ekJ4bHhJRkhjSlR5aUdNR1BMV3dOSjgzaXBrTU8zeE4vS2VnampFTksrSnVIWEFTVGFYdktDdz09Cg==",
-            "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.2/PeekShell_0.1.2_arm64_en-US.msi"
-        },
-        "windows-aarch64-msi": {
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaHBqZ1c2cUFXbS9HbTR0RDBRMzFCN2d4VnF6N1lsbURaRXBWS2pEQm84amRQRS8yTnpIU3AvOVpkTlQ3ZHRsQTJUQnJHKzdhVVo3a0g0Q3U0SEhBRmdFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1MjQ4MzE5CWZpbGU6UGVla1NoZWxsXzAuMS4yX2FybTY0X2VuLVVTLm1zaQpZNXoxREdKU05hSW1MbmRZNjZTampwQTZlMU1DTEV6ekJ4bHhJRkhjSlR5aUdNR1BMV3dOSjgzaXBrTU8zeE4vS2VnampFTksrSnVIWEFTVGFYdktDdz09Cg==",
-            "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.2/PeekShell_0.1.2_arm64_en-US.msi"
-        },
-        "windows-aarch64-nsis": {
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaHBTZzV4YlEyaUhSd1ZXd2NUODlpbiszVE4zcWwyYkpPOFFMdlkrMmdVRThOUFFSZk1FRWFWT1ViN1R6VzlBcE1lSkFMTEtHZUNFQS9Ra252YzYzQ3dVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1MjQ4MzE5CWZpbGU6UGVla1NoZWxsXzAuMS4yX2FybTY0LXNldHVwLmV4ZQpUc2FsR0Ntc0ZVTnJtY05sTm0wZVVNdWZXUHBoZE1sUnIvOWZ0Q3p5U3dwUlU3dDVRSks1TndaZG45SFA1RDdXOCsvYlVDbzlXamJsSWYxTThwOWFCZz09Cg==",
-            "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.2/PeekShell_0.1.2_arm64-setup.exe"
-        },
-        "linux-x86_64": {
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaHM0VFZZOXZtK3ZjeUFOZi9NbmsvNXpwbmVBN1RmVGhiM2pnM2lUSjBYdEFvY2lhc28yQVZoVC8zd0tJSUFQU1dOeHVjYVBMOXpRaWlJRndiMGRManc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1MjQ4MzI2CWZpbGU6UGVla1NoZWxsXzAuMS4yX2FtZDY0LkFwcEltYWdlCnJGVkhWYldRckJaT2hXNlJzQ3lkeWdlT1FpMnBsOFBJdHVQTk4xUmR1bCs1ZitiVDArVmRzUmhlMkFrY3UwK3JudWJuQ2oyMUpJbVdwbm8rQ0ZGU0NnPT0K",
-            "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.2/PeekShell_0.1.2_amd64.AppImage"
-        },
-        "linux-x86_64-appimage": {
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaHM0VFZZOXZtK3ZjeUFOZi9NbmsvNXpwbmVBN1RmVGhiM2pnM2lUSjBYdEFvY2lhc28yQVZoVC8zd0tJSUFQU1dOeHVjYVBMOXpRaWlJRndiMGRManc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1MjQ4MzI2CWZpbGU6UGVla1NoZWxsXzAuMS4yX2FtZDY0LkFwcEltYWdlCnJGVkhWYldRckJaT2hXNlJzQ3lkeWdlT1FpMnBsOFBJdHVQTk4xUmR1bCs1ZitiVDArVmRzUmhlMkFrY3UwK3JudWJuQ2oyMUpJbVdwbm8rQ0ZGU0NnPT0K",
-            "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.2/PeekShell_0.1.2_amd64.AppImage"
-        },
-        "linux-x86_64-deb": {
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaHYzTHV3Tk5NRDJGNG5pamJkQWdMT2VVeGhGcHUwd0d5WlZNVWNYU3grUlJuckdTc1RWWCtqclJvYlJBUHl1NDc3OUgva3d5aHNGWDNZT2Q4UFV6endVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1MjQ4MzI2CWZpbGU6UGVla1NoZWxsXzAuMS4yX2FtZDY0LmRlYgpBcXB5K1puYTJpbXpKVEE3bkpBelBUMFY3bHh1aSsrcmV2NGFabTNubS9yem1yZFZnemxxOW1hUFZkMHZYWjJDanEwNzNQT2ZxUDBuVTBwc29GK1FDQT09Cg==",
-            "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.2/PeekShell_0.1.2_amd64.deb"
-        },
-        "linux-x86_64-rpm": {
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaHFSV2J4cnFqRHBQd0F5dVJCMzUvQ0s2V0o5Y2dPZ3RWZlk4UjBVVlEyZW9CNldLT3UvOGtpM1VDZHJ5RjVMdTlCWE5RcGxmZFdBQnZHSVREWmZLZHcwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1MjQ4MzI2CWZpbGU6UGVla1NoZWxsLTAuMS4yLTEueDg2XzY0LnJwbQpJQlIreVI5ZEVSSTRnSk1iZ2RjMVJlRllNZjRqT0Y5YlpDNjdGWXN3N1IvUmF1bzZ2VExHeDNVWkZkWlN1MExlZ2pmK3dlbnVqMjNlWlJGd3hvOENBdz09Cg==",
-            "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.2/PeekShell-0.1.2-1.x86_64.rpm"
-        },
-        "windows-x86_64": {
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaHVzdmNMc2VmTHRBMzFyMzB4Lzh0dHB4UVc1eHliOFA1MUdYT2pqalE5SGl3cFBIL3F5Tkx2RFlPNHdrdFhsRHlRS3UyU21YUHNQaXYrZzhkSzFJTEFrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1MjQ4NDE2CWZpbGU6UGVla1NoZWxsXzAuMS4yX3g2NF9lbi1VUy5tc2kKVktGNkptbDNLL1FtT3VjNGxWQlIvdXM3WlM5bDFsbE1DQmhYWnB3dCtIME9oKzRDdWltcG9aOXBrakp0ZWVnYTBiOVNuZHZBZjAvM09hTG9kSk8vQXc9PQo=",
-            "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.2/PeekShell_0.1.2_x64_en-US.msi"
-        },
-        "windows-x86_64-msi": {
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaHVzdmNMc2VmTHRBMzFyMzB4Lzh0dHB4UVc1eHliOFA1MUdYT2pqalE5SGl3cFBIL3F5Tkx2RFlPNHdrdFhsRHlRS3UyU21YUHNQaXYrZzhkSzFJTEFrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1MjQ4NDE2CWZpbGU6UGVla1NoZWxsXzAuMS4yX3g2NF9lbi1VUy5tc2kKVktGNkptbDNLL1FtT3VjNGxWQlIvdXM3WlM5bDFsbE1DQmhYWnB3dCtIME9oKzRDdWltcG9aOXBrakp0ZWVnYTBiOVNuZHZBZjAvM09hTG9kSk8vQXc9PQo=",
-            "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.2/PeekShell_0.1.2_x64_en-US.msi"
-        },
-        "windows-x86_64-nsis": {
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaG1WU1dYNjFWTjAxa0FJbDVuVzFMdXpVb29mUkJpR3JrbWMySGs4S1ZNMTRHazIyc090bm9HZkMwRTJxcDhrM0tmSFFiWTNHUVNHKzBERDZiNEJJdWdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1MjQ4NDE2CWZpbGU6UGVla1NoZWxsXzAuMS4yX3g2NC1zZXR1cC5leGUKZmcrNWhDY3VCN1NGWEIzZmRKQzE0QlRTNkwrUG05ZDN1Q0dGc3BEWmU2UGszbkQvaStucG5BUTRpaGVScGNPYmg3cmxmOFpLcmNpWDE0QUtQZFFWQVE9PQo=",
-            "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.2/PeekShell_0.1.2_x64-setup.exe"
-        }
+  "version": "0.1.3",
+  "notes": "",
+  "pub_date": "2026-08-01T08:57:33.777Z",
+  "platforms": {
+    "darwin-aarch64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaHViZ2VaUmQwdnZDL2lwV0d6ZzNwdkE4SFFxZWFZckd3a3VZd3pZNUQzQ2thcGtOWkdFVTlnMEgwVXYrd2M1blN2OW5rMFpDZ3V4eEljNzBXS0lFZEF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NTczMjI1CWZpbGU6UGVla1NoZWxsLmFwcC50YXIuZ3oKSEszcWh3dnJDT3FHRGxMZUVUc0ljUDRuWGZqd2pRY011N1dJTy8za2t5UlY2cFBHbnNRTmNQM0dGK25oM1N6eDdIc2lXSWlkYnhIY1NaMjBWdFQ3QUE9PQo=",
+      "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.3/PeekShell_aarch64.app.tar.gz"
     },
-    "force": true,
-    "zh": "修复一部分小问题，性能优化",
-    "en": "修复一部分小问题，性能优化",
-    "ja": "修复一部分小问题，性能优化"
+    "darwin-aarch64-app": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaHViZ2VaUmQwdnZDL2lwV0d6ZzNwdkE4SFFxZWFZckd3a3VZd3pZNUQzQ2thcGtOWkdFVTlnMEgwVXYrd2M1blN2OW5rMFpDZ3V4eEljNzBXS0lFZEF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NTczMjI1CWZpbGU6UGVla1NoZWxsLmFwcC50YXIuZ3oKSEszcWh3dnJDT3FHRGxMZUVUc0ljUDRuWGZqd2pRY011N1dJTy8za2t5UlY2cFBHbnNRTmNQM0dGK25oM1N6eDdIc2lXSWlkYnhIY1NaMjBWdFQ3QUE9PQo=",
+      "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.3/PeekShell_aarch64.app.tar.gz"
+    },
+    "darwin-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaGhmdS9aRnk3V2pTbDNxRzkzdVZ4cjFQd20xNVd3SjV5bVlROUFnRW5oMmVPTGw5T09wa2pCRHhpOUVtNmdTQnBMcmRzd0pxVkRNR1BoTnNWTW1HT1FFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NTc0NDE5CWZpbGU6UGVla1NoZWxsLmFwcC50YXIuZ3oKV21GUW5zOXJJallVOGd6MENNWWVaVFhWVXZRcHNPQWRLejlOclR6SGEySkE0YTRpb01rUVNXbzJVVXp1RkdMWW5tREh3UldmWjIrQkQxeUJSMUNoQnc9PQo=",
+      "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.3/PeekShell_x64.app.tar.gz"
+    },
+    "darwin-x86_64-app": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaGhmdS9aRnk3V2pTbDNxRzkzdVZ4cjFQd20xNVd3SjV5bVlROUFnRW5oMmVPTGw5T09wa2pCRHhpOUVtNmdTQnBMcmRzd0pxVkRNR1BoTnNWTW1HT1FFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NTc0NDE5CWZpbGU6UGVla1NoZWxsLmFwcC50YXIuZ3oKV21GUW5zOXJJallVOGd6MENNWWVaVFhWVXZRcHNPQWRLejlOclR6SGEySkE0YTRpb01rUVNXbzJVVXp1RkdMWW5tREh3UldmWjIrQkQxeUJSMUNoQnc9PQo=",
+      "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.3/PeekShell_x64.app.tar.gz"
+    },
+    "linux-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaGtVQ3pSWTVzZlhKcC9rL2tWYTFVSlE1MXAzUzNneUtQcnFlOFdXeHFPZ1R1dk1XWVR4OGFldlNnSkVERERYTWFuWkRvMExHT0V4L0FpWEY4N3U1Z0FNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NTc0NjA3CWZpbGU6UGVla1NoZWxsXzAuMS4zX2FtZDY0LkFwcEltYWdlClYwYlloM1F5TGsydlN2VFoxSGp4UDJRU28yc3lrSnhEOCsrcXpHK3dUMldIYVJpMlZhcHdvS3BoTVJTUUFmS21HRTVUaEJOZ0VFQWhmWGR3QzAvSUNRPT0K",
+      "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.3/PeekShell_0.1.3_amd64.AppImage"
+    },
+    "linux-x86_64-appimage": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaGtVQ3pSWTVzZlhKcC9rL2tWYTFVSlE1MXAzUzNneUtQcnFlOFdXeHFPZ1R1dk1XWVR4OGFldlNnSkVERERYTWFuWkRvMExHT0V4L0FpWEY4N3U1Z0FNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NTc0NjA3CWZpbGU6UGVla1NoZWxsXzAuMS4zX2FtZDY0LkFwcEltYWdlClYwYlloM1F5TGsydlN2VFoxSGp4UDJRU28yc3lrSnhEOCsrcXpHK3dUMldIYVJpMlZhcHdvS3BoTVJTUUFmS21HRTVUaEJOZ0VFQWhmWGR3QzAvSUNRPT0K",
+      "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.3/PeekShell_0.1.3_amd64.AppImage"
+    },
+    "linux-x86_64-deb": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaHJUTzhKdHR3VWVodnVlb3Q4VFlPeW5wYXB4RmNIQWVzdHhTNGRCRjc4SGNUU3BaR0F5L1RuNElvYzJiWkc4MmZLTDExYUtlR29Ud2thY2dIZERxd1EwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NTc0NjA3CWZpbGU6UGVla1NoZWxsXzAuMS4zX2FtZDY0LmRlYgpVMHNwYXVJWkpVRGl0RmFTRHMwR1NFTnVDbkpqby9RR1pvemlZTHZ0WWtFcVUyUGk5emhCQmlTd2hXZUhFRy9QYjRCbjdoYWo4UHVadCsyeHM5TTJBZz09Cg==",
+      "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.3/PeekShell_0.1.3_amd64.deb"
+    },
+    "linux-x86_64-rpm": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaGpxZUpQbmFIWE03ZXV1Y3JhbFlDQk1VeTk1RzlOM2M1VGw2TTRYK3MwMUt4c0ExYVVGdkp3bDRydXR5Vm9xTHFFTjZBYnhhN2Fab1lMYXdZRWxGa3dVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NTc0NjA3CWZpbGU6UGVla1NoZWxsLTAuMS4zLTEueDg2XzY0LnJwbQowK09zRVUrTy83aDBCa3hxTjgwcDNhNVhuUG5YbEMwVDdTNWM0YzNpZks1VkRENGdDQWxwUFlmMDRXN0xPRWNmcW5ZTnUwcXpQa01YL2F5QVhkaUhDUT09Cg==",
+      "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.3/PeekShell-0.1.3-1.x86_64.rpm"
+    },
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaHRNTk1XMDJWaGFQZ2pBYVo0VHBLVENzN1FPdUcxTWxaN3dWWTVqOGRqeWpSSUZDc2hUbmZjOTVKcjlwanZhSlZLWkJyLzNoelhJT05LV3RPWks4WHdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NTc0NjUwCWZpbGU6UGVla1NoZWxsXzAuMS4zX3g2NF9lbi1VUy5tc2kKblNIaU9mcUJEdmFqRjAxanFKYWNhQ1R2OXVXa0FMRGNrbjVqanQ5YjhDWWxNYVJNSXdnT0JWL1IyM0M3QnlwMzhINU8rQldMdWc3QllpdVY3OCtqQ1E9PQo=",
+      "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.3/PeekShell_0.1.3_x64_en-US.msi"
+    },
+    "windows-x86_64-msi": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaHRNTk1XMDJWaGFQZ2pBYVo0VHBLVENzN1FPdUcxTWxaN3dWWTVqOGRqeWpSSUZDc2hUbmZjOTVKcjlwanZhSlZLWkJyLzNoelhJT05LV3RPWks4WHdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NTc0NjUwCWZpbGU6UGVla1NoZWxsXzAuMS4zX3g2NF9lbi1VUy5tc2kKblNIaU9mcUJEdmFqRjAxanFKYWNhQ1R2OXVXa0FMRGNrbjVqanQ5YjhDWWxNYVJNSXdnT0JWL1IyM0M3QnlwMzhINU8rQldMdWc3QllpdVY3OCtqQ1E9PQo=",
+      "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.3/PeekShell_0.1.3_x64_en-US.msi"
+    },
+    "windows-x86_64-nsis": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVzlpSElTL2VnaHZNclBmaEpiMW9RRVg0ZE5iVW1RMDExb0VXWGU5Vmw0V09MZnlJRGozWjZtYWs1bHZJb1o2TmVMakpDUmF5Smgvem5VbjlvSEZxUUhQclBGdFFoOUFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NTc0NjUwCWZpbGU6UGVla1NoZWxsXzAuMS4zX3g2NC1zZXR1cC5leGUKU2ZaalloK05oNHdGZTBFa0pVN2ZWZllVbGxBQmQ4R1M2VlhuRit3ZUsrUWhKd1NZSmpDSjZqV3R5dUZkRjlEZ21vVjRXTytoMXBHeGo2MXFHSHF4Q2c9PQo=",
+      "url": "https://gh-proxy.org/https://github.com/openqmt/PeekShell/releases/download/PeekShell-v0.1.3/PeekShell_0.1.3_x64-setup.exe"
+    }
+  },
+  "force": false,
+  "zh": "优化页面布局和结构，修复部分bug",
+  "en": "",
+  "ja": ""
 }
