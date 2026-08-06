@@ -99,23 +99,17 @@ const hostOverlayStyle = computed(() => {
         0.85,
         Math.max(0, 1 - termPrefs.value.backgroundOpacity),
     )
-    return { backgroundColor: `rgba(10, 13, 16, ${dim})` }
+    return { backgroundColor: `rgba(40, 44, 52, ${dim})` }
 })
 
 function themeColorsFromCss() {
     const styles = getComputedStyle(document.documentElement)
-    const isLight =
-        document.documentElement.getAttribute('data-theme') === 'light'
     return {
-        background: styles.getPropertyValue('--term-bg').trim() || '#0a0d10',
-        foreground: styles.getPropertyValue('--term-fg').trim() || '#d6dde6',
-        cursor: styles.getPropertyValue('--accent').trim() || '#3ecf8e',
-        selectionBackground: isLight
-            ? 'rgba(31, 157, 99, 0.38)'
-            : 'rgba(62, 207, 142, 0.4)',
-        selectionInactiveBackground: isLight
-            ? 'rgba(31, 157, 99, 0.22)'
-            : 'rgba(62, 207, 142, 0.22)',
+        background: styles.getPropertyValue('--term-bg').trim() || '#282c34',
+        foreground: styles.getPropertyValue('--term-fg').trim() || '#abb2bf',
+        cursor: styles.getPropertyValue('--accent').trim() || '#1f9d63',
+        selectionBackground: 'rgba(31, 157, 99, 0.38)',
+        selectionInactiveBackground: 'rgba(31, 157, 99, 0.22)',
     }
 }
 
@@ -128,16 +122,16 @@ function readTermTheme() {
                   background: termPrefs.value.customColors.background,
                   foreground: termPrefs.value.customColors.foreground,
                   cursor: termPrefs.value.customColors.cursor,
-                  selectionBackground: 'rgba(62, 207, 142, 0.4)',
-                  selectionInactiveBackground: 'rgba(62, 207, 142, 0.22)',
+                  selectionBackground: 'rgba(31, 157, 99, 0.38)',
+                  selectionInactiveBackground: 'rgba(31, 157, 99, 0.22)',
               }
             : scheme === 'dark'
               ? {
-                    background: '#0a0d10',
-                    foreground: '#d6dde6',
-                    cursor: '#3ecf8e',
-                    selectionBackground: 'rgba(62, 207, 142, 0.4)',
-                    selectionInactiveBackground: 'rgba(62, 207, 142, 0.22)',
+                    background: '#282c34',
+                    foreground: '#abb2bf',
+                    cursor: '#1f9d63',
+                    selectionBackground: 'rgba(31, 157, 99, 0.38)',
+                    selectionInactiveBackground: 'rgba(31, 157, 99, 0.22)',
                 }
               : scheme === 'light'
                 ? {

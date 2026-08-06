@@ -33,7 +33,7 @@ export interface DisplayPrefs {
 }
 
 /** Preset accent swatches for display settings (excluding theme default). */
-export const ACCENT_COLOR_PRESETS = ['#3ecf8e', '#3b9eff', '#a78bfa'] as const
+export const ACCENT_COLOR_PRESETS = ['#1f9d63', '#3b9eff', '#a78bfa'] as const
 
 const THEME_KEY = 'peekshell.theme'
 const LOCALE_KEY = 'peekshell.locale'

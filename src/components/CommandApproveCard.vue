@@ -232,10 +232,6 @@ async function copyCommand() {
 .approve {
   border: none;
   background: var(--accent);
-  color: #06140e;
-}
-
-:global([data-theme="light"]) .approve {
   color: #ffffff;
 }
 

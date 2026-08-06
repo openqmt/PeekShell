@@ -26,7 +26,7 @@ const GITHUB_LABEL = 'https://github.com/openqmt/PeekShell'
 const ui = useUiStore()
 const note = useNoteStore()
 const { t } = useI18n()
-const { displayPrefs, theme, settingsSection } = storeToRefs(ui)
+const { displayPrefs, settingsSection } = storeToRefs(ui)
 const { aiChatEnabled } = storeToRefs(note)
 
 const section = ref<SettingsSection>(settingsSection.value)
@@ -48,9 +48,7 @@ function selectSection(next: SettingsSection) {
     ui.setSettingsSection(next)
 }
 
-const themeDefaultAccent = computed(() =>
-    theme.value === 'light' ? '#1f9d63' : '#3ecf8e'
-)
+const themeDefaultAccent = computed(() => '#1f9d63')
 
 const isDefaultAccent = computed(() => !displayPrefs.value.accentColor)
 

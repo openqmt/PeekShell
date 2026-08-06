@@ -195,21 +195,21 @@ function colorsForScheme(resolved: "dark" | "light", followCss: boolean): Appear
     };
   }
   return {
-    background: "#0a0d10",
-    foreground: "#d6dde6",
-    caret: "#3ecf8e",
-    selection: "rgba(62, 207, 142, 0.22)",
-    activeLine: "rgba(255, 255, 255, 0.04)",
-    gutterFg: "#6b7280",
-    gutterBorder: "rgba(255, 255, 255, 0.08)",
-    panelBg: "#12161c",
-    panelBorder: "rgba(255, 255, 255, 0.1)",
-    matchBg: "rgba(210, 153, 34, 0.28)",
-    matchSelectedBg: "rgba(62, 207, 142, 0.22)",
-    matchOutline: "rgba(62, 207, 142, 0.45)",
-    inputBg: "#0a0d10",
-    inputBorder: "rgba(255, 255, 255, 0.12)",
-    placeholder: "#6b7280",
+    background: "#282c34",
+    foreground: "#abb2bf",
+    caret: "#1f9d63",
+    selection: "rgba(31, 157, 99, 0.22)",
+    activeLine: "rgba(44, 49, 58, 0.9)",
+    gutterFg: "#5c6370",
+    gutterBorder: "rgba(62, 68, 81, 0.6)",
+    panelBg: "#21252b",
+    panelBorder: "rgba(62, 68, 81, 0.8)",
+    matchBg: "rgba(209, 154, 102, 0.28)",
+    matchSelectedBg: "rgba(31, 157, 99, 0.22)",
+    matchOutline: "rgba(31, 157, 99, 0.45)",
+    inputBg: "#21252b",
+    inputBorder: "rgba(62, 68, 81, 0.9)",
+    placeholder: "#5c6370",
   };
 }
 

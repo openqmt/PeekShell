@@ -2615,7 +2615,7 @@ onBeforeUnmount(() => {
     padding: 0 3px;
     border-radius: 999px;
     background: var(--accent);
-    color: #06140e;
+    color: #ffffff;
     font-size: 9px;
     font-weight: 700;
     line-height: 14px;
@@ -2628,10 +2628,6 @@ onBeforeUnmount(() => {
     padding: 0 4px;
     font-size: 8px;
     letter-spacing: -0.02em;
-}
-
-:global([data-theme='light']) .transfers-badge {
-    color: #ffffff;
 }
 
 .transfers-panel {

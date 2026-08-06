@@ -85,9 +85,9 @@ export const DEFAULT_TERMINAL_PREFS: TerminalPrefs = {
   fontSize: 13,
   colorScheme: "custom",
   customColors: {
-    background: "#0a0d10",
-    foreground: "#d6dde6",
-    cursor: "#3ecf8e",
+    background: "#282c34",
+    foreground: "#abb2bf",
+    cursor: "#1f9d63",
   },
   backgroundImage: presetBackgroundValue("bg1"),
   customBackgroundImages: [],
