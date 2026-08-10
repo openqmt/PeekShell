@@ -10,7 +10,6 @@ export const en: LocaleSpecificConfig<DefaultTheme.Config> = {
             { text: 'Guide', link: '/en/guide/' },
             { text: 'Download', link: '/en/download/' },
             { text: 'Sponsor', link: '/en/sponsor' },
-            { text: 'GitHub', link: 'https://github.com/openqmt/PeekShell' },
         ],
 
         sidebar: {
@@ -64,7 +63,8 @@ export const en: LocaleSpecificConfig<DefaultTheme.Config> = {
 
         footer: {
             message: 'Built with Tauri 2 · Rust · Vue 3',
-            copyright: 'Copyright © PeekShell · <a href="mailto:1024xiaoshen@gmail.com">1024xiaoshen@gmail.com</a>',
+            copyright:
+                'Copyright © PeekShell · <a href="mailto:1024xiaoshen@gmail.com">1024xiaoshen@gmail.com</a>',
         },
     },
 }
