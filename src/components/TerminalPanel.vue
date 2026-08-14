@@ -327,7 +327,6 @@ function closeCtxMenu() {
 }
 
 function onTermContextMenu(ev: MouseEvent) {
-    if (!activeSessionId.value) return
     ev.preventDefault()
     ev.stopPropagation()
     const entry = activeEntry()
@@ -335,7 +334,8 @@ function onTermContextMenu(ev: MouseEvent) {
         !!entry?.term.hasSelection() && !!entry.term.getSelection()
     const pad = 8
     const menuW = 180
-    const menuH = hasSelection ? 200 : 148
+    // No session: settings-only menu is shorter.
+    const menuH = !activeSessionId.value ? 48 : hasSelection ? 200 : 148
     const x = Math.min(ev.clientX, window.innerWidth - menuW - pad)
     const y = Math.min(ev.clientY, window.innerHeight - menuH - pad)
     ctxMenu.value = { x: Math.max(pad, x), y: Math.max(pad, y), hasSelection }
@@ -965,22 +965,24 @@ onBeforeUnmount(() => {
                 :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
                 @contextmenu.prevent
             >
-                <template v-if="ctxMenu.hasSelection">
-                    <button type="button" class="ctx-item" @click="ctxCopy">
-                        {{ t('terminal.ctxCopy') }}
+                <template v-if="activeSessionId">
+                    <template v-if="ctxMenu.hasSelection">
+                        <button type="button" class="ctx-item" @click="ctxCopy">
+                            {{ t('terminal.ctxCopy') }}
+                        </button>
+                        <div class="ctx-sep" />
+                    </template>
+                    <button type="button" class="ctx-item" @click="ctxPaste">
+                        {{ t('terminal.ctxPaste') }}
+                    </button>
+                    <button type="button" class="ctx-item" @click="ctxFind">
+                        {{ t('terminal.ctxFind') }}
+                    </button>
+                    <button type="button" class="ctx-item" @click="ctxClear">
+                        {{ t('terminal.ctxClear') }}
                     </button>
                     <div class="ctx-sep" />
                 </template>
-                <button type="button" class="ctx-item" @click="ctxPaste">
-                    {{ t('terminal.ctxPaste') }}
-                </button>
-                <button type="button" class="ctx-item" @click="ctxFind">
-                    {{ t('terminal.ctxFind') }}
-                </button>
-                <button type="button" class="ctx-item" @click="ctxClear">
-                    {{ t('terminal.ctxClear') }}
-                </button>
-                <div class="ctx-sep" />
                 <button type="button" class="ctx-item" @click="ctxMore">
                     {{ t('terminal.ctxMore') }}
                 </button>
