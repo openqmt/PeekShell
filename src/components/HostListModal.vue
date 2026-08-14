@@ -220,13 +220,10 @@ async function submitNameDialog() {
     }
 }
 
-function onBackdrop(e: MouseEvent) {
-    if (e.target === e.currentTarget) ui.closeHostsModal()
-}
 </script>
 
 <template>
-    <div class="overlay" @click="onBackdrop">
+    <div class="overlay">
         <div
             class="modal hosts-modal"
             role="dialog"
