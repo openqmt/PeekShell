@@ -7,7 +7,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "../i18n";
 import { useAiStore, visibleStreamText } from "../stores/ai";
 import { useSessionsStore } from "../stores/sessions";
-import { useUiStore, AI_PANEL_WIDTH_MAX, AI_PANEL_WIDTH_MIN } from "../stores/ui";
+import { currentUiScaleFactor, useUiStore, AI_PANEL_WIDTH_MAX, AI_PANEL_WIDTH_MIN } from "../stores/ui";
 import type { ExecMode } from "../types/ai";
 import AppSelect from "./AppSelect.vue";
 import CommandApproveCard from "./CommandApproveCard.vue";
@@ -120,7 +120,7 @@ function onResizeStart(ev: MouseEvent) {
 
   function onMove(moveEv: MouseEvent) {
     // 向左拖变宽，向右拖变窄
-    const next = startWidth + (startX - moveEv.clientX);
+    const next = startWidth + (startX - moveEv.clientX) / currentUiScaleFactor();
     ui.setAiPanelWidth(Math.min(AI_PANEL_WIDTH_MAX, Math.max(AI_PANEL_WIDTH_MIN, next)));
   }
 

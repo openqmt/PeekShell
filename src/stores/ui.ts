@@ -124,17 +124,29 @@ export function clampUiScale(value: number) {
     return Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, snapped))
 }
 
+/** Layout-to-viewport factor from `--ui-scale` (1 when unset). */
+export function currentUiScaleFactor(): number {
+    const raw = getComputedStyle(document.documentElement)
+        .getPropertyValue('--ui-scale')
+        .trim()
+    const n = Number.parseFloat(raw)
+    return Number.isFinite(n) && n > 0 ? n : 1
+}
+
 /**
- * Scale chrome text and icons via CSS zoom.
- * 100 removes the override. Dispatches resize so xterm/editor can refit.
+ * Scale chrome text and icons via `--ui-scale` (consumed as transform on #app).
+ * Avoid CSS `zoom`: WKWebView then mismatches mouse clientXY vs getBoundingClientRect,
+ * which breaks explorer edge-resize hit testing.
  */
 export function applyUiScale(percent: number) {
     const n = clampUiScale(percent)
     const root = document.documentElement
+    // Drop leftover `zoom` from earlier builds so hit-testing stays consistent.
+    root.style.removeProperty('zoom')
     if (n === UI_SCALE_DEFAULT) {
-        root.style.removeProperty('zoom')
+        root.style.removeProperty('--ui-scale')
     } else {
-        root.style.setProperty('zoom', String(n / 100))
+        root.style.setProperty('--ui-scale', String(n / 100))
     }
     requestAnimationFrame(() => {
         window.dispatchEvent(new Event('resize'))

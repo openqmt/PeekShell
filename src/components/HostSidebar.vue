@@ -7,7 +7,12 @@ import { storeToRefs } from 'pinia'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from '../i18n'
 import { useSessionsStore } from '../stores/sessions'
-import { useUiStore, SIDEBAR_WIDTH_MAX, SIDEBAR_WIDTH_MIN } from '../stores/ui'
+import {
+    currentUiScaleFactor,
+    useUiStore,
+    SIDEBAR_WIDTH_MAX,
+    SIDEBAR_WIDTH_MIN,
+} from '../stores/ui'
 import { useHostsStore } from '../stores/hosts'
 
 const QUICK_HOST_LIMIT = 10
@@ -97,7 +102,8 @@ function onResizeStart(ev: MouseEvent) {
     workspace?.classList.add('is-resizing-sidebar')
 
     function onMove(moveEv: MouseEvent) {
-        const next = startWidth + (moveEv.clientX - startX)
+        const next =
+            startWidth + (moveEv.clientX - startX) / currentUiScaleFactor()
         ui.setSidebarWidth(
             Math.min(SIDEBAR_WIDTH_MAX, Math.max(SIDEBAR_WIDTH_MIN, next))
         )

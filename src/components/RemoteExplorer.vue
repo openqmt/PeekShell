@@ -13,7 +13,7 @@ import * as api from '../api/tauri'
 import { useI18n } from '../i18n'
 import { useSessionsStore } from '../stores/sessions'
 import { useTransfersStore } from '../stores/transfers'
-import { useUiStore } from '../stores/ui'
+import { currentUiScaleFactor, useUiStore } from '../stores/ui'
 import type { RemoteEntry, RemoteFileContent } from '../types/host'
 import PreviewCodeEditor from './PreviewCodeEditor.vue'
 import ExplorerKindIcon from './ExplorerKindIcon.vue'
@@ -432,9 +432,10 @@ function currentContainerEntry(): RemoteEntry | null {
 }
 
 function clampHeight(value: number) {
+    const scale = currentUiScaleFactor()
     const maxByViewport = Math.max(
         MIN_HEIGHT,
-        Math.floor(window.innerHeight * 0.7),
+        Math.floor((window.innerHeight * 0.7) / scale),
     )
     return Math.min(
         Math.min(MAX_HEIGHT, maxByViewport),
@@ -453,17 +454,20 @@ function clampEntriesWidth(value: number, panesWidth: number) {
 function isNearTopEdge(event: MouseEvent) {
     const el = explorerEl.value
     if (!el) return false
+    const edge = EDGE_PX * currentUiScaleFactor()
     const top = el.getBoundingClientRect().top
-    return event.clientY - top >= 0 && event.clientY - top <= EDGE_PX
+    const dy = event.clientY - top
+    return dy >= 0 && dy <= edge
 }
 
 function isNearEntriesRightEdge(event: MouseEvent) {
     const el = entriesEl.value
     if (!el) return false
+    const edge = EDGE_PX * currentUiScaleFactor()
     const rect = el.getBoundingClientRect()
     return (
-        event.clientX >= rect.right - EDGE_PX &&
-        event.clientX <= rect.right + EDGE_PX &&
+        event.clientX >= rect.right - edge &&
+        event.clientX <= rect.right + edge &&
         event.clientY >= rect.top &&
         event.clientY <= rect.bottom
     )
@@ -492,9 +496,12 @@ function onExplorerDown(event: MouseEvent) {
         nearEntriesEdge.value = false
         const startY = event.clientY
         const startHeight = height.value
+        const scale = currentUiScaleFactor()
 
         function onMove(ev: MouseEvent) {
-            height.value = clampHeight(startHeight + (startY - ev.clientY))
+            height.value = clampHeight(
+                startHeight + (startY - ev.clientY) / scale,
+            )
             void nextTick(() => emit('resized'))
         }
 
@@ -520,10 +527,11 @@ function onExplorerDown(event: MouseEvent) {
         const startX = event.clientX
         const startWidth = entriesWidth.value
         const panesWidth = entriesEl.value?.parentElement?.clientWidth ?? 0
+        const scale = currentUiScaleFactor()
 
         function onMove(ev: MouseEvent) {
             entriesWidth.value = clampEntriesWidth(
-                startWidth + (ev.clientX - startX),
+                startWidth + (ev.clientX - startX) / scale,
                 panesWidth,
             )
         }

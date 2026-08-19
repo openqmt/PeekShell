@@ -68,14 +68,25 @@
 }
 
 html,
-body,
-#app {
+body {
   height: 100%;
   width: 100%;
   overflow: hidden;
   background: var(--bg-root);
   color: var(--text);
   font-family: var(--font-ui);
+}
+
+/* Scale UI without CSS zoom so pointer coords still match getBoundingClientRect. */
+#app {
+  height: calc(100% / var(--ui-scale, 1));
+  width: calc(100% / var(--ui-scale, 1));
+  overflow: hidden;
+  background: var(--bg-root);
+  color: var(--text);
+  font-family: var(--font-ui);
+  transform: scale(var(--ui-scale, 1));
+  transform-origin: 0 0;
 }
 
 *::-webkit-scrollbar {
