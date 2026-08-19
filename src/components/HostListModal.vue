@@ -46,12 +46,12 @@ const confirmBusy = ref(false)
 const nameDialogTitle = computed(() =>
     nameDialog.value?.mode === 'rename'
         ? t('hosts.rename')
-        : t('hosts.addGroup')
+        : t('hosts.addGroup'),
 )
 const nameDialogLabel = computed(() =>
     nameDialog.value?.mode === 'rename'
         ? t('hosts.renameGroupPrompt')
-        : t('hosts.newGroupPrompt')
+        : t('hosts.newGroupPrompt'),
 )
 const confirmMessage = computed(() => {
     const dialog = confirmDialog.value
@@ -64,7 +64,7 @@ const confirmMessage = computed(() => {
 function persistCollapsed() {
     localStorage.setItem(
         COLLAPSED_GROUPS_KEY,
-        JSON.stringify([...collapsedGroups.value])
+        JSON.stringify([...collapsedGroups.value]),
     )
 }
 
@@ -82,11 +82,11 @@ watch(
         if (open.length <= 1) return
         const keep = open[0]
         collapsedGroups.value = new Set(
-            list.map(([g]) => g).filter((g) => g !== keep)
+            list.map(([g]) => g).filter((g) => g !== keep),
         )
         persistCollapsed()
     },
-    { immediate: true }
+    { immediate: true },
 )
 
 function isGroupOpen(group: string) {
@@ -220,10 +220,13 @@ async function submitNameDialog() {
     }
 }
 
+function onBackdrop(e: MouseEvent) {
+    if (e.target === e.currentTarget) ui.closeHostsModal()
+}
 </script>
 
 <template>
-    <div class="overlay">
+    <div class="overlay" @click="onBackdrop">
         <div
             class="modal hosts-modal"
             role="dialog"
@@ -439,7 +442,7 @@ async function submitNameDialog() {
                                             @click="
                                                 openRemoveHost(
                                                     host.id,
-                                                    host.name
+                                                    host.name,
                                                 )
                                             "
                                         >
@@ -600,7 +603,9 @@ async function submitNameDialog() {
     border-radius: 8px;
     overflow: hidden;
     background: var(--bg-elevated);
-    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    transition:
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
 }
 
 .mgr-group.open {
@@ -619,7 +624,9 @@ async function submitNameDialog() {
     font-weight: 600;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.2s ease;
+    transition:
+        background 0.15s ease,
+        border-color 0.2s ease;
 }
 
 .mgr-group.open .mgr-group-head {
@@ -639,7 +646,10 @@ async function submitNameDialog() {
     color: var(--text-dim);
     background: var(--bg-root);
     border: 1px solid var(--border-soft);
-    transition: transform 0.22s ease, color 0.15s ease, border-color 0.15s ease;
+    transition:
+        transform 0.22s ease,
+        color 0.15s ease,
+        border-color 0.15s ease;
 }
 
 .mgr-group:not(.open) .chev {
