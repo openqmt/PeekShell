@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
 /**
  * App settings shell: left nav (display / models / about), right content pane.
- * Display prefs control sidebar, explorer columns, AI panel, and accent color.
+ * Display prefs control UI scale, sidebar, explorer columns, AI panel, and accent color.
  */
 import { getVersion } from '@tauri-apps/api/app'
 import { openUrl } from '@tauri-apps/plugin-opener'
@@ -11,6 +11,9 @@ import appIcon from '../assets/app-icon.png'
 import { useI18n } from '../i18n'
 import {
     ACCENT_COLOR_PRESETS,
+    UI_SCALE_MAX,
+    UI_SCALE_MIN,
+    UI_SCALE_STEP,
     normalizeAccentColor,
     useUiStore,
     type SettingsSection,
@@ -169,6 +172,24 @@ function onAboutLogoClick() {
 
                 <div class="settings-pane">
                     <div v-if="section === 'display'" class="pane-scroll">
+                        <div class="section-label">
+                            {{ t('displaySettings.uiScaleSection') }}
+                        </div>
+                        <label class="scale-field">
+                            <span>
+                                {{ t('displaySettings.uiScale') }}
+                                ({{ displayPrefs.uiScale }}%)
+                            </span>
+                            <input
+                                v-model.number="displayPrefs.uiScale"
+                                type="range"
+                                :min="UI_SCALE_MIN"
+                                :max="UI_SCALE_MAX"
+                                :step="UI_SCALE_STEP"
+                                :aria-label="t('displaySettings.uiScale')"
+                            />
+                        </label>
+
                         <div class="section-label">
                             {{ t('displaySettings.accentSection') }}
                         </div>
@@ -518,6 +539,24 @@ function onAboutLogoClick() {
 
 .section-label:not(:first-child) {
     margin-top: 10px;
+}
+
+.scale-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--text);
+}
+
+.scale-field input[type='range'] {
+    width: 100%;
+    height: 28px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    accent-color: var(--accent);
 }
 
 .accent-row {

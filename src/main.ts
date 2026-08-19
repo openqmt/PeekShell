@@ -6,6 +6,8 @@ import {
   applyAccentColor,
   applyLocale,
   applyTheme,
+  applyUiScale,
+  clampUiScale,
   normalizeAccentColor,
   resolveInitialLocale,
 } from "./stores/ui";
@@ -19,8 +21,14 @@ applyLocale(resolveInitialLocale());
 try {
   const raw = localStorage.getItem("peekshell.displayPrefs");
   if (raw) {
-    const parsed = JSON.parse(raw) as { accentColor?: unknown };
+    const parsed = JSON.parse(raw) as {
+      accentColor?: unknown;
+      uiScale?: unknown;
+    };
     applyAccentColor(normalizeAccentColor(parsed.accentColor));
+    if (typeof parsed.uiScale === "number") {
+      applyUiScale(clampUiScale(parsed.uiScale));
+    }
   }
 } catch {
   // ignore corrupt prefs

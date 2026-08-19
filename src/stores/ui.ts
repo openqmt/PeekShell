@@ -30,6 +30,8 @@ export interface DisplayPrefs {
     aiPanel: boolean
     /** Custom accent hex (`#rrggbb`). Empty = follow theme CSS defaults. */
     accentColor: string
+    /** UI zoom percent for chrome text and icons (does not change terminal/editor font prefs). */
+    uiScale: number
 }
 
 /** Preset accent swatches for display settings (excluding theme default). */
@@ -48,6 +50,12 @@ export const AI_PANEL_WIDTH_MAX = 640
 export const SIDEBAR_WIDTH_DEFAULT = 300
 export const SIDEBAR_WIDTH_MIN = 220
 export const SIDEBAR_WIDTH_MAX = 420
+
+/** Whole-UI zoom (text + icons). Terminal/editor keep their own font-size prefs. */
+export const UI_SCALE_DEFAULT = 100
+export const UI_SCALE_MIN = 90
+export const UI_SCALE_MAX = 140
+export const UI_SCALE_STEP = 1
 
 function clampAiPanelWidth(value: number) {
     return Math.min(
@@ -93,6 +101,7 @@ export const DEFAULT_DISPLAY_PREFS: DisplayPrefs = {
     },
     aiPanel: true,
     accentColor: '',
+    uiScale: UI_SCALE_DEFAULT,
 }
 
 /** Normalize to `#rrggbb` or empty string when invalid / unset. */
@@ -107,6 +116,29 @@ export function normalizeAccentColor(raw: unknown): string {
     const m = trimmed.match(/^#?([0-9a-fA-F]{6})$/)
     if (!m) return ''
     return `#${m[1]!.toLowerCase()}`
+}
+
+export function clampUiScale(value: number) {
+    if (!Number.isFinite(value)) return UI_SCALE_DEFAULT
+    const snapped = Math.round(value / UI_SCALE_STEP) * UI_SCALE_STEP
+    return Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, snapped))
+}
+
+/**
+ * Scale chrome text and icons via CSS zoom.
+ * 100 removes the override. Dispatches resize so xterm/editor can refit.
+ */
+export function applyUiScale(percent: number) {
+    const n = clampUiScale(percent)
+    const root = document.documentElement
+    if (n === UI_SCALE_DEFAULT) {
+        root.style.removeProperty('zoom')
+    } else {
+        root.style.setProperty('zoom', String(n / 100))
+    }
+    requestAnimationFrame(() => {
+        window.dispatchEvent(new Event('resize'))
+    })
 }
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -158,11 +190,7 @@ export function detectSystemLocale(): Locale {
     const list =
         typeof navigator !== 'undefined' && navigator.languages?.length
             ? navigator.languages
-            : [
-                  typeof navigator !== 'undefined'
-                      ? navigator.language
-                      : 'en',
-              ]
+            : [typeof navigator !== 'undefined' ? navigator.language : 'en']
     for (const entry of list) {
         const lang = String(entry || '').toLowerCase()
         if (lang.startsWith('zh')) return 'zh'
@@ -197,6 +225,11 @@ function readStoredDisplayPrefs(): DisplayPrefs {
                     ? parsed.aiPanel
                     : DEFAULT_DISPLAY_PREFS.aiPanel,
             accentColor: normalizeAccentColor(parsed.accentColor),
+            uiScale: clampUiScale(
+                typeof parsed.uiScale === 'number'
+                    ? parsed.uiScale
+                    : DEFAULT_DISPLAY_PREFS.uiScale,
+            ),
         }
     } catch {
         return structuredClone(DEFAULT_DISPLAY_PREFS)
@@ -247,6 +280,7 @@ export const useUiStore = defineStore('ui', () => {
 
     applyTheme(theme.value)
     applyAccentColor(displayPrefs.accentColor)
+    applyUiScale(displayPrefs.uiScale)
     applyLocale(locale.value)
     void syncTauriTheme(theme.value)
 
@@ -275,6 +309,15 @@ export const useUiStore = defineStore('ui', () => {
         () => displayPrefs.accentColor,
         (hex) => {
             applyAccentColor(hex)
+        },
+    )
+
+    watch(
+        () => displayPrefs.uiScale,
+        (percent) => {
+            const next = clampUiScale(percent)
+            if (next !== percent) displayPrefs.uiScale = next
+            else applyUiScale(next)
         },
     )
 
@@ -370,6 +413,7 @@ export const useUiStore = defineStore('ui', () => {
         Object.assign(displayPrefs.explorer, DEFAULT_DISPLAY_PREFS.explorer)
         displayPrefs.aiPanel = DEFAULT_DISPLAY_PREFS.aiPanel
         displayPrefs.accentColor = DEFAULT_DISPLAY_PREFS.accentColor
+        displayPrefs.uiScale = DEFAULT_DISPLAY_PREFS.uiScale
     }
 
     return {

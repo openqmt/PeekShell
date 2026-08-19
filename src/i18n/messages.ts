@@ -46,7 +46,9 @@ export const messages = {
         'sidebar.totalGb': '总 {n} GB',
 
         'displaySettings.title': '显示设置',
-        'displaySettings.sub': '配置主题色与各区域要展示的内容',
+        'displaySettings.sub': '配置界面大小、主题色与各区域要展示的内容',
+        'displaySettings.uiScaleSection': '界面大小',
+        'displaySettings.uiScale': '文字与图标',
         'displaySettings.accentSection': '主题色系',
         'displaySettings.accentDefault': '默认',
         'displaySettings.accentPick': '自定义颜色',
@@ -444,7 +446,9 @@ export const messages = {
         'sidebar.totalGb': 'Total {n} GB',
 
         'displaySettings.title': 'Display settings',
-        'displaySettings.sub': 'Accent color and which sections to show',
+        'displaySettings.sub': 'Interface size, accent color, and which sections to show',
+        'displaySettings.uiScaleSection': 'Interface size',
+        'displaySettings.uiScale': 'Text and icons',
         'displaySettings.accentSection': 'Accent color',
         'displaySettings.accentDefault': 'Default',
         'displaySettings.accentPick': 'Custom color',
