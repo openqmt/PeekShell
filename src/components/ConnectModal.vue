@@ -22,6 +22,7 @@ const saving = ref(false)
 const testing = ref(false)
 const error = ref('')
 const testOk = ref('')
+const passwordVisible = ref(false)
 
 const form = reactive({
     name: '',
@@ -59,6 +60,7 @@ watch(
         if (!openModal) return
         error.value = ''
         testOk.value = ''
+        passwordVisible.value = false
         const h = editingHost.value
         if (h) {
             form.name = h.name
@@ -307,15 +309,83 @@ async function save() {
                                 >*</span
                             ></label
                         >
-                        <input
-                            v-model="form.password"
-                            type="password"
-                            :placeholder="
-                                passwordRequired
-                                    ? t('connect.passwordPlaceholder')
-                                    : t('connect.passwordKeep')
-                            "
-                        />
+                        <div class="secret-input">
+                            <input
+                                v-model="form.password"
+                                :type="passwordVisible ? 'text' : 'password'"
+                                :placeholder="
+                                    passwordRequired
+                                        ? t('connect.passwordPlaceholder')
+                                        : t('connect.passwordKeep')
+                                "
+                            />
+                            <button
+                                type="button"
+                                class="secret-toggle"
+                                :title="
+                                    passwordVisible
+                                        ? t('connect.hidePassword')
+                                        : t('connect.showPassword')
+                                "
+                                :aria-label="
+                                    passwordVisible
+                                        ? t('connect.hidePassword')
+                                        : t('connect.showPassword')
+                                "
+                                @click="passwordVisible = !passwordVisible"
+                            >
+                                <svg
+                                    v-if="passwordVisible"
+                                    viewBox="0 0 16 16"
+                                    width="14"
+                                    height="14"
+                                    fill="none"
+                                    aria-hidden="true"
+                                >
+                                    <path
+                                        d="M2 8s2.4-4 6-4 6 4 6 4-2.4 4-6 4-6-4-6-4Z"
+                                        stroke="currentColor"
+                                        stroke-width="1.5"
+                                        stroke-linejoin="round"
+                                    />
+                                    <circle
+                                        cx="8"
+                                        cy="8"
+                                        r="1.7"
+                                        stroke="currentColor"
+                                        stroke-width="1.5"
+                                    />
+                                    <path
+                                        d="M3 13 13 3"
+                                        stroke="currentColor"
+                                        stroke-width="1.5"
+                                        stroke-linecap="round"
+                                    />
+                                </svg>
+                                <svg
+                                    v-else
+                                    viewBox="0 0 16 16"
+                                    width="14"
+                                    height="14"
+                                    fill="none"
+                                    aria-hidden="true"
+                                >
+                                    <path
+                                        d="M2 8s2.4-4 6-4 6 4 6 4-2.4 4-6 4-6-4-6-4Z"
+                                        stroke="currentColor"
+                                        stroke-width="1.5"
+                                        stroke-linejoin="round"
+                                    />
+                                    <circle
+                                        cx="8"
+                                        cy="8"
+                                        r="1.7"
+                                        stroke="currentColor"
+                                        stroke-width="1.5"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -492,6 +562,37 @@ async function save() {
     background: var(--accent-dim);
     color: var(--accent);
     outline: 1px solid var(--accent-border);
+}
+
+.secret-input {
+    position: relative;
+}
+
+.secret-input input {
+    width: 100%;
+    padding-right: 32px !important;
+}
+
+.secret-toggle {
+    position: absolute;
+    top: 50%;
+    right: 2px;
+    width: 26px;
+    height: 26px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-muted);
+    display: grid;
+    place-items: center;
+    transform: translateY(-50%);
+}
+
+.secret-toggle:hover {
+    background: var(--bg-hover);
+    color: var(--text);
 }
 
 .file-pick {
