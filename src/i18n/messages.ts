@@ -287,6 +287,8 @@ export const messages = {
             '删除分组「{name}」？组内主机将移到「未分组」。',
         'hosts.collapseGroup': '折叠分组',
         'hosts.expandGroup': '展开分组',
+        'hosts.copySsh': '复制 SSH 命令（含密码）',
+        'hosts.copySshCopied': '已复制',
 
         'connect.editTitle': '编辑连接',
         'connect.addTitle': '新增连接',
@@ -697,6 +699,8 @@ export const messages = {
             'Delete group “{name}”? Hosts will move to Ungrouped.',
         'hosts.collapseGroup': 'Collapse group',
         'hosts.expandGroup': 'Expand group',
+        'hosts.copySsh': 'Copy SSH command (with password)',
+        'hosts.copySshCopied': 'Copied',
 
         'connect.editTitle': 'Edit connection',
         'connect.addTitle': 'New connection',

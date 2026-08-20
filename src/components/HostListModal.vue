@@ -1,11 +1,14 @@
 <script setup lang="ts">
-/** 主机列表：分组、连接、编辑、删除。 */
+/** 主机列表：分组、连接、复制 SSH 命令、编辑、删除。 */
+import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 import { storeToRefs } from 'pinia'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import * as api from '../api/tauri'
 import { useI18n } from '../i18n'
 import { useHostsStore } from '../stores/hosts'
 import { useSessionsStore } from '../stores/sessions'
 import { useUiStore } from '../stores/ui'
+import type { HostRecord } from '../types/host'
 
 const COLLAPSED_GROUPS_KEY = 'peekshell.hosts.collapsedGroups'
 
@@ -42,6 +45,8 @@ const nameInputEl = ref<HTMLInputElement | null>(null)
 const nameSaving = ref(false)
 const confirmDialog = ref<ConfirmDialog | null>(null)
 const confirmBusy = ref(false)
+const copiedHostId = ref<string | null>(null)
+let copiedTimer: ReturnType<typeof setTimeout> | null = null
 
 const nameDialogTitle = computed(() =>
     nameDialog.value?.mode === 'rename'
@@ -220,6 +225,59 @@ async function submitNameDialog() {
     }
 }
 
+function shellQuote(value: string): string {
+    return `'${value.replace(/'/g, `'\\''`)}'`
+}
+
+function sshDestination(username: string, host: string): string {
+    const target =
+        host.includes(':') && !host.startsWith('[') ? `[${host}]` : host
+    return `${username}@${target}`
+}
+
+/** sshpass one-liner so the password can be used from a local shell. */
+function buildSshCommand(host: HostRecord, password: string | null): string {
+    const dest = sshDestination(host.username, host.host)
+    const portFlag = host.port && host.port !== 22 ? ` -p ${host.port}` : ''
+    if (host.authType === 'privateKey' && host.privateKeyPath) {
+        return `ssh -i ${shellQuote(host.privateKeyPath)}${portFlag} ${dest}`
+    }
+    const ssh = `ssh${portFlag} ${dest}`
+    if (password) return `${ssh} -password ${shellQuote(password)}`
+    return ssh
+}
+
+async function copyToClipboard(text: string) {
+    try {
+        await writeText(text)
+    } catch {
+        await navigator.clipboard.writeText(text)
+    }
+}
+
+async function copySshCommand(host: HostRecord) {
+    localError.value = ''
+    try {
+        let password: string | null = null
+        if (host.authType === 'password' && host.hasSecret) {
+            password = await api.getHostSecret(host.id, 'password')
+        }
+        await copyToClipboard(buildSshCommand(host, password))
+        copiedHostId.value = host.id
+        if (copiedTimer) clearTimeout(copiedTimer)
+        copiedTimer = setTimeout(() => {
+            if (copiedHostId.value === host.id) copiedHostId.value = null
+            copiedTimer = null
+        }, 1600)
+    } catch (e) {
+        localError.value = String(e)
+    }
+}
+
+onBeforeUnmount(() => {
+    if (copiedTimer) clearTimeout(copiedTimer)
+})
+
 function onBackdrop(e: MouseEvent) {
     if (e.target === e.currentTarget) ui.closeHostsModal()
 }
@@ -368,6 +426,64 @@ function onBackdrop(e: MouseEvent) {
                                         }}</span>
                                     </div>
                                     <div class="row-actions" @click.stop>
+                                        <button
+                                            type="button"
+                                            class="row-icon-btn"
+                                            :class="{
+                                                copied:
+                                                    copiedHostId === host.id,
+                                            }"
+                                            :title="
+                                                copiedHostId === host.id
+                                                    ? t('hosts.copySshCopied')
+                                                    : t('hosts.copySsh')
+                                            "
+                                            :aria-label="t('hosts.copySsh')"
+                                            :disabled="!!connectingHostId"
+                                            @click="copySshCommand(host)"
+                                        >
+                                            <svg
+                                                v-if="copiedHostId === host.id"
+                                                viewBox="0 0 16 16"
+                                                width="13"
+                                                height="13"
+                                                aria-hidden="true"
+                                            >
+                                                <path
+                                                    d="M3.5 8.5 6.5 11.5 12.5 4.5"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="1.5"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                />
+                                            </svg>
+                                            <svg
+                                                v-else
+                                                viewBox="0 0 16 16"
+                                                width="13"
+                                                height="13"
+                                                aria-hidden="true"
+                                            >
+                                                <rect
+                                                    x="5.5"
+                                                    y="5.5"
+                                                    width="7"
+                                                    height="8"
+                                                    rx="1.2"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="1.4"
+                                                />
+                                                <path
+                                                    d="M4 11.2V3.7A1.2 1.2 0 0 1 5.2 2.5h5.6"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="1.4"
+                                                    stroke-linecap="round"
+                                                />
+                                            </svg>
+                                        </button>
                                         <button
                                             type="button"
                                             class="row-icon-btn"
@@ -789,6 +905,10 @@ function onBackdrop(e: MouseEvent) {
 .row-icon-btn:hover:not(:disabled) {
     color: var(--text);
     background: var(--bg-active);
+}
+
+.row-icon-btn.copied {
+    color: var(--accent);
 }
 
 .row-icon-btn.primary {
