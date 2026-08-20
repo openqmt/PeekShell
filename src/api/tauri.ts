@@ -93,6 +93,14 @@ export function deleteGroup(group: string): Promise<void> {
   return invoke("delete_group", { group });
 }
 
+/** Load a stored password/passphrase for the edit dialog. Not kept in Pinia. */
+export function getHostSecret(
+  id: string,
+  kind: "password" | "passphrase",
+): Promise<string | null> {
+  return invoke("get_host_secret", { id, kind });
+}
+
 export function connectHost(hostId: string): Promise<SessionInfo> {
   return invoke("connect_host", { hostId });
 }

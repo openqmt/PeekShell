@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * 新增 / 编辑连接弹窗。
- * 密码与私钥口令只在保存时提交给后端，不进入 Pinia。
+ * 密码不进 Pinia；已保存连接仅在点击显示时向后端读取明文。
  */
 import { open } from '@tauri-apps/plugin-dialog'
 import { storeToRefs } from 'pinia'
@@ -23,6 +23,7 @@ const testing = ref(false)
 const error = ref('')
 const testOk = ref('')
 const passwordVisible = ref(false)
+const passwordLoading = ref(false)
 
 const form = reactive({
     name: '',
@@ -61,6 +62,7 @@ watch(
         error.value = ''
         testOk.value = ''
         passwordVisible.value = false
+        passwordLoading.value = false
         const h = editingHost.value
         if (h) {
             form.name = h.name
@@ -97,6 +99,38 @@ async function pickPrivateKey() {
     if (typeof selected === 'string') {
         form.privateKeyPath = selected
     }
+}
+
+/** Reveal stored password on demand; do not keep secrets in the host list. */
+async function togglePasswordVisible() {
+    if (passwordVisible.value) {
+        passwordVisible.value = false
+        return
+    }
+    const host = editingHost.value
+    if (
+        !form.password &&
+        host?.id &&
+        host.authType === 'password' &&
+        host.hasSecret
+    ) {
+        passwordLoading.value = true
+        try {
+            const secret = await api.getHostSecret(host.id, 'password')
+            if (secret) {
+                form.password = secret
+            } else {
+                error.value = t('connect.noSavedPassword')
+                return
+            }
+        } catch (e) {
+            error.value = String(e)
+            return
+        } finally {
+            passwordLoading.value = false
+        }
+    }
+    passwordVisible.value = true
 }
 
 function validateForTest(): string | null {
@@ -332,7 +366,8 @@ async function save() {
                                         ? t('connect.hidePassword')
                                         : t('connect.showPassword')
                                 "
-                                @click="passwordVisible = !passwordVisible"
+                                :disabled="passwordLoading"
+                                @click="togglePasswordVisible"
                             >
                                 <svg
                                     v-if="passwordVisible"

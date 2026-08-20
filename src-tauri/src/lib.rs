@@ -56,6 +56,11 @@ fn delete_group(group: String) -> AppResult<()> {
 }
 
 #[tauri::command]
+fn get_host_secret(id: String, kind: String) -> AppResult<Option<String>> {
+    hosts::get_host_secret(&id, &kind)
+}
+
+#[tauri::command]
 fn get_ai_settings() -> AppResult<AiSettings> {
     ai_config::get_settings()
 }
@@ -329,6 +334,7 @@ pub fn run() {
             delete_host,
             rename_group,
             delete_group,
+            get_host_secret,
             get_ai_settings,
             upsert_ai_provider,
             delete_ai_provider,

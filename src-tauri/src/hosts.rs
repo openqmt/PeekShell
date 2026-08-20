@@ -223,6 +223,20 @@ pub fn delete_host(id: &str) -> AppResult<()> {
     Ok(())
 }
 
+/// Reveal a stored host secret on demand (edit dialog). Not included in list_hosts.
+pub fn get_host_secret(id: &str, kind: &str) -> AppResult<Option<String>> {
+    let host = get_host(id)?;
+    match kind {
+        "password" if host.auth_type == AuthType::Password => {
+            credentials::get_secret(id, "password")
+        }
+        "passphrase" if host.auth_type == AuthType::PrivateKey => {
+            credentials::get_secret(id, "passphrase")
+        }
+        _ => Err(AppError::Message("无效的凭证类型".into())),
+    }
+}
+
 pub fn rename_group(from: &str, to: &str) -> AppResult<()> {
     let to = to.trim();
     if to.is_empty() {
