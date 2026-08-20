@@ -139,6 +139,7 @@ Before committing or opening a PR, confirm:
 ## 7. Relation to the Plan
 
 Product architecture and tech choices: [Plan.md](./Plan.md).  
-UI interaction preview: [Preview.html](./Preview.html).  
+Cloud sync (phase 1): [plans/一期-云端数据同步.md](./plans/一期-云端数据同步.md).  
+UI interaction preview: [Preview.html](./Preview.html).
 
 This document governs *how* to write code; feature scope is defined by the Plan.
