@@ -9,7 +9,7 @@ hero:
     text: 跨平台 AI SSH 客户端
     tagline: 主机管理 · 多标签终端 · 远程文件 · 确认式 AI Agent
     image:
-        src: /app-icon.png
+        src: /app-icon.webp
         alt: PeekShell
     actions:
         - theme: brand
