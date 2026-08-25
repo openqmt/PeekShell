@@ -18,6 +18,5 @@
   <li>Download: <a href="https://peekshell.com/download/">peekshell.com/download</a></li>
 </ul>
 
-
 <h2>Bug reports &amp; suggestions</h2>
 <p>Please open an <a href="https://github.com/openqmt/PeekShell/issues">issue</a>.</p>
