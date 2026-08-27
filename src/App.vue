@@ -44,9 +44,10 @@ const { aiChatEnabled } = storeToRefs(note);
 const showAiPanel = computed(() => displayPrefs.value.aiPanel && aiChatEnabled.value);
 
 onMounted(() => {
+  // Local disk first; account.restore() syncs in background and refreshes again if remote wins LWW.
+  void hosts.refresh();
   void (async () => {
     await account.restore();
-    void hosts.refresh();
     void ai.refresh();
   })();
   // Upgrade first so note can defer when both are available
