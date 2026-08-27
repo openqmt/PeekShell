@@ -2,6 +2,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { defineStore } from "pinia";
 import { computed, ref, watch } from "vue";
 import * as api from "../api/tauri";
+import { enqueueSync } from "../sync/queue";
 import type {
   AgentCommand,
   AiChatResponse,
@@ -86,17 +87,22 @@ export const useAiStore = defineStore("ai", () => {
   async function upsert(payload: AiProviderUpsert) {
     const saved = await api.upsertAiProvider(payload);
     await refresh();
+    enqueueSync("models");
+    enqueueSync("secrets_enc");
     return saved;
   }
 
   async function remove(id: string) {
     await api.deleteAiProvider(id);
     await refresh();
+    enqueueSync("models");
+    enqueueSync("secrets_enc");
   }
 
   async function activate(id: string) {
     await api.setActiveAiProvider(id);
     activeProviderId.value = id;
+    enqueueSync("models");
   }
 
   async function setActiveModel(model: string) {
@@ -104,6 +110,7 @@ export const useAiStore = defineStore("ai", () => {
     const idx = providers.value.findIndex((p) => p.id === saved.id);
     if (idx >= 0) providers.value[idx] = saved;
     else await refresh();
+    enqueueSync("models");
   }
 
   function clearChat() {

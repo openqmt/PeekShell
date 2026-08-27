@@ -213,3 +213,42 @@ export function expandLocalUpload(path: string): Promise<LocalUploadItem[]> {
 export function openDevtools(): Promise<void> {
   return invoke("open_devtools");
 }
+
+export function exportHostsSync(): Promise<Record<string, unknown>> {
+  return invoke("export_hosts_sync");
+}
+
+export function importHostsSync(payload: Record<string, unknown>): Promise<void> {
+  return invoke("import_hosts_sync", { payload });
+}
+
+export function exportModelsSync(): Promise<Record<string, unknown>> {
+  return invoke("export_models_sync");
+}
+
+export function importModelsSync(payload: Record<string, unknown>): Promise<void> {
+  return invoke("import_models_sync", { payload });
+}
+
+export function vaultUnlock(
+  password: string,
+  envelope?: Record<string, unknown> | null,
+): Promise<void> {
+  return invoke("vault_unlock", { password, envelope: envelope ?? null });
+}
+
+export function vaultLock(): Promise<void> {
+  return invoke("vault_lock");
+}
+
+export function vaultIsUnlocked(): Promise<boolean> {
+  return invoke("vault_is_unlocked");
+}
+
+export function vaultEncryptSecrets(): Promise<Record<string, unknown>> {
+  return invoke("vault_encrypt_secrets");
+}
+
+export function vaultDecryptAndImport(envelope: Record<string, unknown>): Promise<void> {
+  return invoke("vault_decrypt_and_import", { envelope });
+}

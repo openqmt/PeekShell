@@ -336,3 +336,21 @@ pub fn resolve_active_provider() -> AppResult<ActiveProviderRuntime> {
         api_key,
     })
 }
+
+/// Snapshot AI providers for PUT /sync/models (no API key plaintext).
+pub fn export_sync_payload() -> AppResult<serde_json::Value> {
+    let file = load_file()?;
+    Ok(serde_json::to_value(file)?)
+}
+
+/// Replace local `ai-config.json` from a cloud document.
+pub fn import_sync_payload(payload: serde_json::Value) -> AppResult<()> {
+    let mut file: AiConfigFile = serde_json::from_value(payload)?;
+    file.providers = file.providers.into_iter().map(|p| p.normalized()).collect();
+    if let Some(id) = &file.active_provider_id {
+        if !file.providers.iter().any(|p| &p.id == id) {
+            file.active_provider_id = file.providers.first().map(|p| p.id.clone());
+        }
+    }
+    save_file(&file)
+}

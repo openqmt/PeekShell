@@ -58,3 +58,13 @@ pub fn delete_all_secrets(id: &str) -> AppResult<()> {
     delete_secret(id, "passphrase")?;
     Ok(())
 }
+
+/// Full secrets map for vault encryption. Keys are `{id}/{kind}`.
+pub fn export_all() -> AppResult<HashMap<String, String>> {
+    load()
+}
+
+/// Overwrite `secrets.json` from a decrypted cloud vault (LWW whole document).
+pub fn import_all(map: HashMap<String, String>) -> AppResult<()> {
+    save(&map)
+}

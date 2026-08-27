@@ -34,6 +34,9 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 futures-util = "0.3"
 base64 = "0.22"
 tauri-plugin-process = "2"
+aes-gcm = "0.10"
+argon2 = "0.5"
+rand = "0.8"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"

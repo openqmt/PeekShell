@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * User Center pane: email login/register when signed out, profile when signed in.
+ * User Center pane: email login/register when signed out, profile + sync when signed in.
  * Auth goes through PeekServer `/auth/register`, `/auth/login`, `/auth/logout`.
  */
 import { storeToRefs } from 'pinia'
@@ -8,6 +8,8 @@ import { computed, ref, watch } from 'vue'
 import { CloudApiError } from '../api/cloud'
 import { useI18n } from '../i18n'
 import { useAccountStore } from '../stores/account'
+import { useCloudSyncStore } from '../stores/cloudSync'
+import { runManualSync } from '../sync/client'
 import type { AccountRole } from '../types/account'
 
 type AuthMode = 'login' | 'register'
@@ -18,8 +20,10 @@ const PASSWORD_MIN = 8
 const PASSWORD_MAX = 128
 
 const account = useAccountStore()
+const cloudSync = useCloudSyncStore()
 const { t, locale } = useI18n()
 const { user, isLoggedIn } = storeToRefs(account)
+const { syncing, lastSyncedAt, error: syncError } = storeToRefs(cloudSync)
 
 const mode = ref<AuthMode>('login')
 const email = ref('')
@@ -51,6 +55,28 @@ function formatJoined(ms: number) {
         { year: 'numeric', month: 'short', day: 'numeric' },
     )
 }
+
+function formatSynced(ms: number) {
+    return new Date(ms).toLocaleString(
+        locale.value === 'zh' ? 'zh-CN' : 'en-US',
+        { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' },
+    )
+}
+
+const syncStatusLabel = computed(() => {
+    if (syncing.value) return t('userCenter.syncing')
+    if (lastSyncedAt.value) {
+        return t('userCenter.syncedAt', { time: formatSynced(lastSyncedAt.value) })
+    }
+    return t('userCenter.syncNever')
+})
+
+const syncErrorLabel = computed(() => {
+    if (syncError.value === 'vault') return t('userCenter.errorVault')
+    if (syncError.value === 'network') return t('userCenter.errorNetwork')
+    if (syncError.value === 'sync') return t('userCenter.errorSync')
+    return ''
+})
 
 function normalizeEmail(raw: string) {
     return raw.trim().toLowerCase()
@@ -132,6 +158,11 @@ async function signOut() {
     password.value = ''
     nickname.value = ''
     await account.logout()
+}
+
+async function syncNow() {
+    if (syncing.value) return
+    await runManualSync()
 }
 </script>
 
@@ -261,6 +292,32 @@ async function signOut() {
                     <span class="info-value">{{
                         user ? formatJoined(user.createdAt) : ''
                     }}</span>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <div class="info-row">
+                    <span class="info-label">{{
+                        t('userCenter.syncStatus')
+                    }}</span>
+                    <span class="info-value">{{ syncStatusLabel }}</span>
+                </div>
+                <div v-if="syncErrorLabel" class="info-row">
+                    <span class="sync-error">{{ syncErrorLabel }}</span>
+                </div>
+                <div class="info-row sync-actions">
+                    <button
+                        type="button"
+                        class="btn primary md"
+                        :disabled="syncing"
+                        @click="syncNow"
+                    >
+                        {{
+                            syncing
+                                ? t('userCenter.syncing')
+                                : t('userCenter.syncNow')
+                        }}
+                    </button>
                 </div>
             </div>
         </template>
@@ -436,5 +493,19 @@ async function signOut() {
     font-size: 12px;
     color: var(--text);
     text-align: right;
+}
+
+.sync-error {
+    font-size: 12px;
+    color: var(--danger, #e35d6a);
+}
+
+.sync-actions {
+    justify-content: flex-end;
+}
+
+.sync-actions .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 </style>

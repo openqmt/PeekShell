@@ -6,6 +6,7 @@ mod hosts;
 mod local_fs;
 mod ssh;
 mod utils;
+mod vault;
 
 use agent::schema::{AgentCommandView, AiChatRequest, AiChatResponse};
 use agent::{AgentState, ExecuteCommandResponse};
@@ -16,9 +17,10 @@ use ssh::{
     cancel_all_transfers, test_connection, ConnectionTestRequest, HostMetrics, RemoteDirListing,
     RemoteFileContent, SessionInfo, SessionManager,
 };
-
+use std::collections::HashMap;
 use std::sync::Arc;
 use tauri::Manager;
+use vault::{VaultEnvelope, VaultState};
 
 #[tauri::command]
 fn list_hosts() -> AppResult<Vec<HostRecord>> {
@@ -304,6 +306,66 @@ fn open_devtools(window: tauri::WebviewWindow) {
     window.open_devtools();
 }
 
+#[tauri::command]
+fn export_hosts_sync() -> AppResult<serde_json::Value> {
+    hosts::export_sync_payload()
+}
+
+#[tauri::command]
+fn import_hosts_sync(payload: serde_json::Value) -> AppResult<()> {
+    hosts::import_sync_payload(payload)
+}
+
+#[tauri::command]
+fn export_models_sync() -> AppResult<serde_json::Value> {
+    ai_config::export_sync_payload()
+}
+
+#[tauri::command]
+fn import_models_sync(payload: serde_json::Value) -> AppResult<()> {
+    ai_config::import_sync_payload(payload)
+}
+
+/// Derive the vault key from the login password and keep it in memory.
+/// Pass the cloud `secrets_enc` envelope when one exists so the verifier is checked.
+#[tauri::command]
+fn vault_unlock(
+    state: tauri::State<VaultState>,
+    password: String,
+    envelope: Option<VaultEnvelope>,
+) -> AppResult<()> {
+    vault::unlock(&state, &password, envelope.as_ref())
+}
+
+#[tauri::command]
+fn vault_lock(state: tauri::State<VaultState>) {
+    vault::lock(&state);
+}
+
+#[tauri::command]
+fn vault_is_unlocked(state: tauri::State<VaultState>) -> bool {
+    vault::is_unlocked(&state)
+}
+
+/// Encrypt local `secrets.json` for PUT /sync/secrets_enc. Plaintext never leaves Rust.
+#[tauri::command]
+fn vault_encrypt_secrets(state: tauri::State<VaultState>) -> AppResult<VaultEnvelope> {
+    let map = credentials::export_all()?;
+    let plaintext = serde_json::to_string(&map)?;
+    vault::encrypt(&state, &plaintext)
+}
+
+/// Decrypt a cloud envelope and overwrite local `secrets.json`.
+#[tauri::command]
+fn vault_decrypt_and_import(
+    state: tauri::State<VaultState>,
+    envelope: VaultEnvelope,
+) -> AppResult<()> {
+    let plaintext = vault::decrypt(&state, &envelope)?;
+    let map: HashMap<String, String> = serde_json::from_str(&plaintext)?;
+    credentials::import_all(map)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let sessions = Arc::new(SessionManager::new());
@@ -326,6 +388,7 @@ pub fn run() {
     builder
         .manage(sessions)
         .manage(agent)
+        .manage(VaultState::new())
         .invoke_handler(tauri::generate_handler![
             list_hosts,
             list_groups,
@@ -362,7 +425,16 @@ pub fn run() {
             remote_upload,
             cancel_all_transfers_cmd,
             expand_local_upload,
-            open_devtools
+            open_devtools,
+            export_hosts_sync,
+            import_hosts_sync,
+            export_models_sync,
+            import_models_sync,
+            vault_unlock,
+            vault_lock,
+            vault_is_unlocked,
+            vault_encrypt_secrets,
+            vault_decrypt_and_import
         ])
         .setup(|app| {
             // Restore last size/position, then show the window.

@@ -28,6 +28,7 @@ pub struct HostRecord {
     #[serde(default)]
     pub private_key_path: Option<String>,
     /// Whether a secret is stored (password required for password auth; passphrase optional).
+    #[serde(default)]
     pub has_secret: bool,
 }
 
@@ -295,5 +296,89 @@ pub fn delete_group(group: &str) -> AppResult<()> {
         file.groups.push("未分组".into());
     }
     save_file(&file)?;
+    Ok(())
+}
+
+/// Host metadata for cloud sync: same shape as `hosts.json` minus `hasSecret`.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct HostSyncRecord {
+    id: String,
+    name: String,
+    group: String,
+    host: String,
+    port: u16,
+    note: String,
+    username: String,
+    auth_type: AuthType,
+    #[serde(default)]
+    private_key_path: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct HostsSyncPayload {
+    #[serde(default)]
+    groups: Vec<String>,
+    #[serde(default)]
+    hosts: Vec<HostSyncRecord>,
+}
+
+/// Snapshot host groups + records for PUT /sync/hosts (no password fields).
+pub fn export_sync_payload() -> AppResult<serde_json::Value> {
+    let file = load_file()?;
+    let payload = HostsSyncPayload {
+        groups: file.groups,
+        hosts: file
+            .hosts
+            .into_iter()
+            .map(|h| HostSyncRecord {
+                id: h.id,
+                name: h.name,
+                group: h.group,
+                host: h.host,
+                port: h.port,
+                note: h.note,
+                username: h.username,
+                auth_type: h.auth_type,
+                private_key_path: h.private_key_path,
+            })
+            .collect(),
+    };
+    Ok(serde_json::to_value(payload)?)
+}
+
+/// Replace local `hosts.json` from a cloud document, then recompute `hasSecret`.
+pub fn import_sync_payload(payload: serde_json::Value) -> AppResult<()> {
+    let parsed: HostsSyncPayload = serde_json::from_value(payload)?;
+    let mut groups = parsed.groups;
+    let mut hosts = Vec::with_capacity(parsed.hosts.len());
+    for h in parsed.hosts {
+        if h.id.trim().is_empty() || h.host.trim().is_empty() || h.username.trim().is_empty() {
+            continue;
+        }
+        if !groups.iter().any(|g| g == &h.group) {
+            groups.push(h.group.clone());
+        }
+        let has_secret = match h.auth_type {
+            AuthType::Password => credentials::get_secret(&h.id, "password")?.is_some(),
+            AuthType::PrivateKey => true,
+        };
+        hosts.push(HostRecord {
+            id: h.id,
+            name: h.name,
+            group: h.group,
+            host: h.host,
+            port: h.port,
+            note: h.note,
+            username: h.username,
+            auth_type: h.auth_type,
+            private_key_path: h.private_key_path,
+            has_secret,
+        });
+    }
+    groups.sort();
+    groups.dedup();
+    save_file(&HostStoreFile { hosts, groups })?;
     Ok(())
 }

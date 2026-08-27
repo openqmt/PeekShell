@@ -5,6 +5,7 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import * as api from "../api/tauri";
+import { enqueueSync } from "../sync/queue";
 import type { HostRecord, HostUpsert } from "../types/host";
 
 export const useHostsStore = defineStore("hosts", () => {
@@ -43,27 +44,34 @@ export const useHostsStore = defineStore("hosts", () => {
   async function upsert(payload: HostUpsert) {
     const saved = await api.upsertHost(payload);
     await refresh();
+    enqueueSync("hosts");
+    enqueueSync("secrets_enc");
     return saved;
   }
 
   async function remove(id: string) {
     await api.deleteHost(id);
     await refresh();
+    enqueueSync("hosts");
+    enqueueSync("secrets_enc");
   }
 
   async function createGroup(name: string) {
     await api.createGroup(name);
     await refresh();
+    enqueueSync("hosts");
   }
 
   async function renameGroup(from: string, to: string) {
     await api.renameGroup(from, to);
     await refresh();
+    enqueueSync("hosts");
   }
 
   async function removeGroup(group: string) {
     await api.deleteGroup(group);
     await refresh();
+    enqueueSync("hosts");
   }
 
   function findById(id: string) {

@@ -4,7 +4,7 @@
     "version": "../package.json",
     "identifier": "com.peekshell.xiaoshen",
     "build": {
-        "beforeDevCommand": "pnpm run dev",
+        "beforeDevCommand": "pnpm run dev --mode prod ",
         "devUrl": "http://localhost:1420",
         "frontendDist": "../dist"
     },

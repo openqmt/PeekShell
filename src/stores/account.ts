@@ -1,11 +1,13 @@
 /**
  * Cloud account session for User Center.
  * Talks to PeekServer `/auth/*`; token + profile persist in localStorage.
+ * After login the password unlocks the vault and triggers collection sync.
  */
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import * as cloud from '../api/cloud'
 import { parseUserProfile, type UserProfile } from '../types/account'
+import * as cloudSync from '../sync/client'
 
 const TOKEN_KEY = 'peekshell.cloud.token'
 const USER_KEY = 'peekshell.cloud.user'
@@ -68,15 +70,26 @@ export const useAccountStore = defineStore('account', () => {
     async function register(email: string, password: string, nickname?: string) {
         const session = await cloud.register(email, password, nickname)
         applySession(session.token, session.user)
+        try {
+            await cloudSync.runInitialSync(session.token, session.user.id, password)
+        } catch {
+            // Session is valid; sync error is shown in User Center.
+        }
     }
 
     async function login(email: string, password: string) {
         const session = await cloud.login(email, password)
         applySession(session.token, session.user)
+        try {
+            await cloudSync.runInitialSync(session.token, session.user.id, password)
+        } catch {
+            // Session is valid; sync error is shown in User Center.
+        }
     }
 
     async function logout() {
         const current = token.value
+        await cloudSync.stopSync()
         clearSession()
         if (!current) return
         try {
@@ -100,8 +113,13 @@ export const useAccountStore = defineStore('account', () => {
             applySession(current, me)
         } catch (e) {
             if (e instanceof cloud.CloudApiError && e.code === 'unauthorized') {
+                await cloudSync.stopSync()
                 clearSession()
+                return
             }
+        }
+        if (token.value && user.value) {
+            await cloudSync.runRestoreSync(token.value, user.value.id)
         }
     }
 
