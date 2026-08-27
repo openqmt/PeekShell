@@ -1,406 +1,414 @@
 /* Dark palette follows One Dark Pro (Atom One Dark). */
 :root,
-[data-theme="dark"] {
-  --bg-root: #21252b;
-  --bg-panel: #282c34;
-  --bg-elevated: #2c313a;
-  --bg-hover: #2c313a;
-  --bg-active: #3e4451;
-  --border: #3e4452;
-  --border-soft: #343a45;
-  --text: #abb2bf;
-  --text-muted: #9da5b4;
-  --text-dim: #5c6370;
-  --accent: #1f9d63;
-  --accent-dim: rgba(31, 157, 99, 0.14);
-  --accent-border: rgba(31, 157, 99, 0.35);
-  --warn: #d19a66;
-  --warn-dim: rgba(209, 154, 102, 0.12);
-  --danger: #e06c75;
-  --danger-dim: rgba(224, 108, 117, 0.12);
-  --term-bg: #282c34;
-  --term-fg: #abb2bf;
-  --term-cyan: #56b6c2;
-  --overlay: rgba(33, 37, 43, 0.72);
-  --radius: calc(6px * var(--ui-scale, 1));
-  --font-ui: "Sora", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-  --scrollbar-size: calc(8px * var(--ui-scale, 1));
-  --scrollbar-track: transparent;
-  --scrollbar-thumb: rgba(78, 86, 102, 0.45);
-  --scrollbar-thumb-hover: rgba(90, 99, 117, 0.7);
-  color-scheme: dark;
+[data-theme='dark'] {
+    --bg-root: #21252b;
+    --bg-panel: #282c34;
+    --bg-elevated: #2c313a;
+    --bg-hover: #2c313a;
+    --bg-active: #3e4451;
+    --border: #3e4452;
+    --border-soft: #343a45;
+    --text: #abb2bf;
+    --text-muted: #9da5b4;
+    --text-dim: #5c6370;
+    --accent: #1f9d63;
+    --accent-dim: rgba(31, 157, 99, 0.14);
+    --accent-border: rgba(31, 157, 99, 0.35);
+    --warn: #d19a66;
+    --warn-dim: rgba(209, 154, 102, 0.12);
+    --danger: #e06c75;
+    --danger-dim: rgba(224, 108, 117, 0.12);
+    --term-bg: #282c34;
+    --term-fg: #abb2bf;
+    --term-cyan: #56b6c2;
+    --overlay: rgba(33, 37, 43, 0.72);
+    --radius: calc(6px * var(--ui-scale, 1));
+    --font-ui: 'Sora', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --scrollbar-size: calc(8px * var(--ui-scale, 1));
+    --scrollbar-track: transparent;
+    --scrollbar-thumb: rgba(78, 86, 102, 0.45);
+    --scrollbar-thumb-hover: rgba(90, 99, 117, 0.7);
+    color-scheme: dark;
 }
 
-[data-theme="light"] {
-  --bg-root: #eef1f4;
-  --bg-panel: #f7f9fb;
-  --bg-elevated: #ffffff;
-  --bg-hover: #e4e9ef;
-  --bg-active: #d7dee6;
-  --border: #c8d0da;
-  --border-soft: #d8dee6;
-  --text: #1a2330;
-  --text-muted: #5a6b7d;
-  --text-dim: #7a8b9c;
-  --accent: #1f9d63;
-  --accent-dim: rgba(31, 157, 99, 0.12);
-  --accent-border: rgba(31, 157, 99, 0.35);
-  --warn: #c4841d;
-  --warn-dim: rgba(196, 132, 29, 0.12);
-  --danger: #d64545;
-  --danger-dim: rgba(214, 69, 69, 0.12);
-  --term-bg: #fbfcfd;
-  --term-fg: #1a2330;
-  --term-cyan: #0e7c8a;
-  --overlay: rgba(20, 28, 36, 0.45);
-  --scrollbar-size: calc(8px * var(--ui-scale, 1));
-  --scrollbar-track: transparent;
-  --scrollbar-thumb: rgba(90, 107, 125, 0.32);
-  --scrollbar-thumb-hover: rgba(90, 107, 125, 0.5);
-  color-scheme: light;
+[data-theme='light'] {
+    --bg-root: #eef1f4;
+    --bg-panel: #f7f9fb;
+    --bg-elevated: #ffffff;
+    --bg-hover: #e4e9ef;
+    --bg-active: #d7dee6;
+    --border: #c8d0da;
+    --border-soft: #d8dee6;
+    --text: #1a2330;
+    --text-muted: #5a6b7d;
+    --text-dim: #7a8b9c;
+    --accent: #1f9d63;
+    --accent-dim: rgba(31, 157, 99, 0.12);
+    --accent-border: rgba(31, 157, 99, 0.35);
+    --warn: #c4841d;
+    --warn-dim: rgba(196, 132, 29, 0.12);
+    --danger: #d64545;
+    --danger-dim: rgba(214, 69, 69, 0.12);
+    --term-bg: #fbfcfd;
+    --term-fg: #1a2330;
+    --term-cyan: #0e7c8a;
+    --overlay: rgba(20, 28, 36, 0.45);
+    --scrollbar-size: calc(8px * var(--ui-scale, 1));
+    --scrollbar-track: transparent;
+    --scrollbar-thumb: rgba(90, 107, 125, 0.32);
+    --scrollbar-thumb-hover: rgba(90, 107, 125, 0.5);
+    color-scheme: light;
 }
 
 * {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 html {
-  --ui-scale: 1;
+    --ui-scale: 1;
 }
 
 html,
 body {
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-  background: var(--bg-root);
-  color: var(--text);
-  font-family: var(--font-ui);
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background: var(--bg-root);
+    color: var(--text);
+    font-family: var(--font-ui);
 }
 
 /* Real-size chrome scaling via --ui-scale tokens (no transform / zoom). */
 #app {
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-  background: var(--bg-root);
-  color: var(--text);
-  font-family: var(--font-ui);
-  font-size: calc(13px * var(--ui-scale, 1));
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background: var(--bg-root);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: calc(13px * var(--ui-scale, 1));
 }
 
 #app :is(button, .btn, .icon-btn, .tab-tool) > svg {
-  width: calc(14px * var(--ui-scale, 1));
-  height: calc(14px * var(--ui-scale, 1));
-  flex-shrink: 0;
+    width: calc(14px * var(--ui-scale, 1));
+    height: calc(14px * var(--ui-scale, 1));
+    flex-shrink: 0;
 }
 
 *::-webkit-scrollbar {
-  width: var(--scrollbar-size);
-  height: var(--scrollbar-size);
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
 }
 
 *::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
+    background: var(--scrollbar-track);
 }
 
 *::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: calc(999px * var(--ui-scale, 1));
-  border: calc(2px * var(--ui-scale, 1)) solid transparent;
-  background-clip: content-box;
+    background: var(--scrollbar-thumb);
+    border-radius: calc(999px * var(--ui-scale, 1));
+    border: calc(2px * var(--ui-scale, 1)) solid transparent;
+    background-clip: content-box;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
-  border: calc(2px * var(--ui-scale, 1)) solid transparent;
-  background-clip: content-box;
+    background: var(--scrollbar-thumb-hover);
+    border: calc(2px * var(--ui-scale, 1)) solid transparent;
+    background-clip: content-box;
 }
 
 *::-webkit-scrollbar-corner {
-  background: transparent;
+    background: transparent;
 }
 
 *::-webkit-scrollbar-button {
-  width: 0;
-  height: 0;
-  display: none;
+    width: 0;
+    height: 0;
+    display: none;
 }
 
 button,
 input,
 select,
 textarea {
-  font-family: inherit;
+    font-family: inherit;
 }
 
 button {
-  cursor: pointer;
+    cursor: pointer;
 }
 
 .app-shell {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-root);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-root);
 }
 
 .workspace {
-  flex: 1;
-  display: grid;
-  grid-template-columns: var(--sidebar-width, calc(240px * var(--ui-scale, 1))) 1fr var(
-      --ai-panel-width,
-      calc(300px * var(--ui-scale, 1))
-    );
-  min-height: 0;
-  transition: grid-template-columns 0.2s ease;
+    flex: 1;
+    display: grid;
+    grid-template-columns:
+        var(--sidebar-width, calc(240px * var(--ui-scale, 1)))
+        1fr var(--ai-panel-width, calc(300px * var(--ui-scale, 1)));
+    min-height: 0;
+    transition: grid-template-columns 0.2s ease;
 }
 
 .workspace.is-resizing-ai,
 .workspace.is-resizing-sidebar {
-  transition: none;
-  cursor: ew-resize;
+    transition: none;
+    cursor: ew-resize;
 }
 
 .workspace.is-resizing-ai *,
 .workspace.is-resizing-sidebar * {
-  cursor: ew-resize !important;
-  user-select: none !important;
-  -webkit-user-select: none !important;
+    cursor: ew-resize !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
 }
 
 .workspace.sidebar-collapsed {
-  grid-template-columns: calc(44px * var(--ui-scale, 1)) 1fr var(--ai-panel-width, calc(300px * var(--ui-scale, 1)));
+    grid-template-columns: calc(44px * var(--ui-scale, 1)) 1fr var(
+            --ai-panel-width,
+            calc(300px * var(--ui-scale, 1))
+        );
 }
 .workspace.ai-collapsed {
-  grid-template-columns: var(--sidebar-width, calc(240px * var(--ui-scale, 1))) 1fr calc(44px * var(--ui-scale, 1));
+    grid-template-columns:
+        var(--sidebar-width, calc(240px * var(--ui-scale, 1)))
+        1fr calc(44px * var(--ui-scale, 1));
 }
 .workspace.sidebar-collapsed.ai-collapsed {
-  grid-template-columns: calc(44px * var(--ui-scale, 1)) 1fr calc(44px * var(--ui-scale, 1));
+    grid-template-columns: calc(44px * var(--ui-scale, 1)) 1fr calc(
+            44px * var(--ui-scale, 1)
+        );
 }
 .workspace.ai-hidden {
-  grid-template-columns: var(--sidebar-width, calc(240px * var(--ui-scale, 1))) 1fr;
+    grid-template-columns:
+        var(--sidebar-width, calc(240px * var(--ui-scale, 1)))
+        1fr;
 }
 .workspace.sidebar-collapsed.ai-hidden {
-  grid-template-columns: calc(44px * var(--ui-scale, 1)) 1fr;
+    grid-template-columns: calc(44px * var(--ui-scale, 1)) 1fr;
 }
 
 .icon-btn {
-  width: calc(28px * var(--ui-scale, 1));
-  height: calc(28px * var(--ui-scale, 1));
-  border: none;
-  border-radius: calc(6px * var(--ui-scale, 1));
-  background: transparent;
-  color: var(--text-muted);
-  display: grid;
-  place-items: center;
-  font-size: calc(13px * var(--ui-scale, 1));
+    width: calc(28px * var(--ui-scale, 1));
+    height: calc(28px * var(--ui-scale, 1));
+    border: none;
+    border-radius: calc(6px * var(--ui-scale, 1));
+    background: transparent;
+    color: var(--text-muted);
+    display: grid;
+    place-items: center;
+    font-size: calc(13px * var(--ui-scale, 1));
 }
 
 .icon-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text);
+    background: var(--bg-hover);
+    color: var(--text);
 }
 
 .btn {
-  height: calc(28px * var(--ui-scale, 1));
-  padding: 0 calc(10px * var(--ui-scale, 1));
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-hover);
-  color: var(--text);
-  font-size: calc(12px * var(--ui-scale, 1));
-  font-weight: 500;
+    height: calc(28px * var(--ui-scale, 1));
+    padding: 0 calc(10px * var(--ui-scale, 1));
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-hover);
+    color: var(--text);
+    font-size: calc(12px * var(--ui-scale, 1));
+    font-weight: 500;
 }
 
 .btn.md {
-  height: calc(28px * var(--ui-scale, 1));
-  padding: 0 calc(12px * var(--ui-scale, 1));
+    height: calc(28px * var(--ui-scale, 1));
+    padding: 0 calc(12px * var(--ui-scale, 1));
 }
 .btn.mini {
-  height: calc(24px * var(--ui-scale, 1));
-  padding: 0 calc(8px * var(--ui-scale, 1));
-  font-size: calc(11px * var(--ui-scale, 1));
+    height: calc(24px * var(--ui-scale, 1));
+    padding: 0 calc(8px * var(--ui-scale, 1));
+    font-size: calc(11px * var(--ui-scale, 1));
 }
 
 .btn.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #ffffff;
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
 }
 
 .btn.ghost {
-  background: transparent;
-  color: var(--text-muted);
+    background: transparent;
+    color: var(--text-muted);
 }
 
 .btn.ghost:hover {
-  color: var(--text);
-  background: var(--bg-hover);
+    color: var(--text);
+    background: var(--bg-hover);
 }
 
 .btn.danger {
-  border-color: rgba(232, 93, 93, 0.45);
-  color: var(--danger);
-  background: var(--danger-dim);
+    border-color: rgba(232, 93, 93, 0.45);
+    color: var(--danger);
+    background: var(--danger-dim);
 }
 
 .btn-ghost-block {
-  flex: 1;
-  height: calc(28px * var(--ui-scale, 1));
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: calc(12px * var(--ui-scale, 1));
+    flex: 1;
+    height: calc(28px * var(--ui-scale, 1));
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: calc(12px * var(--ui-scale, 1));
 }
 
 .btn-ghost-block:hover {
-  color: var(--text);
-  background: var(--bg-hover);
+    color: var(--text);
+    background: var(--bg-hover);
 }
 
 .overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: calc(24px * var(--ui-scale, 1));
-  z-index: 50;
+    position: fixed;
+    inset: 0;
+    background: var(--overlay);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: calc(24px * var(--ui-scale, 1));
+    z-index: 50;
 }
 
 /** Notice / update dialogs sit higher than centered settings modals. */
 .overlay.overlay-top {
-  align-items: flex-start;
-  padding-top: min(18vh, calc(140px * var(--ui-scale, 1)));
+    align-items: flex-start;
+    padding-top: min(18vh, calc(140px * var(--ui-scale, 1)));
 }
 
 .modal {
-  width: min(calc(720px * var(--ui-scale, 1)), 100%);
-  max-height: min(calc(860px * var(--ui-scale, 1)), calc(100vh - 48px));
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: calc(12px * var(--ui-scale, 1));
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+    width: min(calc(720px * var(--ui-scale, 1)), 100%);
+    max-height: min(calc(860px * var(--ui-scale, 1)), calc(100vh - 48px));
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: calc(12px * var(--ui-scale, 1));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .modal.sm {
-  width: min(calc(480px * var(--ui-scale, 1)), 100%);
+    width: min(calc(480px * var(--ui-scale, 1)), 100%);
 }
 
 .modal-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: calc(14px * var(--ui-scale, 1)) calc(16px * var(--ui-scale, 1));
-  border-bottom: 1px solid var(--border-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(14px * var(--ui-scale, 1)) calc(16px * var(--ui-scale, 1));
+    border-bottom: 1px solid var(--border-soft);
 }
 
 .modal-head h2 {
-  font-size: calc(15px * var(--ui-scale, 1));
-  font-weight: 600;
+    font-size: calc(15px * var(--ui-scale, 1));
+    font-weight: 600;
 }
 .modal-head .sub {
-  font-size: calc(12px * var(--ui-scale, 1));
-  color: var(--text-muted);
-  margin-top: calc(2px * var(--ui-scale, 1));
+    font-size: calc(12px * var(--ui-scale, 1));
+    color: var(--text-muted);
+    margin-top: calc(2px * var(--ui-scale, 1));
 }
 
 .modal-tools {
-  display: flex;
-  align-items: center;
-  gap: calc(6px * var(--ui-scale, 1));
+    display: flex;
+    align-items: center;
+    gap: calc(6px * var(--ui-scale, 1));
 }
 .modal-body {
-  flex: 1;
-  overflow: auto;
-  padding: calc(14px * var(--ui-scale, 1)) calc(16px * var(--ui-scale, 1));
+    flex: 1;
+    overflow: auto;
+    padding: calc(14px * var(--ui-scale, 1)) calc(16px * var(--ui-scale, 1));
 }
 .modal-foot {
-  display: flex;
-  justify-content: flex-end;
-  gap: calc(8px * var(--ui-scale, 1));
-  padding: calc(12px * var(--ui-scale, 1)) calc(16px * var(--ui-scale, 1));
-  border-top: 1px solid var(--border-soft);
+    display: flex;
+    justify-content: flex-end;
+    gap: calc(8px * var(--ui-scale, 1));
+    padding: calc(12px * var(--ui-scale, 1)) calc(16px * var(--ui-scale, 1));
+    border-top: 1px solid var(--border-soft);
 }
 
 .field label {
-  display: block;
-  font-size: calc(11px * var(--ui-scale, 1));
-  font-weight: 500;
-  color: var(--text-muted);
-  margin-bottom: calc(6px * var(--ui-scale, 1));
+    display: block;
+    font-size: calc(11px * var(--ui-scale, 1));
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: calc(6px * var(--ui-scale, 1));
 }
 
 .field label .req {
-  color: var(--danger);
+    color: var(--danger);
 }
 
 .field input,
 .field select,
 .field textarea {
-  width: 100%;
-  height: calc(28px * var(--ui-scale, 1));
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-root);
-  color: var(--text);
-  padding: 0 calc(10px * var(--ui-scale, 1));
-  font-size: calc(12.5px * var(--ui-scale, 1));
-  outline: none;
+    width: 100%;
+    height: calc(28px * var(--ui-scale, 1));
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-root);
+    color: var(--text);
+    padding: 0 calc(10px * var(--ui-scale, 1));
+    font-size: calc(12.5px * var(--ui-scale, 1));
+    outline: none;
 }
 
 /* Range thumbs must reach 0%/100%; shared field padding insets the track. */
-.field input[type="range"] {
-  height: calc(28px * var(--ui-scale, 1));
-  padding: 0;
-  border: none;
-  background: transparent;
+.field input[type='range'] {
+    height: calc(28px * var(--ui-scale, 1));
+    padding: 0;
+    border: none;
+    background: transparent;
 }
 
 .field textarea {
-  height: calc(72px * var(--ui-scale, 1));
-  padding: calc(8px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
-  resize: vertical;
+    height: calc(72px * var(--ui-scale, 1));
+    padding: calc(8px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+    resize: vertical;
 }
 
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
-  border-color: var(--accent-border);
+    border-color: var(--accent-border);
 }
 
 .form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: calc(12px * var(--ui-scale, 1));
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: calc(12px * var(--ui-scale, 1));
 }
 
 .form-grid .full {
-  grid-column: 1 / -1;
+    grid-column: 1 / -1;
 }
 
 .section-label {
-  font-size: calc(11px * var(--ui-scale, 1));
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-dim);
-  margin: calc(4px * var(--ui-scale, 1)) 0 calc(10px * var(--ui-scale, 1));
+    font-size: calc(11px * var(--ui-scale, 1));
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin: calc(4px * var(--ui-scale, 1)) 0 calc(10px * var(--ui-scale, 1));
 }
 
 .error-banner {
-  margin-bottom: calc(10px * var(--ui-scale, 1));
-  padding: calc(8px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
-  border-radius: calc(6px * var(--ui-scale, 1));
-  background: var(--danger-dim);
-  color: var(--danger);
-  font-size: calc(12px * var(--ui-scale, 1));
+    margin-bottom: calc(10px * var(--ui-scale, 1));
+    padding: calc(8px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+    border-radius: calc(6px * var(--ui-scale, 1));
+    background: var(--danger-dim);
+    color: var(--danger);
+    font-size: calc(12px * var(--ui-scale, 1));
 }
