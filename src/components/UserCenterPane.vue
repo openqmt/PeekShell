@@ -212,6 +212,9 @@ function signOut() {
                     <div class="profile-name">{{ user?.nickname }}</div>
                     <div class="profile-email">{{ user?.email }}</div>
                 </div>
+                <button type="button" class="btn danger md" @click="signOut">
+                    {{ t('userCenter.logout') }}
+                </button>
             </div>
 
             <div class="info-card">
@@ -233,12 +236,6 @@ function signOut() {
                         user ? formatJoined(user.createdAt) : ''
                     }}</span>
                 </div>
-            </div>
-
-            <div class="pane-actions">
-                <button type="button" class="btn danger md" @click="signOut">
-                    {{ t('userCenter.logout') }}
-                </button>
             </div>
         </template>
     </div>
@@ -310,6 +307,10 @@ function signOut() {
     gap: 12px;
 }
 
+.profile-hero > .btn {
+    flex-shrink: 0;
+}
+
 .avatar {
     width: 44px;
     height: 44px;
@@ -326,6 +327,7 @@ function signOut() {
 
 .profile-meta {
     min-width: 0;
+    flex: 1;
 }
 
 .profile-name {
@@ -375,13 +377,5 @@ function signOut() {
     font-size: 12px;
     color: var(--text);
     text-align: right;
-}
-
-.pane-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: auto;
-    padding-top: 12px;
-    border-top: 1px solid var(--border-soft);
 }
 </style>
