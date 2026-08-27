@@ -104,6 +104,15 @@ async fn ai_chat(
 }
 
 #[tauri::command]
+async fn ai_cancel_chat(
+    agent: tauri::State<'_, Arc<AgentState>>,
+    request_id: String,
+) -> AppResult<()> {
+    agent.cancel_request(&request_id).await;
+    Ok(())
+}
+
+#[tauri::command]
 async fn execute_approved_command(
     app: tauri::AppHandle,
     agent: tauri::State<'_, Arc<AgentState>>,
@@ -439,6 +448,7 @@ pub fn run() {
             set_active_ai_provider,
             set_active_ai_model,
             ai_chat,
+            ai_cancel_chat,
             execute_approved_command,
             reject_agent_command,
             connect_host,

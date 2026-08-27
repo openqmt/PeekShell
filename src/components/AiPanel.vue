@@ -79,9 +79,16 @@ async function onSend() {
   await ai.send(text);
 }
 
+function onStop() {
+  void ai.stop();
+}
+
 function onKeydown(ev: KeyboardEvent) {
+  // IME composition (e.g. Chinese input confirming Latin/汉字) must not send.
+  if (ev.isComposing || ev.keyCode === 229) return
   if (ev.key === "Enter" && !ev.shiftKey) {
     ev.preventDefault();
+    if (sending.value) return;
     void onSend();
   }
 }
@@ -269,13 +276,23 @@ onBeforeUnmount(() => {
             @change="onModeChange"
           />
           <button
+            v-if="sending"
+            class="send stop"
+            type="button"
+            :title="t('ai.stop')"
+            @click="onStop"
+          >
+            {{ t("ai.stop") }}
+          </button>
+          <button
+            v-else
             class="send"
             type="button"
             :disabled="!canSend"
             :title="blockerText || undefined"
             @click="onSend"
           >
-            {{ sending ? t("ai.sending") : t("ai.send") }}
+            {{ t("ai.send") }}
           </button>
         </div>
         <span class="hint">{{ t("ai.context") }}</span>
@@ -562,5 +579,9 @@ onBeforeUnmount(() => {
 .send:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.send.stop {
+  background: var(--danger);
 }
 </style>

@@ -156,6 +156,7 @@ function removeModel(model: string) {
 }
 
 function onModelDraftKey(ev: KeyboardEvent) {
+  if (ev.isComposing || ev.keyCode === 229) return
   if (ev.key === "Enter") {
     ev.preventDefault();
     addModel();

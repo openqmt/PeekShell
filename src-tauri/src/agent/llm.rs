@@ -92,8 +92,10 @@ pub async fn chat_completions(
 }
 
 /// SSE 流式补全：边收边通过 `ai://chunk` 推送，最终返回完整文本。
+/// 用户调用 `ai_cancel_chat` 后循环内尽快退出，错误码 `ai_cancelled`。
 pub async fn chat_completions_stream(
     app: &AppHandle,
+    agent: &super::AgentState,
     request_id: &str,
     provider: &ActiveProviderRuntime,
     messages: &[ChatHistoryMessage],
@@ -112,6 +114,10 @@ pub async fn chat_completions_stream(
         req = req.bearer_auth(key);
     }
 
+    if agent.is_cancelled(request_id).await {
+        return Err(AppError::Message("ai_cancelled".into()));
+    }
+
     let resp = req.send().await?;
     let status = resp.status();
     if !status.is_success() {
@@ -127,6 +133,9 @@ pub async fn chat_completions_stream(
     let mut full = String::new();
 
     while let Some(item) = stream.next().await {
+        if agent.is_cancelled(request_id).await {
+            return Err(AppError::Message("ai_cancelled".into()));
+        }
         let chunk = item.map_err(|e| AppError::Message(e.to_string()))?;
         buffer.push_str(&String::from_utf8_lossy(&chunk));
 
@@ -160,6 +169,10 @@ pub async fn chat_completions_stream(
                 }
             }
         }
+    }
+
+    if agent.is_cancelled(request_id).await {
+        return Err(AppError::Message("ai_cancelled".into()));
     }
 
     if full.trim().is_empty() {

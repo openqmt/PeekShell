@@ -52,6 +52,7 @@ export const useAiStore = defineStore("ai", () => {
   const activeProviderId = ref<string | null>(null);
   const loading = ref(false);
   const sending = ref(false);
+  const activeRequestId = ref<string | null>(null);
   const error = ref("");
   const messages = ref<ChatMessage[]>([]);
   const execMode = ref<ExecMode>(loadExecMode());
@@ -118,6 +119,21 @@ export const useAiStore = defineStore("ai", () => {
     error.value = "";
   }
 
+  function isCancelledError(e: unknown) {
+    const msg = String(e);
+    return msg.includes("ai_cancelled");
+  }
+
+  async function stop() {
+    const id = activeRequestId.value;
+    if (!id || !sending.value) return;
+    try {
+      await api.aiCancelChat(id);
+    } catch {
+      // Request may already have finished.
+    }
+  }
+
   function resetLocal() {
     execMode.value = "confirm";
     providers.value = [];
@@ -170,6 +186,7 @@ export const useAiStore = defineStore("ai", () => {
       streaming: true,
     });
     sending.value = true;
+    activeRequestId.value = requestId;
 
     const history = messages.value
       .filter((m) => m.role === "user" || m.role === "assistant")
@@ -211,12 +228,15 @@ export const useAiStore = defineStore("ai", () => {
       });
       return res;
     } catch (e) {
-      error.value = String(e);
+      const cancelled = isCancelledError(e);
+      if (!cancelled) error.value = String(e);
+      else error.value = "";
       const msg = messages.value.find((m) => m.id === assistantId);
       if (msg) {
-        msg.content = msg.content.trim() || String(e);
+        const kept = visibleStreamText(msg.content).trim();
+        msg.content = kept || (cancelled ? "" : String(e));
         msg.streaming = false;
-      } else {
+      } else if (!cancelled) {
         messages.value.push({
           id: newId(),
           role: "assistant",
@@ -224,13 +244,18 @@ export const useAiStore = defineStore("ai", () => {
         });
       }
       options?.onComplete?.({
-        explanation: String(e),
+        explanation: cancelled
+          ? visibleStreamText(
+              messages.value.find((m) => m.id === assistantId)?.content ?? ""
+            )
+          : String(e),
         commands: [],
-        error: String(e),
+        error: cancelled ? "cancelled" : String(e),
       });
       return null;
     } finally {
       if (unlisten) unlisten();
+      if (activeRequestId.value === requestId) activeRequestId.value = null;
       sending.value = false;
     }
   }
@@ -284,6 +309,7 @@ export const useAiStore = defineStore("ai", () => {
     modelOptions,
     loading,
     sending,
+    activeRequestId,
     error,
     messages,
     execMode,
@@ -295,6 +321,7 @@ export const useAiStore = defineStore("ai", () => {
     clearChat,
     resetLocal,
     send,
+    stop,
     approve,
     reject,
   };

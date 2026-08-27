@@ -15,7 +15,7 @@ use schema::{
     LlmAgentReply, PendingCommand,
 };
 use serde::Serialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tauri::AppHandle;
 use tokio::sync::Mutex;
 use uuid::Uuid;
@@ -26,13 +26,35 @@ const TERMINAL_ECHO_CHARS: usize = 8_000;
 
 pub struct AgentState {
     pending: Mutex<HashMap<String, PendingCommand>>,
+    /// `ai_chat` request ids the user asked to stop (cleared when the request ends).
+    cancelled_requests: Mutex<HashSet<String>>,
 }
 
 impl AgentState {
     pub fn new() -> Self {
         Self {
             pending: Mutex::new(HashMap::new()),
+            cancelled_requests: Mutex::new(HashSet::new()),
         }
+    }
+
+    pub async fn cancel_request(&self, request_id: &str) {
+        let id = request_id.trim();
+        if id.is_empty() {
+            return;
+        }
+        self.cancelled_requests.lock().await.insert(id.to_string());
+    }
+
+    pub async fn is_cancelled(&self, request_id: &str) -> bool {
+        self.cancelled_requests
+            .lock()
+            .await
+            .contains(request_id.trim())
+    }
+
+    pub async fn clear_request_cancel(&self, request_id: &str) {
+        self.cancelled_requests.lock().await.remove(request_id.trim());
     }
 }
 
@@ -119,7 +141,25 @@ pub async fn chat(
         req.request_id.trim().to_string()
     };
 
-    let raw = llm::chat_completions_stream(app, &request_id, &provider, &messages).await?;
+    agent.clear_request_cancel(&request_id).await;
+    let raw = match llm::chat_completions_stream(
+        app,
+        agent,
+        &request_id,
+        &provider,
+        &messages,
+    )
+    .await
+    {
+        Ok(text) => {
+            agent.clear_request_cancel(&request_id).await;
+            text
+        }
+        Err(e) => {
+            agent.clear_request_cancel(&request_id).await;
+            return Err(e);
+        }
+    };
     let parsed = parse_agent_reply(&raw)?;
 
     let mut commands = Vec::new();

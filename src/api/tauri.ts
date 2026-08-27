@@ -59,6 +59,10 @@ export function aiChat(payload: {
   return invoke("ai_chat", { payload });
 }
 
+export function aiCancelChat(requestId: string): Promise<void> {
+  return invoke("ai_cancel_chat", { requestId });
+}
+
 export function executeApprovedCommand(
   sessionId: string,
   commandId: string
