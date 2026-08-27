@@ -141,14 +141,6 @@ onBeforeUnmount(() => {
             <span class="panel-title">{{ t('sidebar.host') }}</span>
             <div class="toolbar-actions">
                 <button
-                    class="icon-btn lang-btn"
-                    type="button"
-                    :title="t('sidebar.language')"
-                    @click="toggleLocale()"
-                >
-                    {{ locale === 'zh' ? 'EN' : '中' }}
-                </button>
-                <button
                     class="icon-btn"
                     type="button"
                     :title="t('sidebar.settings')"
@@ -184,6 +176,14 @@ onBeforeUnmount(() => {
                     </svg>
                 </button>
                 <button
+                    class="icon-btn lang-btn"
+                    type="button"
+                    :title="t('sidebar.language')"
+                    @click="toggleLocale()"
+                >
+                    {{ locale === 'zh' ? 'EN' : '中' }}
+                </button>
+                <button
                     class="icon-btn"
                     type="button"
                     :title="
@@ -216,14 +216,6 @@ onBeforeUnmount(() => {
                 »
             </button>
             <button
-                class="icon-btn lang-btn"
-                type="button"
-                :title="t('sidebar.language')"
-                @click="toggleLocale()"
-            >
-                {{ locale === 'zh' ? 'EN' : '中' }}
-            </button>
-            <button
                 class="icon-btn"
                 type="button"
                 :title="t('sidebar.settings')"
@@ -247,6 +239,14 @@ onBeforeUnmount(() => {
                     <circle cx="10.5" cy="8" r="1.35" fill="currentColor" />
                     <circle cx="6.5" cy="11.5" r="1.35" fill="currentColor" />
                 </svg>
+            </button>
+            <button
+                class="icon-btn lang-btn"
+                type="button"
+                :title="t('sidebar.language')"
+                @click="toggleLocale()"
+            >
+                {{ locale === 'zh' ? 'EN' : '中' }}
             </button>
             <button
                 class="icon-btn"
