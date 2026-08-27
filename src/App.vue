@@ -12,12 +12,14 @@ import TerminalSettingsModal from "./components/TerminalSettingsModal.vue";
 import EditorSettingsModal from "./components/EditorSettingsModal.vue";
 import ExplorerSettingsModal from "./components/ExplorerSettingsModal.vue";
 import UpdateModal from "./components/UpdateModal.vue";
+import { useAccountStore } from "./stores/account";
 import { useAiStore } from "./stores/ai";
 import { useHostsStore } from "./stores/hosts";
 import { useNoteStore } from "./stores/note";
 import { useUiStore } from "./stores/ui";
 import { useUpdaterStore } from "./stores/updater";
 
+const account = useAccountStore();
 const ai = useAiStore();
 const hosts = useHostsStore();
 const note = useNoteStore();
@@ -42,6 +44,7 @@ const { aiChatEnabled } = storeToRefs(note);
 const showAiPanel = computed(() => displayPrefs.value.aiPanel && aiChatEnabled.value);
 
 onMounted(() => {
+  void account.restore();
   void hosts.refresh();
   void ai.refresh();
   // Upgrade first so note can defer when both are available

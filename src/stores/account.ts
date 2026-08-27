@@ -1,43 +1,108 @@
 /**
  * Cloud account session for User Center.
- * UI-only mock until PeekServer auth is wired; state lives in memory for this launch.
+ * Talks to PeekServer `/auth/*`; token + profile persist in localStorage.
  */
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import type { UserProfile } from '../types/account'
+import * as cloud from '../api/cloud'
+import { parseUserProfile, type UserProfile } from '../types/account'
 
-function emailPrefix(email: string): string {
-    const local = email.split('@')[0] ?? ''
-    return local.slice(0, 32) || 'user'
+const TOKEN_KEY = 'peekshell.cloud.token'
+const USER_KEY = 'peekshell.cloud.user'
+
+function readStoredToken(): string {
+    try {
+        return localStorage.getItem(TOKEN_KEY) ?? ''
+    } catch {
+        return ''
+    }
 }
 
-function mockProfile(email: string, nickname?: string): UserProfile {
-    const now = Date.now()
-    return {
-        id: crypto.randomUUID(),
-        email,
-        nickname: nickname || emailPrefix(email),
-        points: 0,
-        role: 'user',
-        createdAt: now,
-        updatedAt: now,
+function readStoredUser(): UserProfile | null {
+    try {
+        const raw = localStorage.getItem(USER_KEY)
+        if (!raw) return null
+        return parseUserProfile(JSON.parse(raw))
+    } catch {
+        return null
+    }
+}
+
+function persistSession(token: string, user: UserProfile) {
+    try {
+        localStorage.setItem(TOKEN_KEY, token)
+        localStorage.setItem(USER_KEY, JSON.stringify(user))
+    } catch {
+        // ignore quota / private mode
+    }
+}
+
+function clearPersistedSession() {
+    try {
+        localStorage.removeItem(TOKEN_KEY)
+        localStorage.removeItem(USER_KEY)
+    } catch {
+        // ignore
     }
 }
 
 export const useAccountStore = defineStore('account', () => {
-    const user = ref<UserProfile | null>(null)
-    const isLoggedIn = computed(() => user.value !== null)
+    const storedToken = readStoredToken()
+    const token = ref(storedToken)
+    const user = ref<UserProfile | null>(storedToken ? readStoredUser() : null)
 
-    function register(email: string, _password: string, nickname?: string) {
-        user.value = mockProfile(email, nickname)
+    const isLoggedIn = computed(() => user.value !== null && !!token.value)
+
+    function applySession(nextToken: string, nextUser: UserProfile) {
+        token.value = nextToken
+        user.value = nextUser
+        persistSession(nextToken, nextUser)
     }
 
-    function login(email: string, _password: string) {
-        user.value = mockProfile(email)
-    }
-
-    function logout() {
+    function clearSession() {
+        token.value = ''
         user.value = null
+        clearPersistedSession()
+    }
+
+    async function register(email: string, password: string, nickname?: string) {
+        const session = await cloud.register(email, password, nickname)
+        applySession(session.token, session.user)
+    }
+
+    async function login(email: string, password: string) {
+        const session = await cloud.login(email, password)
+        applySession(session.token, session.user)
+    }
+
+    async function logout() {
+        const current = token.value
+        clearSession()
+        if (!current) return
+        try {
+            await cloud.logout(current)
+        } catch {
+            // Local sign-out still succeeds if the server is unreachable.
+        }
+    }
+
+    /** Revalidate a persisted token with `/auth/me`. Network errors keep the cache. */
+    async function restore() {
+        const current = token.value || readStoredToken()
+        if (!current) {
+            clearSession()
+            return
+        }
+        if (!token.value) token.value = current
+        if (!user.value) user.value = readStoredUser()
+        try {
+            const me = await cloud.getMe(current)
+            applySession(current, me)
+        } catch (e) {
+            if (e instanceof cloud.CloudApiError && e.code === 'unauthorized') {
+                clearSession()
+            }
+        }
     }
 
     return {
@@ -46,5 +111,6 @@ export const useAccountStore = defineStore('account', () => {
         register,
         login,
         logout,
+        restore,
     }
 })

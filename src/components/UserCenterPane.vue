@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
  * User Center pane: email login/register when signed out, profile when signed in.
- * Auth is UI-only until PeekServer is wired.
+ * Auth goes through PeekServer `/auth/register`, `/auth/login`, `/auth/logout`.
  */
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
+import { CloudApiError } from '../api/cloud'
 import { useI18n } from '../i18n'
 import { useAccountStore } from '../stores/account'
 import type { AccountRole } from '../types/account'
@@ -25,6 +26,7 @@ const email = ref('')
 const password = ref('')
 const nickname = ref('')
 const error = ref('')
+const submitting = ref(false)
 
 watch(mode, () => {
     error.value = ''
@@ -55,7 +57,7 @@ function normalizeEmail(raw: string) {
 }
 
 function validateEmail(value: string) {
-    if (!EMAIL_RE.test(value)) return t('userCenter.errorEmail')
+    if (value.length > 254 || !EMAIL_RE.test(value)) return t('userCenter.errorEmail')
     return ''
 }
 
@@ -73,7 +75,19 @@ function validateNickname(value: string) {
     return ''
 }
 
-function submitAuth() {
+function cloudErrorMessage(e: unknown): string {
+    if (e instanceof CloudApiError) {
+        if (e.code === 'invalid_credentials') return t('userCenter.errorCredentials')
+        if (e.code === 'email_taken') return t('userCenter.errorEmailTaken')
+        if (e.code === 'rate_limited') return t('userCenter.errorRateLimited')
+        if (e.code === 'invalid_input') return t('userCenter.errorInvalidInput')
+        if (e.code === 'network') return t('userCenter.errorNetwork')
+    }
+    return t('userCenter.errorNetwork')
+}
+
+async function submitAuth() {
+    if (submitting.value) return
     error.value = ''
     const mail = normalizeEmail(email.value)
     const mailErr = validateEmail(mail)
@@ -92,17 +106,32 @@ function submitAuth() {
             error.value = nickErr
             return
         }
-        account.register(mail, password.value, nickname.value.trim() || undefined)
-        return
     }
-    account.login(mail, password.value)
+    submitting.value = true
+    try {
+        if (mode.value === 'register') {
+            await account.register(
+                mail,
+                password.value,
+                nickname.value.trim() || undefined,
+            )
+        } else {
+            await account.login(mail, password.value)
+        }
+        password.value = ''
+        nickname.value = ''
+    } catch (e) {
+        error.value = cloudErrorMessage(e)
+    } finally {
+        submitting.value = false
+    }
 }
 
-function signOut() {
+async function signOut() {
     error.value = ''
     password.value = ''
     nickname.value = ''
-    account.logout()
+    await account.logout()
 }
 </script>
 
@@ -121,6 +150,7 @@ function signOut() {
                     role="tab"
                     :class="{ active: mode === 'login' }"
                     :aria-selected="mode === 'login'"
+                    :disabled="submitting"
                     @click="mode = 'login'"
                 >
                     {{ t('userCenter.loginTitle') }}
@@ -131,6 +161,7 @@ function signOut() {
                     role="tab"
                     :class="{ active: mode === 'register' }"
                     :aria-selected="mode === 'register'"
+                    :disabled="submitting"
                     @click="mode = 'register'"
                 >
                     {{ t('userCenter.registerTitle') }}
@@ -150,6 +181,7 @@ function signOut() {
                         type="email"
                         autocomplete="email"
                         :placeholder="t('userCenter.emailPlaceholder')"
+                        :disabled="submitting"
                     />
                 </div>
                 <div v-if="mode === 'register'" class="field">
@@ -160,6 +192,7 @@ function signOut() {
                         maxlength="32"
                         autocomplete="nickname"
                         :placeholder="t('userCenter.nicknamePlaceholder')"
+                        :disabled="submitting"
                     />
                 </div>
                 <div class="field">
@@ -176,14 +209,21 @@ function signOut() {
                                 : 'current-password'
                         "
                         :placeholder="t('userCenter.passwordPlaceholder')"
+                        :disabled="submitting"
                     />
                 </div>
                 <div class="actions">
-                    <button type="submit" class="btn primary md">
+                    <button
+                        type="submit"
+                        class="btn primary md"
+                        :disabled="submitting"
+                    >
                         {{
-                            mode === 'register'
-                                ? t('userCenter.submitRegister')
-                                : t('userCenter.submitLogin')
+                            submitting
+                                ? t('common.loading')
+                                : mode === 'register'
+                                  ? t('userCenter.submitRegister')
+                                  : t('userCenter.submitLogin')
                         }}
                     </button>
                 </div>
@@ -289,6 +329,10 @@ function signOut() {
     cursor: pointer;
 }
 
+.auth-tab:disabled {
+    cursor: not-allowed;
+}
+
 .auth-tab.active {
     background: var(--accent-dim);
     color: var(--accent);
@@ -309,6 +353,11 @@ function signOut() {
 
 .actions .btn {
     min-width: 88px;
+}
+
+.actions .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .profile-hero {
