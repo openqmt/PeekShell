@@ -248,9 +248,6 @@ onBeforeUnmount(() => {
         </div>
 
         <div v-if="statusMsg" class="qc-status">{{ statusMsg }}</div>
-        <div v-if="!canRun" class="qc-hint">
-            {{ t('quickCommands.needSession') }}
-        </div>
 
         <div v-if="creating || editing" class="qc-form">
             <div class="qc-form-title">
@@ -521,21 +518,12 @@ onBeforeUnmount(() => {
     flex-shrink: 0;
 }
 
-.qc-status,
-.qc-hint {
+.qc-status {
     padding: calc(6px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
     font-size: calc(11px * var(--ui-scale, 1));
     border-bottom: 1px solid var(--border-soft);
-}
-
-.qc-status {
     color: var(--accent);
     background: var(--accent-dim);
-}
-
-.qc-hint {
-    color: var(--warn);
-    background: var(--warn-dim);
 }
 
 .qc-form {
