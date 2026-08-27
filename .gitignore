@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
+.env.prod
 
 # VitePress
 docs/.vitepress/cache
