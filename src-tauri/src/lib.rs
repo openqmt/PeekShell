@@ -74,6 +74,11 @@ fn upsert_ai_provider(payload: AiProviderUpsert) -> AppResult<AiProviderRecord> 
 }
 
 #[tauri::command]
+fn get_ai_provider_api_key(id: String) -> AppResult<Option<String>> {
+    ai_config::get_provider_api_key(&id)
+}
+
+#[tauri::command]
 fn delete_ai_provider(id: String) -> AppResult<()> {
     ai_config::delete_provider(&id)
 }
@@ -418,6 +423,7 @@ pub fn run() {
             get_host_secret,
             get_ai_settings,
             upsert_ai_provider,
+            get_ai_provider_api_key,
             delete_ai_provider,
             set_active_ai_provider,
             set_active_ai_model,

@@ -5,6 +5,7 @@
  */
 import { storeToRefs } from "pinia";
 import { computed, reactive, ref } from "vue";
+import * as api from "../api/tauri";
 import { useI18n } from "../i18n";
 import { useAiStore } from "../stores/ai";
 import type { AiProviderKind, AiProviderRecord, AiProviderUpsert } from "../types/ai";
@@ -17,6 +18,8 @@ const saving = ref(false);
 const error = ref("");
 const selectedId = ref<string | null>(null);
 const modelDraft = ref("");
+const apiKeyVisible = ref(false);
+const apiKeyLoading = ref(false);
 
 const defaults: Record<AiProviderKind, { name: string; baseUrl: string; models: string[] }> = {
   openAiCompatible: {
@@ -73,6 +76,8 @@ function newProvider(kind: AiProviderKind = "openAiCompatible") {
   form.apiKey = "";
   form.clearApiKey = false;
   form.hasApiKey = false;
+  apiKeyVisible.value = false;
+  apiKeyLoading.value = false;
   modelDraft.value = "";
   error.value = "";
 }
@@ -87,6 +92,8 @@ function editProvider(provider: AiProviderRecord) {
   form.apiKey = "";
   form.clearApiKey = false;
   form.hasApiKey = provider.hasApiKey;
+  apiKeyVisible.value = false;
+  apiKeyLoading.value = false;
   modelDraft.value = "";
   error.value = "";
 }
@@ -107,6 +114,32 @@ function onKindChange() {
   form.models = [...preset.models];
   form.activeModel = preset.models[0] ?? "";
   if (!selectedId.value) form.name = preset.name;
+}
+
+/** Reveal stored API key on demand; keys are not kept in the provider list. */
+async function toggleApiKeyVisible() {
+  if (apiKeyVisible.value) {
+    apiKeyVisible.value = false;
+    return;
+  }
+  if (!form.apiKey && selectedId.value && form.hasApiKey) {
+    apiKeyLoading.value = true;
+    try {
+      const key = await api.getAiProviderApiKey(selectedId.value);
+      if (key) {
+        form.apiKey = key;
+      } else {
+        error.value = t("aiSettings.noSavedKey");
+        return;
+      }
+    } catch (e) {
+      error.value = String(e);
+      return;
+    } finally {
+      apiKeyLoading.value = false;
+    }
+  }
+  apiKeyVisible.value = true;
 }
 
 function addModel() {
@@ -263,13 +296,62 @@ else newProvider();
       </div>
       <div class="field full">
         <label>{{ form.kind === "ollama" ? t("aiSettings.apiKeyOptional") : t("aiSettings.apiKey") }}</label>
-        <input
-          v-model="form.apiKey"
-          type="password"
-          autocomplete="off"
-          :placeholder="form.hasApiKey ? t('aiSettings.keySaved') : t('aiSettings.keyInput')"
-          :disabled="form.clearApiKey"
-        />
+        <div class="secret-input">
+          <input
+            v-model="form.apiKey"
+            :type="apiKeyVisible ? 'text' : 'password'"
+            autocomplete="off"
+            :placeholder="form.hasApiKey ? t('aiSettings.keySaved') : t('aiSettings.keyInput')"
+            :disabled="form.clearApiKey"
+          />
+          <button
+            type="button"
+            class="secret-toggle"
+            :title="apiKeyVisible ? t('connect.hidePassword') : t('connect.showPassword')"
+            :aria-label="apiKeyVisible ? t('connect.hidePassword') : t('connect.showPassword')"
+            :disabled="form.clearApiKey || apiKeyLoading"
+            @click="toggleApiKeyVisible"
+          >
+            <svg
+              v-if="apiKeyVisible"
+              viewBox="0 0 16 16"
+              width="14"
+              height="14"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M2 8s2.4-4 6-4 6 4 6 4-2.4 4-6 4-6-4-6-4Z"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linejoin="round"
+              />
+              <circle cx="8" cy="8" r="1.7" stroke="currentColor" stroke-width="1.5" />
+              <path
+                d="M3 13 13 3"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+              />
+            </svg>
+            <svg
+              v-else
+              viewBox="0 0 16 16"
+              width="14"
+              height="14"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M2 8s2.4-4 6-4 6 4 6 4-2.4 4-6 4-6-4-6-4Z"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linejoin="round"
+              />
+              <circle cx="8" cy="8" r="1.7" stroke="currentColor" stroke-width="1.5" />
+            </svg>
+          </button>
+        </div>
       </div>
       <label v-if="form.hasApiKey" class="clear-key full">
         <input v-model="form.clearApiKey" type="checkbox" />
@@ -437,5 +519,41 @@ else newProvider();
 
 .save-btn {
   margin-left: auto;
+}
+
+.secret-input {
+  position: relative;
+}
+
+.secret-input input {
+  width: 100%;
+  padding-right: 32px !important;
+}
+
+.secret-toggle {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  width: 26px;
+  height: 26px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+}
+
+.secret-toggle:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.secret-toggle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 </style>

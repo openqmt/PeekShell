@@ -247,6 +247,14 @@ pub fn upsert_provider(payload: AiProviderUpsert) -> AppResult<AiProviderRecord>
     to_record(provider)
 }
 
+/// Reveal a stored API key on demand (settings dialog). Not included in get_settings.
+pub fn get_provider_api_key(id: &str) -> AppResult<Option<String>> {
+    if !load_file()?.providers.iter().any(|p| p.id == id) {
+        return Err(AppError::Message(format!("AI 提供商不存在: {id}")));
+    }
+    credentials::get_secret(&secret_id(id), API_KEY_KIND)
+}
+
 pub fn delete_provider(id: &str) -> AppResult<()> {
     let mut file = load_file()?;
     let before = file.providers.len();

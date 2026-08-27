@@ -31,6 +31,11 @@ export function upsertAiProvider(payload: AiProviderUpsert): Promise<AiProviderR
   return invoke("upsert_ai_provider", { payload });
 }
 
+/** Load a stored API key for the edit dialog. Not kept in Pinia. */
+export function getAiProviderApiKey(id: string): Promise<string | null> {
+  return invoke("get_ai_provider_api_key", { id });
+}
+
 export function deleteAiProvider(id: string): Promise<void> {
   return invoke("delete_ai_provider", { id });
 }
