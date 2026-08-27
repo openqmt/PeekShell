@@ -1,6 +1,6 @@
 ﻿<script setup lang="ts">
 /**
- * App settings shell: left nav (display / models / about), right content pane.
+ * App settings shell: left nav (account / display / models / about), right content pane.
  * Display prefs control UI scale, sidebar, explorer columns, AI panel, and accent color.
  */
 import { getVersion } from '@tauri-apps/api/app'
@@ -19,6 +19,7 @@ import {
     type SettingsSection,
 } from '../stores/ui'
 import AiSettingsPane from './AiSettingsPane.vue'
+import UserCenterPane from './UserCenterPane.vue'
 import { useNoteStore } from '../stores/note'
 
 const WEBSITE_URL = 'https://www.peekshell.com/'
@@ -146,6 +147,14 @@ function onAboutLogoClick() {
                     <button
                         type="button"
                         class="nav-item"
+                        :class="{ active: section === 'account' }"
+                        @click="selectSection('account')"
+                    >
+                        {{ t('userCenter.nav') }}
+                    </button>
+                    <button
+                        type="button"
+                        class="nav-item"
                         :class="{ active: section === 'display' }"
                         @click="selectSection('display')"
                     >
@@ -171,7 +180,14 @@ function onAboutLogoClick() {
                 </nav>
 
                 <div class="settings-pane">
-                    <div v-if="section === 'display'" class="pane-scroll">
+                    <div
+                        v-if="section === 'account'"
+                        class="pane-scroll account-pane"
+                    >
+                        <UserCenterPane />
+                    </div>
+
+                    <div v-else-if="section === 'display'" class="pane-scroll">
                         <div class="section-label">
                             {{ t('displaySettings.uiScaleSection') }}
                         </div>
@@ -387,7 +403,10 @@ function onAboutLogoClick() {
                         <AiSettingsPane />
                     </div>
 
-                    <div v-else class="pane-scroll about-pane">
+                    <div
+                        v-else-if="section === 'about'"
+                        class="pane-scroll about-pane"
+                    >
                         <div class="about-hero">
                             <img
                                 class="about-logo"
@@ -721,9 +740,14 @@ function onAboutLogoClick() {
     flex-shrink: 0;
 }
 
+.account-pane,
 .models-pane {
     display: flex;
     flex-direction: column;
+}
+
+.account-pane {
+    height: 100%;
 }
 
 .about-pane {

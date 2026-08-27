@@ -8,7 +8,7 @@ import type { HostRecord } from '../types/host'
 export type ThemeMode = 'dark' | 'light'
 
 /** Sections in the app Settings modal left nav. */
-export type SettingsSection = 'display' | 'models' | 'about'
+export type SettingsSection = 'account' | 'display' | 'models' | 'about'
 
 /** 各区域功能显隐偏好（持久化到 localStorage）。 */
 export interface DisplayPrefs {
