@@ -31,3 +31,8 @@ export async function encryptSecrets(): Promise<VaultEnvelope> {
 export function decryptAndImport(envelope: VaultEnvelope) {
     return api.vaultDecryptAndImport({ ...envelope })
 }
+
+/** Union cloud secrets into local; local keys win on conflict (offline login merge). */
+export function decryptAndMergeImport(envelope: VaultEnvelope) {
+    return api.vaultDecryptAndMergeImport({ ...envelope })
+}

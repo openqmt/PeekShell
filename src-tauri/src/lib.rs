@@ -389,6 +389,17 @@ fn vault_decrypt_and_import(
     credentials::import_all(map)
 }
 
+/// Decrypt a cloud envelope and union into local `secrets.json` (local keys win).
+#[tauri::command]
+fn vault_decrypt_and_merge_import(
+    state: tauri::State<VaultState>,
+    envelope: VaultEnvelope,
+) -> AppResult<()> {
+    let plaintext = vault::decrypt(&state, &envelope)?;
+    let map: HashMap<String, String> = serde_json::from_str(&plaintext)?;
+    credentials::merge_import(map, true)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let sessions = Arc::new(SessionManager::new());
@@ -459,6 +470,7 @@ pub fn run() {
             vault_is_unlocked,
             vault_encrypt_secrets,
             vault_decrypt_and_import,
+            vault_decrypt_and_merge_import,
             clear_local_user_data
         ])
         .setup(|app| {

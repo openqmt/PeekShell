@@ -1,5 +1,6 @@
 /**
  * Phase-1 cloud sync client: GET/PUT /sync with per-collection Last-Write-Wins.
+ * The `hosts` collection merges by host id so offline local entries are kept on login.
  *
  * After login the login password unlocks the vault (Argon2id + AES-GCM in Rust).
  * `secrets_enc` plaintext never enters JS. On app restart the token is restored
@@ -23,6 +24,13 @@ import {
     type VaultEnvelope,
 } from '../types/sync'
 import { applyCollection, snapshotCollection } from './collections'
+import {
+    hostsPayloadEmpty,
+    hostsPayloadsEqual,
+    hostsPayloadToRecord,
+    mergeHostsById,
+    parseHostsPayload,
+} from './hostsMerge'
 import {
     bindSyncFlush,
     drainPending,
@@ -190,12 +198,55 @@ async function pushSecrets(token: string, keepLocalOnConflict: boolean) {
     }
 }
 
+async function mergeHosts(
+    token: string,
+    remote: SyncDocument | undefined,
+    localMeta: CollectionMeta | undefined,
+) {
+    const localPayload = parseHostsPayload(await snapshotCollection('hosts'))
+
+    if (!remote) {
+        if (!hostsPayloadEmpty(localPayload)) {
+            await pushPlain(token, 'hosts', false)
+        }
+        return
+    }
+
+    const remotePayload = parseHostsPayload(remote.payload)
+
+    if (hostsPayloadEmpty(localPayload)) {
+        await applyCollection('hosts', remote.payload)
+        rememberDoc('hosts', remote)
+        return
+    }
+
+    const merged = mergeHostsById(localPayload, remotePayload, {
+        policy: localMeta ? 'prefer-newer-doc' : 'prefer-local',
+        localDocTime: localMeta ? Date.parse(localMeta.updatedAt) : Number.POSITIVE_INFINITY,
+        remoteDocTime: Date.parse(remote.updatedAt),
+    })
+
+    await applyCollection('hosts', hostsPayloadToRecord(merged))
+
+    if (hostsPayloadsEqual(merged, remotePayload)) {
+        rememberDoc('hosts', remote)
+        return
+    }
+
+    await pushPlain(token, 'hosts', true)
+}
+
 async function mergePlain(
     token: string,
     name: Exclude<SyncCollection, 'secrets_enc'>,
     remote: SyncDocument | undefined,
     localMeta: CollectionMeta | undefined,
 ) {
+    if (name === 'hosts') {
+        await mergeHosts(token, remote, localMeta)
+        return
+    }
+
     if (!remote) {
         await pushPlain(token, name, false)
         return
@@ -230,8 +281,8 @@ async function mergeSecrets(
     }
     if (!envelope) return
     if (!localMeta) {
-        await vault.decryptAndImport(envelope)
-        rememberDoc('secrets_enc', remote)
+        await vault.decryptAndMergeImport(envelope)
+        await pushSecrets(token, false)
         return
     }
     const localTime = Date.parse(localMeta.updatedAt)

@@ -68,3 +68,16 @@ pub fn export_all() -> AppResult<HashMap<String, String>> {
 pub fn import_all(map: HashMap<String, String>) -> AppResult<()> {
     save(&map)
 }
+
+/// Union with a decrypted cloud vault. When `prefer_local`, existing keys are kept.
+pub fn merge_import(remote: HashMap<String, String>, prefer_local: bool) -> AppResult<()> {
+    let mut local = load()?;
+    if prefer_local {
+        for (key, value) in remote {
+            local.entry(key).or_insert(value);
+        }
+    } else {
+        local.extend(remote);
+    }
+    save(&local)
+}
