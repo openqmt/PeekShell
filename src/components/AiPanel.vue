@@ -6,7 +6,6 @@ import { storeToRefs } from "pinia";
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "../i18n";
 import { useAiStore, visibleStreamText } from "../stores/ai";
-import { useSessionsStore } from "../stores/sessions";
 import { currentUiScaleFactor, useUiStore, AI_PANEL_WIDTH_MAX, AI_PANEL_WIDTH_MIN } from "../stores/ui";
 import type { ExecMode } from "../types/ai";
 import AppSelect from "./AppSelect.vue";
@@ -14,13 +13,10 @@ import CommandApproveCard from "./CommandApproveCard.vue";
 
 const ai = useAiStore();
 const ui = useUiStore();
-const sessions = useSessionsStore();
 const { t } = useI18n();
 const { aiCollapsed, aiPanelWidth } = storeToRefs(ui);
 const { activeProvider, activeModel, modelOptions, messages, sending, execMode, error } =
   storeToRefs(ai);
-const { activeSessionId } = storeToRefs(sessions);
-
 const draft = ref("");
 const chatEl = ref<HTMLElement | null>(null);
 const approvingId = ref<string | null>(null);
@@ -40,11 +36,6 @@ const modeOptions = computed(() => [
 
 const blockerText = computed(() => {
   if (!activeProvider.value) return t("ai.err.noProvider");
-  return "";
-});
-
-const sessionHint = computed(() => {
-  if (activeProvider.value && !activeSessionId.value) return t("ai.hint.noSession");
   return "";
 });
 
@@ -258,7 +249,6 @@ onBeforeUnmount(() => {
 
       <div class="composer">
         <p v-if="errorText || blockerText" class="err">{{ errorText || blockerText }}</p>
-        <p v-else-if="sessionHint" class="hint-warn">{{ sessionHint }}</p>
         <textarea
           v-model="draft"
           class="composer-box"
@@ -518,13 +508,6 @@ onBeforeUnmount(() => {
   margin: 0;
   font-size: calc(11px * var(--ui-scale, 1));
   color: #c45c5c;
-}
-
-.hint-warn {
-  margin: 0;
-  font-size: calc(11px * var(--ui-scale, 1));
-  color: #c4a035;
-  line-height: 1.4;
 }
 
 .composer-box {

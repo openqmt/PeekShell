@@ -40,7 +40,7 @@ const groupPromptInput = ref('')
 const groupPromptEl = ref<HTMLInputElement | null>(null)
 
 const groupOptions = computed(() =>
-    groups.value.map((g) => ({ value: g, label: groupLabel(g) })),
+    groups.value.map((g) => ({ value: g, label: groupLabel(g) }))
 )
 
 const canRun = computed(() => !!activeSessionId.value)
@@ -55,7 +55,7 @@ watch(
             formError.value = ''
             statusMsg.value = ''
         }
-    },
+    }
 )
 
 function close() {
@@ -479,7 +479,7 @@ onBeforeUnmount(() => {
     position: absolute;
     top: calc(100% + 4px);
     right: 1px;
-    width: min(calc(420px * var(--ui-scale, 1)), calc(100vw - 24px));
+    width: min(calc(380px * var(--ui-scale, 1)), calc(100vw - 24px));
     height: min(calc(420px * var(--ui-scale, 1)), calc(100vh - 120px));
     max-height: min(calc(520px * var(--ui-scale, 1)), calc(100vh - 120px));
     z-index: 40;
@@ -488,7 +488,8 @@ onBeforeUnmount(() => {
     background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: calc(8px * var(--ui-scale, 1));
-    box-shadow: 0 calc(12px * var(--ui-scale, 1)) calc(32px * var(--ui-scale, 1)) rgba(0, 0, 0, 0.28);
+    box-shadow: 0 calc(12px * var(--ui-scale, 1))
+        calc(32px * var(--ui-scale, 1)) rgba(0, 0, 0, 0.28);
     overflow: hidden;
 }
 
@@ -497,7 +498,8 @@ onBeforeUnmount(() => {
     align-items: flex-start;
     justify-content: space-between;
     gap: calc(8px * var(--ui-scale, 1));
-    padding: calc(10px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
+    padding: calc(10px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1))
+        calc(8px * var(--ui-scale, 1));
     border-bottom: 1px solid var(--border-soft);
 }
 

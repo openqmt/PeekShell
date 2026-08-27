@@ -208,7 +208,7 @@ export const messages = {
         'explorer.parentTitle': '返回上级目录',
         'explorer.go': '转到',
         'explorer.pathPlaceholder': '/ 根目录',
-        'explorer.needConnect': '连接主机后浏览远端目录',
+        'explorer.needConnect': '远端目录',
         'explorer.emptyDir': '空目录',
         'explorer.previewHint': '文件内容将显示在这里',
         'explorer.reading': '读取文件中…',
@@ -401,8 +401,6 @@ export const messages = {
         'ai.risk.medium': '中风险',
         'ai.risk.high': '高风险',
         'ai.err.noProvider': '请先配置并选择 AI 提供商。',
-        'ai.hint.noSession':
-            '未连接主机：可正常对话，提议的命令不会在终端执行。',
 
         'termAi.banner': '── PeekShell AI ──',
         'termAi.bannerHint':
@@ -854,8 +852,6 @@ export const messages = {
         'ai.risk.medium': 'Medium risk',
         'ai.risk.high': 'High risk',
         'ai.err.noProvider': 'Configure and select an AI provider first.',
-        'ai.hint.noSession':
-            'No host connected: you can chat; suggested commands will not run on a terminal.',
 
         'termAi.banner': '── PeekShell AI ──',
         'termAi.bannerHint':
