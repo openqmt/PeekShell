@@ -23,14 +23,12 @@ const { user, isLoggedIn } = storeToRefs(account)
 const mode = ref<AuthMode>('login')
 const email = ref('')
 const password = ref('')
-const passwordConfirm = ref('')
 const nickname = ref('')
 const error = ref('')
 
 watch(mode, () => {
     error.value = ''
     password.value = ''
-    passwordConfirm.value = ''
     nickname.value = ''
 })
 
@@ -89,10 +87,6 @@ function submitAuth() {
         return
     }
     if (mode.value === 'register') {
-        if (password.value !== passwordConfirm.value) {
-            error.value = t('userCenter.errorPasswordConfirm')
-            return
-        }
         const nickErr = validateNickname(nickname.value)
         if (nickErr) {
             error.value = nickErr
@@ -107,7 +101,6 @@ function submitAuth() {
 function signOut() {
     error.value = ''
     password.value = ''
-    passwordConfirm.value = ''
     nickname.value = ''
     account.logout()
 }
@@ -120,6 +113,7 @@ function signOut() {
                 <h2 class="brand-title">PeekShell</h2>
                 <p class="hint">{{ t('userCenter.hint') }}</p>
             </div>
+            <div class="auth-body">
             <div class="auth-tabs" role="tablist">
                 <button
                     type="button"
@@ -184,18 +178,6 @@ function signOut() {
                         :placeholder="t('userCenter.passwordPlaceholder')"
                     />
                 </div>
-                <div v-if="mode === 'register'" class="field">
-                    <label
-                        >{{ t('userCenter.passwordConfirm')
-                        }}<span class="req">*</span></label
-                    >
-                    <input
-                        v-model="passwordConfirm"
-                        type="password"
-                        autocomplete="new-password"
-                        :placeholder="t('userCenter.passwordPlaceholder')"
-                    />
-                </div>
                 <div class="actions">
                     <button type="submit" class="btn primary md">
                         {{
@@ -206,6 +188,7 @@ function signOut() {
                     </button>
                 </div>
             </form>
+            </div>
         </template>
 
         <template v-else>
@@ -272,6 +255,15 @@ function signOut() {
     font-size: 12px;
     line-height: 1.45;
     color: var(--text-muted);
+}
+
+.auth-body {
+    width: 100%;
+    max-width: 320px;
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .auth-tabs {
