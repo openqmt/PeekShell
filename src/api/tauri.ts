@@ -252,3 +252,8 @@ export function vaultEncryptSecrets(): Promise<Record<string, unknown>> {
 export function vaultDecryptAndImport(envelope: Record<string, unknown>): Promise<void> {
   return invoke("vault_decrypt_and_import", { envelope });
 }
+
+/** Wipe hosts/secrets/AI files (and the audit log) from the native app-data dir. */
+export function clearLocalUserData(): Promise<void> {
+  return invoke("clear_local_user_data");
+}

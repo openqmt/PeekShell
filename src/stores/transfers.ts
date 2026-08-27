@@ -271,6 +271,18 @@ export const useTransfersStore = defineStore("transfers", () => {
     defaultDownloadDir.value = "";
   }
 
+  /** Drop in-memory transfer list and the saved download directory. */
+  function resetLocal() {
+    abortEpoch.value += 1;
+    void api.cancelAllTransfers();
+    items.value = [];
+    panelOpen.value = false;
+    defaultDownloadDir.value = "";
+    batchTotal.value = 0;
+    batchCompleted.value = 0;
+    resuming.value = false;
+  }
+
   function togglePanel(force?: boolean) {
     panelOpen.value = typeof force === "boolean" ? force : !panelOpen.value;
   }
@@ -310,6 +322,7 @@ export const useTransfersStore = defineStore("transfers", () => {
     clearFinished,
     setDefaultDownloadDir,
     clearDefaultDownloadDir,
+    resetLocal,
     togglePanel,
     ensureListening,
     dispose,

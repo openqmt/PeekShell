@@ -118,6 +118,13 @@ export const useAiStore = defineStore("ai", () => {
     error.value = "";
   }
 
+  function resetLocal() {
+    execMode.value = "confirm";
+    providers.value = [];
+    activeProviderId.value = null;
+    clearChat();
+  }
+
   function updateCommandInMessages(updated: AgentCommand) {
     for (const msg of messages.value) {
       if (!msg.commands) continue;
@@ -286,6 +293,7 @@ export const useAiStore = defineStore("ai", () => {
     activate,
     setActiveModel,
     clearChat,
+    resetLocal,
     send,
     approve,
     reject,

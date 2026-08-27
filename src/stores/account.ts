@@ -8,6 +8,7 @@ import { computed, ref } from 'vue'
 import * as cloud from '../api/cloud'
 import { parseUserProfile, type UserProfile } from '../types/account'
 import * as cloudSync from '../sync/client'
+import { wipeLocalUserData } from '../sync/wipe'
 
 const TOKEN_KEY = 'peekshell.cloud.token'
 const USER_KEY = 'peekshell.cloud.user'
@@ -90,6 +91,7 @@ export const useAccountStore = defineStore('account', () => {
     async function logout() {
         const current = token.value
         await cloudSync.stopSync()
+        await wipeLocalUserData()
         clearSession()
         if (!current) return
         try {

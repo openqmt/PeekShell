@@ -3,7 +3,7 @@ export type AccountRole = 'user' | 'sponsor' | 'admin'
 
 /** Public user profile returned by PeekServer `/auth/me`. */
 export interface UserProfile {
-    id: string
+    id: number
     email: string
     nickname: string
     points: number
@@ -24,7 +24,9 @@ const ROLES = new Set<AccountRole>(['user', 'sponsor', 'admin'])
 export function parseUserProfile(raw: unknown): UserProfile | null {
     if (!raw || typeof raw !== 'object') return null
     const o = raw as Record<string, unknown>
-    if (typeof o.id !== 'string' || !o.id) return null
+    if (typeof o.id !== 'number' || !Number.isInteger(o.id) || o.id < 1) {
+        return null
+    }
     if (typeof o.email !== 'string' || !o.email) return null
     if (typeof o.nickname !== 'string') return null
     if (typeof o.points !== 'number' || !Number.isFinite(o.points)) return null

@@ -428,6 +428,19 @@ export const useUiStore = defineStore('ui', () => {
         displayPrefs.uiScale = DEFAULT_DISPLAY_PREFS.uiScale
     }
 
+    /** Factory appearance after logout wipe (theme/locale/layout, not modal chrome). */
+    function resetLocal() {
+        theme.value = 'dark'
+        locale.value = detectSystemLocale()
+        resetDisplayPrefs()
+        aiPanelWidth.value = AI_PANEL_WIDTH_DEFAULT
+        sidebarWidth.value = SIDEBAR_WIDTH_DEFAULT
+        sidebarCollapsed.value = false
+        aiCollapsed.value = true
+        closeConnectModal()
+        closeHostsModal()
+    }
+
     return {
         theme,
         locale,
@@ -464,5 +477,6 @@ export const useUiStore = defineStore('ui', () => {
         openExplorerSettingsModal,
         closeExplorerSettingsModal,
         resetDisplayPrefs,
+        resetLocal,
     }
 })

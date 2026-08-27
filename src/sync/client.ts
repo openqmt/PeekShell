@@ -47,16 +47,16 @@ interface CollectionMeta {
 }
 
 interface SyncMetaFile {
-    userId: string
+    userId: number
     collections: Partial<Record<SyncCollection, CollectionMeta>>
 }
 
 let sessionToken = ''
-let sessionUserId = ''
+let sessionUserId = 0
 let watchersStarted = false
 let flushing = false
 
-function emptyMeta(userId = ''): SyncMetaFile {
+function emptyMeta(userId = 0): SyncMetaFile {
     return { userId, collections: {} }
 }
 
@@ -65,7 +65,9 @@ function loadMeta(): SyncMetaFile {
         const raw = localStorage.getItem(META_KEY)
         if (!raw) return emptyMeta()
         const parsed = JSON.parse(raw) as Partial<SyncMetaFile>
-        if (typeof parsed.userId !== 'string') return emptyMeta()
+        if (typeof parsed.userId !== 'number' || !Number.isInteger(parsed.userId)) {
+            return emptyMeta()
+        }
         const collections: SyncMetaFile['collections'] = {}
         if (parsed.collections && typeof parsed.collections === 'object') {
             for (const name of SYNC_COLLECTIONS) {
@@ -316,7 +318,7 @@ function startWatchers() {
  */
 export async function runInitialSync(
     token: string,
-    userId: string,
+    userId: number,
     password: string,
 ) {
     sessionToken = token
@@ -366,7 +368,7 @@ export async function runInitialSync(
  * Token restore on app start: sync non-secret collections. Vault stays locked
  * until the user signs in again, so `secrets_enc` is not re-encrypted.
  */
-export async function runRestoreSync(token: string, userId: string) {
+export async function runRestoreSync(token: string, userId: number) {
     sessionToken = token
     sessionUserId = userId
     const status = useCloudSyncStore()
@@ -425,7 +427,7 @@ export async function runManualSync() {
 export async function stopSync() {
     setSyncEnabled(false)
     sessionToken = ''
-    sessionUserId = ''
+    sessionUserId = 0
     useCloudSyncStore().reset()
     try {
         await vault.lock()

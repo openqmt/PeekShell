@@ -163,6 +163,11 @@ export const useQuickCommandsStore = defineStore("quickCommands", () => {
     return commands.value.find((c) => c.id === id) ?? null;
   }
 
+  function reset() {
+    commands.value = [];
+    groups.value = [UNGROUPED_GROUP];
+  }
+
   return {
     commands,
     groups,
@@ -174,5 +179,6 @@ export const useQuickCommandsStore = defineStore("quickCommands", () => {
     remove,
     findById,
     ensureGroup,
+    reset,
   };
 });

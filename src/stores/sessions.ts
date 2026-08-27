@@ -113,6 +113,12 @@ export const useSessionsStore = defineStore("sessions", () => {
     }
   }
 
+  async function closeAll() {
+    for (const session of [...sessions.value]) {
+      await close(session.sessionId);
+    }
+  }
+
   return {
     sessions,
     activeSessionId,
@@ -124,6 +130,7 @@ export const useSessionsStore = defineStore("sessions", () => {
     error,
     connect,
     close,
+    closeAll,
     select,
     setSessionCwd,
     write,

@@ -18,6 +18,7 @@ use ssh::{
     RemoteFileContent, SessionInfo, SessionManager,
 };
 use std::collections::HashMap;
+use std::fs;
 use std::sync::Arc;
 use tauri::Manager;
 use vault::{VaultEnvelope, VaultState};
@@ -342,6 +343,23 @@ fn vault_lock(state: tauri::State<VaultState>) {
     vault::lock(&state);
 }
 
+/// Delete host/secret/AI JSON and the audit log from the app data directory.
+/// Window geometry (`window_state.json`) is left in place.
+#[tauri::command]
+fn clear_local_user_data() -> AppResult<()> {
+    let Some(base) = dirs::data_dir() else {
+        return Err(error::AppError::Message("无法定位数据目录".into()));
+    };
+    let dir = base.join("PeekShell");
+    for name in ["hosts.json", "secrets.json", "ai-config.json", "ai-audit.jsonl"] {
+        let path = dir.join(name);
+        if path.exists() {
+            fs::remove_file(&path)?;
+        }
+    }
+    Ok(())
+}
+
 #[tauri::command]
 fn vault_is_unlocked(state: tauri::State<VaultState>) -> bool {
     vault::is_unlocked(&state)
@@ -434,7 +452,8 @@ pub fn run() {
             vault_lock,
             vault_is_unlocked,
             vault_encrypt_secrets,
-            vault_decrypt_and_import
+            vault_decrypt_and_import,
+            clear_local_user_data
         ])
         .setup(|app| {
             // Restore last size/position, then show the window.
