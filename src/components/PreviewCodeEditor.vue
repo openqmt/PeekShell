@@ -11,7 +11,6 @@ import {
   placeholder,
   drawSelection,
   dropCursor,
-  highlightActiveLine,
   highlightActiveLineGutter,
   highlightSpecialChars,
   lineNumbers,
@@ -156,20 +155,24 @@ function resolveScheme(scheme: EditorColorScheme, appTheme: ThemeMode): "dark" |
 }
 
 function colorsForScheme(resolved: "dark" | "light", followCss: boolean): AppearanceColors {
+  // Lavender selection: visible on both single- and multi-line (WebKit native
+  // ::selection also tends purple; keep CM + native in sync).
+  const selectionDark = "rgba(167, 139, 250, 0.55)";
+  const selectionLight = "rgba(124, 58, 237, 0.35)";
   if (followCss) {
     return {
       background: "transparent",
       foreground: "var(--text)",
       caret: "var(--accent)",
-      selection: "var(--accent-dim)",
+      selection: resolved === "light" ? selectionLight : selectionDark,
       activeLine: "var(--bg-hover)",
       gutterFg: "var(--text-dim)",
       gutterBorder: "var(--border-soft)",
       panelBg: "var(--bg-elevated)",
       panelBorder: "var(--border)",
       matchBg: "var(--warn-dim)",
-      matchSelectedBg: "var(--accent-dim)",
-      matchOutline: "var(--accent-border)",
+      matchSelectedBg: resolved === "light" ? selectionLight : selectionDark,
+      matchOutline: "rgba(167, 139, 250, 0.55)",
       inputBg: "var(--bg-root)",
       inputBorder: "var(--border-soft)",
       placeholder: "var(--text-dim)",
@@ -180,15 +183,15 @@ function colorsForScheme(resolved: "dark" | "light", followCss: boolean): Appear
       background: "#f6f8fa",
       foreground: "#1f2328",
       caret: "#1a7f37",
-      selection: "rgba(26, 127, 55, 0.22)",
+      selection: selectionLight,
       activeLine: "rgba(31, 35, 40, 0.05)",
       gutterFg: "#656d76",
       gutterBorder: "#d0d7de",
       panelBg: "#ffffff",
       panelBorder: "#d0d7de",
       matchBg: "rgba(210, 153, 34, 0.28)",
-      matchSelectedBg: "rgba(26, 127, 55, 0.22)",
-      matchOutline: "rgba(26, 127, 55, 0.45)",
+      matchSelectedBg: selectionLight,
+      matchOutline: "rgba(124, 58, 237, 0.45)",
       inputBg: "#ffffff",
       inputBorder: "#d0d7de",
       placeholder: "#656d76",
@@ -198,15 +201,15 @@ function colorsForScheme(resolved: "dark" | "light", followCss: boolean): Appear
     background: "#282c34",
     foreground: "#abb2bf",
     caret: "#1f9d63",
-    selection: "rgba(31, 157, 99, 0.22)",
+    selection: selectionDark,
     activeLine: "rgba(44, 49, 58, 0.9)",
     gutterFg: "#5c6370",
     gutterBorder: "rgba(62, 68, 81, 0.6)",
     panelBg: "#21252b",
     panelBorder: "rgba(62, 68, 81, 0.8)",
     matchBg: "rgba(209, 154, 102, 0.28)",
-    matchSelectedBg: "rgba(31, 157, 99, 0.22)",
-    matchOutline: "rgba(31, 157, 99, 0.45)",
+    matchSelectedBg: selectionDark,
+    matchOutline: "rgba(167, 139, 250, 0.55)",
     inputBg: "#21252b",
     inputBorder: "rgba(62, 68, 81, 0.9)",
     placeholder: "#5c6370",
@@ -242,7 +245,15 @@ function buildAppearance(
       ".cm-cursor, .cm-dropCursor": {
         borderLeftColor: c.caret,
       },
-      "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": {
+      // Prefer CM selection layer; keep ::selection in sync (WKWebView otherwise
+      // paints its own purple and single-line activeLine can wash out a weak tint).
+      "& .cm-selectionLayer .cm-selectionBackground": {
+        background: c.selection,
+      },
+      "&.cm-focused .cm-selectionLayer .cm-selectionBackground": {
+        background: c.selection,
+      },
+      ".cm-content ::selection": {
         backgroundColor: c.selection,
       },
       ".cm-activeLine": {
@@ -347,7 +358,8 @@ function buildExtensions(readonly: boolean): Extension[] {
     closeBrackets(),
     rectangularSelection(),
     crosshairCursor(),
-    highlightActiveLine(),
+    // Do not use highlightActiveLine(): its background paints above the
+    // selection layer and hides single-line selections in WKWebView.
     highlightSelectionMatches(),
     search(),
     phrasesCompartment.of(searchPhrases()),
