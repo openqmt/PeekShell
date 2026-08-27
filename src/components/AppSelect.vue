@@ -237,16 +237,16 @@ onBeforeUnmount(() => {
 
 .app-select-trigger {
   width: 100%;
-  height: 28px;
+  height: calc(28px * var(--ui-scale, 1));
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 8px 0 10px;
+  gap: calc(8px * var(--ui-scale, 1));
+  padding: 0 calc(8px * var(--ui-scale, 1)) 0 calc(10px * var(--ui-scale, 1));
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--bg-root);
   color: var(--text);
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--ui-scale, 1));
   text-align: left;
   outline: none;
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
@@ -260,7 +260,7 @@ onBeforeUnmount(() => {
 .app-select.open .app-select-trigger,
 .app-select-trigger:focus-visible {
   border-color: var(--accent-border);
-  box-shadow: 0 0 0 3px var(--accent-dim);
+  box-shadow: 0 0 0 calc(3px * var(--ui-scale, 1)) var(--accent-dim);
 }
 
 .app-select.disabled .app-select-trigger {
@@ -296,26 +296,26 @@ onBeforeUnmount(() => {
 .app-select-menu {
   z-index: 80;
   margin: 0;
-  padding: 6px;
+  padding: calc(6px * var(--ui-scale, 1));
   list-style: none;
   overflow: auto;
-  border-radius: 8px;
+  border-radius: calc(8px * var(--ui-scale, 1));
   border: 1px solid var(--border);
   background: var(--bg-elevated);
   box-shadow:
-    0 10px 28px rgba(0, 0, 0, 0.28),
-    0 2px 6px rgba(0, 0, 0, 0.12);
+    0 calc(10px * var(--ui-scale, 1)) calc(28px * var(--ui-scale, 1)) rgba(0, 0, 0, 0.28),
+    0 calc(2px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1)) rgba(0, 0, 0, 0.12);
   font-family: var(--font-ui);
 }
 
 .app-select-option {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 32px;
-  padding: 0 10px;
-  border-radius: 6px;
-  font-size: 13px;
+  gap: calc(8px * var(--ui-scale, 1));
+  min-height: calc(32px * var(--ui-scale, 1));
+  padding: 0 calc(10px * var(--ui-scale, 1));
+  border-radius: calc(6px * var(--ui-scale, 1));
+  font-size: calc(13px * var(--ui-scale, 1));
   color: var(--text);
   cursor: pointer;
   user-select: none;
@@ -345,16 +345,16 @@ onBeforeUnmount(() => {
 
 .app-select-check {
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-scale, 1));
   font-weight: 700;
   color: var(--accent);
 }
 
 .app-select-empty {
-  padding: 10px;
+  padding: calc(10px * var(--ui-scale, 1));
   text-align: center;
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale, 1));
 }
 
 .select-menu-enter-active,

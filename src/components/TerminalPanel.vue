@@ -1003,39 +1003,39 @@ onBeforeUnmount(() => {
 }
 
 .tabs {
-    height: 32px;
+    height: calc(32px * var(--ui-scale, 1));
     background: var(--bg-panel);
     border-bottom: 1px solid var(--border-soft);
     display: flex;
     align-items: stretch;
-    padding: 0 2px;
+    padding: 0 calc(2px * var(--ui-scale, 1));
     gap: 1px;
     position: relative;
 }
 
 .tabs-spacer {
     flex: 1;
-    min-width: 8px;
+    min-width: calc(8px * var(--ui-scale, 1));
 }
 
 .tabs-tools {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 2px;
-    padding: 0 4px 0 2px;
+    gap: calc(2px * var(--ui-scale, 1));
+    padding: 0 calc(4px * var(--ui-scale, 1)) 0 calc(2px * var(--ui-scale, 1));
     flex-shrink: 0;
 }
 
 .tab-tool {
-    width: 28px;
-    height: 26px;
-    margin-top: 2px;
+    width: calc(28px * var(--ui-scale, 1));
+    height: calc(26px * var(--ui-scale, 1));
+    margin-top: calc(2px * var(--ui-scale, 1));
     border: none;
-    border-radius: 6px;
+    border-radius: calc(6px * var(--ui-scale, 1));
     background: transparent;
     color: var(--text-dim);
-    font-size: 16px;
+    font-size: calc(16px * var(--ui-scale, 1));
     display: grid;
     place-items: center;
 }
@@ -1053,15 +1053,15 @@ onBeforeUnmount(() => {
 .tab {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 10px;
-    font-size: 12px;
+    gap: calc(6px * var(--ui-scale, 1));
+    padding: 0 calc(10px * var(--ui-scale, 1));
+    font-size: calc(12px * var(--ui-scale, 1));
     color: var(--text-muted);
     border: none;
     background: transparent;
-    border-radius: 6px 6px 0 0;
-    margin-top: 2px;
-    max-width: 180px;
+    border-radius: calc(6px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1)) 0 0;
+    margin-top: calc(2px * var(--ui-scale, 1));
+    max-width: calc(180px * var(--ui-scale, 1));
 }
 
 .tab.active {
@@ -1072,14 +1072,14 @@ onBeforeUnmount(() => {
 }
 
 .dot {
-    width: 6px;
-    height: 6px;
+    width: calc(6px * var(--ui-scale, 1));
+    height: calc(6px * var(--ui-scale, 1));
     border-radius: 50%;
     background: var(--accent);
 }
 
 .x {
-    margin-left: 4px;
+    margin-left: calc(4px * var(--ui-scale, 1));
     opacity: 0.5;
 }
 .x:hover {
@@ -1090,7 +1090,7 @@ onBeforeUnmount(() => {
 .term-host {
     flex: 1;
     min-height: 0;
-    padding: 4px;
+    padding: calc(4px * var(--ui-scale, 1));
     position: relative;
     overflow: hidden;
     /* Match xterm-scrollable-element theme.background (set via --term-surface-bg). */
@@ -1136,13 +1136,13 @@ onBeforeUnmount(() => {
 }
 
 .term-host :deep(.xterm-scrollable-element > .scrollbar.vertical) {
-    width: 6px !important;
+    width: calc(6px * var(--ui-scale, 1)) !important;
     right: 0 !important;
 }
 .term-host :deep(.xterm-scrollable-element > .scrollbar.vertical > .slider) {
-    width: 6px !important;
+    width: calc(6px * var(--ui-scale, 1)) !important;
     left: 0 !important;
-    border-radius: 999px;
+    border-radius: calc(999px * var(--ui-scale, 1));
     background: var(--scrollbar-thumb) !important;
 }
 .term-host
@@ -1152,28 +1152,28 @@ onBeforeUnmount(() => {
 
 .term-find {
     position: absolute;
-    top: 8px;
-    right: 12px;
+    top: calc(8px * var(--ui-scale, 1));
+    right: calc(12px * var(--ui-scale, 1));
     z-index: 5;
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px;
-    border-radius: 8px;
+    gap: calc(4px * var(--ui-scale, 1));
+    padding: calc(4px * var(--ui-scale, 1));
+    border-radius: calc(8px * var(--ui-scale, 1));
     border: 1px solid var(--border);
     background: var(--bg-elevated);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 calc(8px * var(--ui-scale, 1)) calc(24px * var(--ui-scale, 1)) rgba(0, 0, 0, 0.28);
 }
 
 .term-find-input {
-    width: 180px;
-    height: 28px;
-    padding: 0 8px;
+    width: calc(180px * var(--ui-scale, 1));
+    height: calc(28px * var(--ui-scale, 1));
+    padding: 0 calc(8px * var(--ui-scale, 1));
     border: 1px solid var(--border-soft);
-    border-radius: 6px;
+    border-radius: calc(6px * var(--ui-scale, 1));
     background: var(--bg-root);
     color: var(--text);
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     outline: none;
 }
 
@@ -1182,10 +1182,10 @@ onBeforeUnmount(() => {
 }
 
 .term-find-btn {
-    width: 28px;
-    height: 28px;
+    width: calc(28px * var(--ui-scale, 1));
+    height: calc(28px * var(--ui-scale, 1));
     border: none;
-    border-radius: 6px;
+    border-radius: calc(6px * var(--ui-scale, 1));
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;
@@ -1202,8 +1202,8 @@ onBeforeUnmount(() => {
     display: grid;
     place-items: center;
     color: var(--text-muted);
-    font-size: 13px;
-    padding: 24px;
+    font-size: calc(13px * var(--ui-scale, 1));
+    padding: calc(24px * var(--ui-scale, 1));
     text-align: center;
     z-index: 1;
 }
@@ -1214,25 +1214,25 @@ onBeforeUnmount(() => {
 .term-ctx-menu {
     position: fixed;
     z-index: 100;
-    min-width: 168px;
-    padding: 6px;
-    border-radius: 8px;
+    min-width: calc(168px * var(--ui-scale, 1));
+    padding: calc(6px * var(--ui-scale, 1));
+    border-radius: calc(8px * var(--ui-scale, 1));
     border: 1px solid var(--border);
     background: var(--bg-elevated);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+    box-shadow: 0 calc(12px * var(--ui-scale, 1)) calc(32px * var(--ui-scale, 1)) rgba(0, 0, 0, 0.32);
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: calc(2px * var(--ui-scale, 1));
 }
 
 .term-ctx-menu .ctx-item {
-    height: 28px;
-    padding: 0 10px;
+    height: calc(28px * var(--ui-scale, 1));
+    padding: 0 calc(10px * var(--ui-scale, 1));
     border: none;
-    border-radius: 6px;
+    border-radius: calc(6px * var(--ui-scale, 1));
     background: transparent;
     color: var(--text);
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     text-align: left;
     cursor: pointer;
 }
@@ -1243,7 +1243,7 @@ onBeforeUnmount(() => {
 
 .term-ctx-menu .ctx-sep {
     height: 1px;
-    margin: 4px 2px;
+    margin: calc(4px * var(--ui-scale, 1)) calc(2px * var(--ui-scale, 1));
     background: var(--border-soft);
 }
 </style>

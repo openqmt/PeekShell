@@ -479,16 +479,16 @@ onBeforeUnmount(() => {
     position: absolute;
     top: calc(100% + 4px);
     right: 1px;
-    width: min(420px, calc(100vw - 24px));
-    height: min(420px, calc(100vh - 120px));
-    max-height: min(520px, calc(100vh - 120px));
+    width: min(calc(420px * var(--ui-scale, 1)), calc(100vw - 24px));
+    height: min(calc(420px * var(--ui-scale, 1)), calc(100vh - 120px));
+    max-height: min(calc(520px * var(--ui-scale, 1)), calc(100vh - 120px));
     z-index: 40;
     display: flex;
     flex-direction: column;
     background: var(--bg-panel);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+    border-radius: calc(8px * var(--ui-scale, 1));
+    box-shadow: 0 calc(12px * var(--ui-scale, 1)) calc(32px * var(--ui-scale, 1)) rgba(0, 0, 0, 0.28);
     overflow: hidden;
 }
 
@@ -496,33 +496,33 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 8px;
-    padding: 10px 10px 8px;
+    gap: calc(8px * var(--ui-scale, 1));
+    padding: calc(10px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
     border-bottom: 1px solid var(--border-soft);
 }
 
 .qc-head strong {
-    font-size: 13px;
+    font-size: calc(13px * var(--ui-scale, 1));
     font-weight: 600;
 }
 
 .qc-sub {
-    margin-top: 2px;
-    font-size: 11px;
+    margin-top: calc(2px * var(--ui-scale, 1));
+    font-size: calc(11px * var(--ui-scale, 1));
     color: var(--text-muted);
 }
 
 .qc-head-actions {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: calc(4px * var(--ui-scale, 1));
     flex-shrink: 0;
 }
 
 .qc-status,
 .qc-hint {
-    padding: 6px 10px;
-    font-size: 11px;
+    padding: calc(6px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+    font-size: calc(11px * var(--ui-scale, 1));
     border-bottom: 1px solid var(--border-soft);
 }
 
@@ -537,38 +537,38 @@ onBeforeUnmount(() => {
 }
 
 .qc-form {
-    padding: 10px;
+    padding: calc(10px * var(--ui-scale, 1));
     border-bottom: 1px solid var(--border-soft);
     background: var(--bg-elevated);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: calc(8px * var(--ui-scale, 1));
 }
 
 .qc-form-title {
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     font-weight: 600;
 }
 
 .qc-error {
-    font-size: 11px;
+    font-size: calc(11px * var(--ui-scale, 1));
     color: var(--danger);
 }
 
 .qc-form .field label {
-    margin-bottom: 4px;
+    margin-bottom: calc(4px * var(--ui-scale, 1));
 }
 
 .qc-form .field input,
 .qc-form .field textarea {
     height: auto;
-    min-height: 28px;
-    font-size: 12.5px;
+    min-height: calc(28px * var(--ui-scale, 1));
+    font-size: calc(12.5px * var(--ui-scale, 1));
 }
 
 .qc-form .field textarea {
     width: 100%;
-    padding: 6px 8px;
+    padding: calc(6px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
     border-radius: var(--radius);
     border: 1px solid var(--border);
     background: var(--bg-root);
@@ -580,29 +580,29 @@ onBeforeUnmount(() => {
 .qc-form-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 6px;
+    gap: calc(6px * var(--ui-scale, 1));
 }
 
 .qc-body {
     flex: 1;
     overflow: auto;
-    padding: 8px;
+    padding: calc(8px * var(--ui-scale, 1));
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: calc(6px * var(--ui-scale, 1));
 }
 
 .qc-empty,
 .qc-empty-group {
-    padding: 16px 8px;
+    padding: calc(16px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
     text-align: center;
     color: var(--text-dim);
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
 }
 
 .qc-group {
     border: 1px solid var(--border-soft);
-    border-radius: 6px;
+    border-radius: calc(6px * var(--ui-scale, 1));
     overflow: hidden;
     background: var(--bg-elevated);
 }
@@ -610,15 +610,15 @@ onBeforeUnmount(() => {
 .qc-group-head {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
+    gap: calc(6px * var(--ui-scale, 1));
+    padding: calc(6px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
     background: var(--bg-hover);
     cursor: pointer;
     user-select: none;
 }
 
 .chev {
-    width: 14px;
+    width: calc(14px * var(--ui-scale, 1));
     text-align: center;
     color: var(--text-dim);
     transition: transform 0.15s ease;
@@ -629,7 +629,7 @@ onBeforeUnmount(() => {
 }
 
 .qc-group-name {
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     font-weight: 600;
     min-width: 0;
     overflow: hidden;
@@ -638,11 +638,11 @@ onBeforeUnmount(() => {
 }
 
 .qc-count {
-    min-width: 16px;
-    height: 16px;
-    padding: 0 5px;
-    border-radius: 999px;
-    font-size: 10px;
+    min-width: calc(16px * var(--ui-scale, 1));
+    height: calc(16px * var(--ui-scale, 1));
+    padding: 0 calc(5px * var(--ui-scale, 1));
+    border-radius: calc(999px * var(--ui-scale, 1));
+    font-size: calc(10px * var(--ui-scale, 1));
     font-family: var(--font-mono);
     color: var(--text-muted);
     background: var(--bg-root);
@@ -655,7 +655,7 @@ onBeforeUnmount(() => {
 .qc-group-actions {
     margin-left: auto;
     display: flex;
-    gap: 2px;
+    gap: calc(2px * var(--ui-scale, 1));
 }
 
 .qc-list {
@@ -666,8 +666,8 @@ onBeforeUnmount(() => {
 .qc-item {
     display: flex;
     align-items: stretch;
-    gap: 4px;
-    padding: 4px 6px;
+    gap: calc(4px * var(--ui-scale, 1));
+    padding: calc(4px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1));
     border-top: 1px solid var(--border-soft);
 }
 
@@ -677,8 +677,8 @@ onBeforeUnmount(() => {
     text-align: left;
     border: none;
     background: transparent;
-    border-radius: 4px;
-    padding: 6px 8px;
+    border-radius: calc(4px * var(--ui-scale, 1));
+    padding: calc(6px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
     color: var(--text);
     cursor: pointer;
 }
@@ -694,14 +694,14 @@ onBeforeUnmount(() => {
 
 .qc-run strong {
     display: block;
-    font-size: 12.5px;
+    font-size: calc(12.5px * var(--ui-scale, 1));
     font-weight: 600;
 }
 
 .qc-run span {
     display: block;
-    margin-top: 2px;
-    font-size: 11px;
+    margin-top: calc(2px * var(--ui-scale, 1));
+    font-size: calc(11px * var(--ui-scale, 1));
     font-family: var(--font-mono);
     color: var(--text-muted);
     overflow: hidden;
@@ -713,16 +713,16 @@ onBeforeUnmount(() => {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 2px;
+    gap: calc(2px * var(--ui-scale, 1));
     flex-shrink: 0;
-    padding-right: 2px;
+    padding-right: calc(2px * var(--ui-scale, 1));
 }
 
 .qc-icon-btn {
-    width: 24px;
-    height: 24px;
+    width: calc(24px * var(--ui-scale, 1));
+    height: calc(24px * var(--ui-scale, 1));
     border: none;
-    border-radius: 4px;
+    border-radius: calc(4px * var(--ui-scale, 1));
     background: transparent;
     color: var(--text-dim);
     display: grid;
@@ -746,23 +746,23 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 16px;
+    padding: calc(16px * var(--ui-scale, 1));
     background: var(--overlay);
 }
 
 .qc-prompt-box {
-    width: min(320px, 100%);
-    padding: 12px;
-    border-radius: 8px;
+    width: min(calc(320px * var(--ui-scale, 1)), 100%);
+    padding: calc(12px * var(--ui-scale, 1));
+    border-radius: calc(8px * var(--ui-scale, 1));
     border: 1px solid var(--border);
     background: var(--bg-panel);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: calc(8px * var(--ui-scale, 1));
 }
 
 .qc-prompt-box h3 {
-    font-size: 13px;
+    font-size: calc(13px * var(--ui-scale, 1));
     font-weight: 600;
 }
 </style>

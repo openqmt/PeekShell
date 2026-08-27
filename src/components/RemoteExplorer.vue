@@ -496,11 +496,10 @@ function onExplorerDown(event: MouseEvent) {
         nearEntriesEdge.value = false
         const startY = event.clientY
         const startHeight = height.value
-        const scale = currentUiScaleFactor()
 
         function onMove(ev: MouseEvent) {
             height.value = clampHeight(
-                startHeight + (startY - ev.clientY) / scale,
+                startHeight + (startY - ev.clientY) / currentUiScaleFactor(),
             )
             void nextTick(() => emit('resized'))
         }
@@ -527,11 +526,10 @@ function onExplorerDown(event: MouseEvent) {
         const startX = event.clientX
         const startWidth = entriesWidth.value
         const panesWidth = entriesEl.value?.parentElement?.clientWidth ?? 0
-        const scale = currentUiScaleFactor()
 
         function onMove(ev: MouseEvent) {
             entriesWidth.value = clampEntriesWidth(
-                startWidth + (ev.clientX - startX) / scale,
+                startWidth + (ev.clientX - startX) / currentUiScaleFactor(),
                 panesWidth,
             )
         }
@@ -2514,31 +2512,31 @@ onBeforeUnmount(() => {
     place-items: center;
     pointer-events: none;
     background: var(--accent-dim);
-    border: 2px dashed var(--accent-border);
+    border: calc(2px * var(--ui-scale, 1)) dashed var(--accent-border);
 }
 
 .drop-overlay-card {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: 12px 16px;
-    border-radius: 8px;
+    gap: calc(4px * var(--ui-scale, 1));
+    padding: calc(12px * var(--ui-scale, 1)) calc(16px * var(--ui-scale, 1));
+    border-radius: calc(8px * var(--ui-scale, 1));
     background: var(--bg-panel);
     border: 1px solid var(--accent-border);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 calc(8px * var(--ui-scale, 1)) calc(24px * var(--ui-scale, 1)) rgba(0, 0, 0, 0.2);
 }
 
 .drop-overlay-card strong {
-    font-size: 13px;
+    font-size: calc(13px * var(--ui-scale, 1));
     font-weight: 600;
 }
 
 .drop-overlay-card span {
-    font-size: 11px;
+    font-size: calc(11px * var(--ui-scale, 1));
     font-family: var(--font-mono);
     color: var(--text-muted);
-    max-width: 320px;
+    max-width: calc(320px * var(--ui-scale, 1));
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -2571,14 +2569,14 @@ onBeforeUnmount(() => {
 .toolbar {
     display: flex;
     align-items: center;
-    gap: 3px;
-    padding: 3px;
+    gap: calc(3px * var(--ui-scale, 1));
+    padding: calc(3px * var(--ui-scale, 1));
     border-bottom: 1px solid var(--border-soft);
 }
 
 .tool-icon {
-    width: 28px;
-    height: 28px;
+    width: calc(28px * var(--ui-scale, 1));
+    height: calc(28px * var(--ui-scale, 1));
     flex-shrink: 0;
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -2618,23 +2616,23 @@ onBeforeUnmount(() => {
     position: absolute;
     top: -4px;
     right: -4px;
-    min-width: 14px;
-    height: 14px;
-    padding: 0 3px;
-    border-radius: 999px;
+    min-width: calc(14px * var(--ui-scale, 1));
+    height: calc(14px * var(--ui-scale, 1));
+    padding: 0 calc(3px * var(--ui-scale, 1));
+    border-radius: calc(999px * var(--ui-scale, 1));
     background: var(--accent);
     color: #ffffff;
-    font-size: 9px;
+    font-size: calc(9px * var(--ui-scale, 1));
     font-weight: 700;
-    line-height: 14px;
+    line-height: calc(14px * var(--ui-scale, 1));
     text-align: center;
     font-variant-numeric: tabular-nums;
 }
 
 .transfers-badge.wide {
-    min-width: 22px;
-    padding: 0 4px;
-    font-size: 8px;
+    min-width: calc(22px * var(--ui-scale, 1));
+    padding: 0 calc(4px * var(--ui-scale, 1));
+    font-size: calc(8px * var(--ui-scale, 1));
     letter-spacing: -0.02em;
 }
 
@@ -2642,15 +2640,15 @@ onBeforeUnmount(() => {
     position: absolute;
     right: 0;
     top: calc(100% + 4px);
-    width: min(340px, 72vw);
-    max-height: min(320px, 50vh);
+    width: min(calc(340px * var(--ui-scale, 1)), 72vw);
+    max-height: min(calc(320px * var(--ui-scale, 1)), 50vh);
     z-index: 30;
     display: flex;
     flex-direction: column;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: calc(6px * var(--ui-scale, 1));
     background: var(--bg-panel);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 calc(10px * var(--ui-scale, 1)) calc(28px * var(--ui-scale, 1)) rgba(0, 0, 0, 0.28);
     overflow: hidden;
 }
 
@@ -2658,23 +2656,23 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 6px;
-    padding: 5px 8px;
+    gap: calc(6px * var(--ui-scale, 1));
+    padding: calc(5px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
     border-bottom: 1px solid var(--border-soft);
 }
 
 .transfers-head-actions {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: calc(2px * var(--ui-scale, 1));
     flex-shrink: 0;
 }
 
 .transfers-action-btn {
-    width: 24px;
-    height: 24px;
+    width: calc(24px * var(--ui-scale, 1));
+    height: calc(24px * var(--ui-scale, 1));
     border: none;
-    border-radius: 4px;
+    border-radius: calc(4px * var(--ui-scale, 1));
     background: transparent;
     color: var(--text-dim);
     display: grid;
@@ -2723,38 +2721,38 @@ onBeforeUnmount(() => {
 .transfers-head strong {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: calc(8px * var(--ui-scale, 1));
     min-width: 0;
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     font-weight: 600;
 }
 
 .transfers-batch {
-    font-size: 11px;
+    font-size: calc(11px * var(--ui-scale, 1));
     font-weight: 600;
     color: var(--accent);
     font-variant-numeric: tabular-nums;
 }
 
 .transfers-dir {
-    padding: 5px 8px;
+    padding: calc(5px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
     border-bottom: 1px solid var(--border-soft);
     background: var(--bg-elevated);
 }
 
 .transfers-dir-label {
-    font-size: 10px;
+    font-size: calc(10px * var(--ui-scale, 1));
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--text-dim);
-    margin-bottom: 3px;
+    margin-bottom: calc(3px * var(--ui-scale, 1));
 }
 
 .transfers-dir-row {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: calc(3px * var(--ui-scale, 1));
 }
 
 .transfers-dir-path {
@@ -2763,30 +2761,30 @@ onBeforeUnmount(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 11px;
+    font-size: calc(11px * var(--ui-scale, 1));
     font-family: var(--font-mono);
     color: var(--text-muted);
 }
 
 .transfers-empty {
-    padding: 12px 10px;
+    padding: calc(12px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
     text-align: center;
     color: var(--text-dim);
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
 }
 
 .transfers-list {
     flex: 1;
     overflow: auto;
-    padding: 4px;
+    padding: calc(4px * var(--ui-scale, 1));
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: calc(4px * var(--ui-scale, 1));
 }
 
 .transfer-item {
-    padding: 5px 6px;
-    border-radius: 5px;
+    padding: calc(5px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1));
+    border-radius: calc(5px * var(--ui-scale, 1));
     border: 1px solid var(--border-soft);
     background: var(--bg-elevated);
 }
@@ -2794,16 +2792,16 @@ onBeforeUnmount(() => {
 .transfer-top {
     display: flex;
     align-items: center;
-    gap: 5px;
-    margin-bottom: 4px;
+    gap: calc(5px * var(--ui-scale, 1));
+    margin-bottom: calc(4px * var(--ui-scale, 1));
 }
 
 .transfer-kind {
     flex-shrink: 0;
-    font-size: 10px;
+    font-size: calc(10px * var(--ui-scale, 1));
     font-weight: 600;
-    padding: 1px 5px;
-    border-radius: 4px;
+    padding: 1px calc(5px * var(--ui-scale, 1));
+    border-radius: calc(4px * var(--ui-scale, 1));
     border: 1px solid var(--border-soft);
     color: var(--text-muted);
 }
@@ -2824,13 +2822,13 @@ onBeforeUnmount(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     font-weight: 500;
 }
 
 .transfer-status {
     flex-shrink: 0;
-    font-size: 10px;
+    font-size: calc(10px * var(--ui-scale, 1));
     color: var(--text-dim);
 }
 
@@ -2851,8 +2849,8 @@ onBeforeUnmount(() => {
 }
 
 .transfer-bar {
-    height: 4px;
-    border-radius: 999px;
+    height: calc(4px * var(--ui-scale, 1));
+    border-radius: calc(999px * var(--ui-scale, 1));
     background: var(--bg-root);
     overflow: hidden;
     border: 1px solid var(--border-soft);
@@ -2880,30 +2878,30 @@ onBeforeUnmount(() => {
 }
 
 .transfer-meta {
-    margin-top: 3px;
+    margin-top: calc(3px * var(--ui-scale, 1));
     display: flex;
     justify-content: space-between;
-    font-size: 10px;
+    font-size: calc(10px * var(--ui-scale, 1));
     font-family: var(--font-mono);
     color: var(--text-dim);
 }
 
 .transfer-error {
-    margin-top: 3px;
-    font-size: 11px;
+    margin-top: calc(3px * var(--ui-scale, 1));
+    font-size: calc(11px * var(--ui-scale, 1));
     color: var(--danger);
     word-break: break-all;
 }
 
 .path-input {
     flex: 1;
-    height: 26px;
+    height: calc(26px * var(--ui-scale, 1));
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg-root);
     color: var(--text);
-    padding: 0 8px;
-    font-size: 13px;
+    padding: 0 calc(8px * var(--ui-scale, 1));
+    font-size: calc(13px * var(--ui-scale, 1));
     font-family: var(--font-mono);
     outline: none;
 }
@@ -2913,8 +2911,8 @@ onBeforeUnmount(() => {
 }
 
 .error-line {
-    padding: 4px 10px;
-    font-size: 12px;
+    padding: calc(4px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+    font-size: calc(12px * var(--ui-scale, 1));
     color: var(--danger);
     background: var(--danger-dim);
 }
@@ -2942,13 +2940,13 @@ onBeforeUnmount(() => {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 2px 6px;
-    min-height: 24px;
+    gap: calc(4px * var(--ui-scale, 1));
+    padding: calc(2px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1));
+    min-height: calc(24px * var(--ui-scale, 1));
     border: none;
     background: transparent;
     color: var(--text);
-    font-size: 12.5px;
+    font-size: calc(12.5px * var(--ui-scale, 1));
     line-height: 1.25;
     text-align: left;
 }
@@ -2969,13 +2967,13 @@ onBeforeUnmount(() => {
 }
 
 .twist {
-    width: 12px;
-    height: 12px;
+    width: calc(12px * var(--ui-scale, 1));
+    height: calc(12px * var(--ui-scale, 1));
     flex-shrink: 0;
     color: var(--text-dim);
     display: grid;
     place-items: center;
-    border-radius: 3px;
+    border-radius: calc(3px * var(--ui-scale, 1));
     transition:
         transform 0.15s ease,
         color 0.15s ease,
@@ -2997,10 +2995,10 @@ onBeforeUnmount(() => {
 }
 
 .twist-loading {
-    width: 7px;
-    height: 7px;
+    width: calc(7px * var(--ui-scale, 1));
+    height: calc(7px * var(--ui-scale, 1));
     border-radius: 50%;
-    border: 1.5px solid var(--border);
+    border: calc(1.5px * var(--ui-scale, 1)) solid var(--border);
     border-top-color: var(--accent);
     animation: twist-spin 0.7s linear infinite;
 }
@@ -3014,7 +3012,7 @@ onBeforeUnmount(() => {
 .kind {
     flex-shrink: 0;
     margin-right: 0;
-    font-size: 9px;
+    font-size: calc(9px * var(--ui-scale, 1));
     font-weight: 700;
     letter-spacing: 0.03em;
     color: var(--text-dim);
@@ -3028,16 +3026,16 @@ onBeforeUnmount(() => {
 }
 
 .kind-slot :deep(.kind-icon) {
-    width: 16px;
-    height: 16px;
-    margin-right: 3px;
+    width: calc(16px * var(--ui-scale, 1));
+    height: calc(16px * var(--ui-scale, 1));
+    margin-right: calc(3px * var(--ui-scale, 1));
 }
 
 .kind-slot :deep(.kind-icon.windows),
 .kind-slot :deep(.kind-icon.macos) {
-    width: 17px;
-    height: 17px;
-    margin-right: 3px;
+    width: calc(17px * var(--ui-scale, 1));
+    height: calc(17px * var(--ui-scale, 1));
+    margin-right: calc(3px * var(--ui-scale, 1));
 }
 
 .tree-row.dir {
@@ -3078,19 +3076,19 @@ onBeforeUnmount(() => {
 }
 
 .placeholder {
-    padding: 18px 12px;
+    padding: calc(18px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
     color: var(--text-dim);
-    font-size: 13px;
+    font-size: calc(13px * var(--ui-scale, 1));
     text-align: center;
 }
 
 .attr-head,
 .attr-row {
     display: grid;
-    gap: 8px;
+    gap: calc(8px * var(--ui-scale, 1));
     align-items: center;
-    padding: 6px 10px;
-    font-size: 12.5px;
+    padding: calc(6px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+    font-size: calc(12.5px * var(--ui-scale, 1));
 }
 
 .attr-head > span,
@@ -3149,8 +3147,8 @@ onBeforeUnmount(() => {
 }
 
 .trunc-banner {
-    padding: 4px 10px;
-    font-size: 12px;
+    padding: calc(4px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+    font-size: calc(12px * var(--ui-scale, 1));
     color: var(--warn);
     background: var(--warn-dim);
     border-bottom: 1px solid var(--border-soft);
@@ -3159,21 +3157,21 @@ onBeforeUnmount(() => {
 .preview-toolbar {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: calc(6px * var(--ui-scale, 1));
     flex-wrap: wrap;
-    padding: 4px 10px;
+    padding: calc(4px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
     border-bottom: 1px solid var(--border-soft);
     background: var(--bg-elevated);
 }
 
 .preview-tool-btn {
-    height: 26px;
-    padding: 0 10px;
+    height: calc(26px * var(--ui-scale, 1));
+    padding: 0 calc(10px * var(--ui-scale, 1));
     border: 1px solid var(--border-soft);
-    border-radius: 6px;
+    border-radius: calc(6px * var(--ui-scale, 1));
     background: var(--bg-root);
     color: var(--text);
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     cursor: pointer;
 }
 
@@ -3193,9 +3191,9 @@ onBeforeUnmount(() => {
 
 .preview-dirty {
     display: inline-block;
-    margin-right: 4px;
+    margin-right: calc(4px * var(--ui-scale, 1));
     color: var(--warn);
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     line-height: 1;
     vertical-align: middle;
 }
@@ -3215,16 +3213,16 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 12px;
+    padding: calc(12px * var(--ui-scale, 1));
     background:
-        linear-gradient(45deg, var(--border) 25%, transparent 25%) 0 0 / 16px
-            16px,
-        linear-gradient(-45deg, var(--border) 25%, transparent 25%) 0 8px / 16px
-            16px,
-        linear-gradient(45deg, transparent 75%, var(--border) 75%) 8px -8px /
-            16px 16px,
+        linear-gradient(45deg, var(--border) 25%, transparent 25%) 0 0 / calc(16px * var(--ui-scale, 1))
+            calc(16px * var(--ui-scale, 1)),
+        linear-gradient(-45deg, var(--border) 25%, transparent 25%) 0 calc(8px * var(--ui-scale, 1)) / calc(16px * var(--ui-scale, 1))
+            calc(16px * var(--ui-scale, 1)),
+        linear-gradient(45deg, transparent 75%, var(--border) 75%) calc(8px * var(--ui-scale, 1)) -8px /
+            calc(16px * var(--ui-scale, 1)) calc(16px * var(--ui-scale, 1)),
         linear-gradient(-45deg, transparent 75%, var(--border) 75%) -8px 0 /
-            16px 16px;
+            calc(16px * var(--ui-scale, 1)) calc(16px * var(--ui-scale, 1));
     background-color: var(--bg);
 }
 
@@ -3237,14 +3235,14 @@ onBeforeUnmount(() => {
 
 .preview-body {
     margin: 0;
-    padding: 10px;
+    padding: calc(10px * var(--ui-scale, 1));
     flex: 1;
     min-height: 0;
     width: 100%;
     box-sizing: border-box;
     border: none;
     resize: none;
-    font-size: 13px;
+    font-size: calc(13px * var(--ui-scale, 1));
     line-height: 1.45;
     font-family: var(--font-mono);
     white-space: pre-wrap;
@@ -3259,8 +3257,8 @@ onBeforeUnmount(() => {
 }
 
 .status-line {
-    padding: 4px 10px;
-    font-size: 12px;
+    padding: calc(4px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+    font-size: calc(12px * var(--ui-scale, 1));
     color: var(--accent);
     background: var(--accent-dim);
 }
@@ -3268,25 +3266,25 @@ onBeforeUnmount(() => {
 .ctx-menu {
     position: fixed;
     z-index: 100;
-    min-width: 168px;
-    padding: 6px;
-    border-radius: 8px;
+    min-width: calc(168px * var(--ui-scale, 1));
+    padding: calc(6px * var(--ui-scale, 1));
+    border-radius: calc(8px * var(--ui-scale, 1));
     border: 1px solid var(--border);
     background: var(--bg-elevated);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+    box-shadow: 0 calc(12px * var(--ui-scale, 1)) calc(32px * var(--ui-scale, 1)) rgba(0, 0, 0, 0.32);
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: calc(2px * var(--ui-scale, 1));
 }
 
 .ctx-item {
-    height: 28px;
-    padding: 0 10px;
+    height: calc(28px * var(--ui-scale, 1));
+    padding: 0 calc(10px * var(--ui-scale, 1));
     border: none;
-    border-radius: 6px;
+    border-radius: calc(6px * var(--ui-scale, 1));
     background: transparent;
     color: var(--text);
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     text-align: left;
 }
 
@@ -3309,7 +3307,7 @@ onBeforeUnmount(() => {
 
 .ctx-sep {
     height: 1px;
-    margin: 4px 2px;
+    margin: calc(4px * var(--ui-scale, 1)) calc(2px * var(--ui-scale, 1));
     background: var(--border-soft);
 }
 
@@ -3320,28 +3318,28 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 16px;
+    padding: calc(16px * var(--ui-scale, 1));
     background: var(--overlay);
 }
 
 .prompt-box {
-    width: min(360px, 100%);
-    padding: 16px;
-    border-radius: 10px;
+    width: min(calc(360px * var(--ui-scale, 1)), 100%);
+    padding: calc(16px * var(--ui-scale, 1));
+    border-radius: calc(10px * var(--ui-scale, 1));
     border: 1px solid var(--border);
     background: var(--bg-panel);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 calc(12px * var(--ui-scale, 1)) calc(40px * var(--ui-scale, 1)) rgba(0, 0, 0, 0.28);
 }
 
 .prompt-box h3 {
-    margin: 0 0 12px;
-    font-size: 13px;
+    margin: 0 0 calc(12px * var(--ui-scale, 1));
+    font-size: calc(13px * var(--ui-scale, 1));
     font-weight: 650;
 }
 
 .prompt-message {
     margin: 0;
-    font-size: 12.5px;
+    font-size: calc(12.5px * var(--ui-scale, 1));
     line-height: 1.5;
     color: var(--text-muted);
 }
@@ -3349,7 +3347,7 @@ onBeforeUnmount(() => {
 .prompt-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    margin-top: 14px;
+    gap: calc(8px * var(--ui-scale, 1));
+    margin-top: calc(14px * var(--ui-scale, 1));
 }
 </style>

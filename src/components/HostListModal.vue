@@ -689,20 +689,20 @@ function onBackdrop(e: MouseEvent) {
 }
 
 .hosts-modal {
-    width: min(560px, 100%);
-    min-height: min(360px, calc(100vh - 48px));
+    width: min(calc(560px * var(--ui-scale, 1)), 100%);
+    min-height: min(calc(360px * var(--ui-scale, 1)), calc(100vh - 48px));
 }
 
 .hosts-modal :deep(.modal-head) {
-    padding: 10px 12px;
+    padding: calc(10px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
 }
 
 .hosts-modal :deep(.modal-body) {
-    padding: 10px 12px;
+    padding: calc(10px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
 }
 
 .hosts-modal :deep(.modal-head h2) {
-    font-size: 14px;
+    font-size: calc(14px * var(--ui-scale, 1));
 }
 
 .hosts-modal :deep(.modal-head .sub) {
@@ -710,13 +710,13 @@ function onBackdrop(e: MouseEvent) {
 }
 
 .hosts-modal :deep(.modal-tools) {
-    gap: 4px;
+    gap: calc(4px * var(--ui-scale, 1));
 }
 
 .mgr-group {
-    margin-bottom: 6px;
+    margin-bottom: calc(6px * var(--ui-scale, 1));
     border: 1px solid var(--border-soft);
-    border-radius: 8px;
+    border-radius: calc(8px * var(--ui-scale, 1));
     overflow: hidden;
     background: var(--bg-elevated);
     transition:
@@ -732,11 +732,11 @@ function onBackdrop(e: MouseEvent) {
 .mgr-group-head {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
+    gap: calc(6px * var(--ui-scale, 1));
+    padding: calc(6px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
     background: var(--bg-hover);
     border-bottom: 1px solid transparent;
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     font-weight: 600;
     cursor: pointer;
     user-select: none;
@@ -756,9 +756,9 @@ function onBackdrop(e: MouseEvent) {
 .chev {
     display: inline-grid;
     place-items: center;
-    width: 16px;
-    height: 16px;
-    border-radius: 4px;
+    width: calc(16px * var(--ui-scale, 1));
+    height: calc(16px * var(--ui-scale, 1));
+    border-radius: calc(4px * var(--ui-scale, 1));
     color: var(--text-dim);
     background: var(--bg-root);
     border: 1px solid var(--border-soft);
@@ -786,15 +786,15 @@ function onBackdrop(e: MouseEvent) {
 }
 
 .count {
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    border-radius: 999px;
+    min-width: calc(18px * var(--ui-scale, 1));
+    height: calc(18px * var(--ui-scale, 1));
+    padding: 0 calc(5px * var(--ui-scale, 1));
+    border-radius: calc(999px * var(--ui-scale, 1));
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 10px;
+    font-size: calc(10px * var(--ui-scale, 1));
     color: var(--text-muted);
     font-family: var(--font-mono);
     background: var(--bg-root);
@@ -804,7 +804,7 @@ function onBackdrop(e: MouseEvent) {
 .group-actions {
     margin-left: auto;
     display: flex;
-    gap: 2px;
+    gap: calc(2px * var(--ui-scale, 1));
 }
 
 .mgr-panel {
@@ -828,20 +828,20 @@ function onBackdrop(e: MouseEvent) {
 }
 
 .mgr-empty {
-    padding: 8px;
+    padding: calc(8px * var(--ui-scale, 1));
     text-align: center;
     color: var(--text-dim);
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
 }
 
 .mgr-row {
     display: grid;
-    grid-template-columns: 14px 1fr auto;
-    gap: 8px;
+    grid-template-columns: calc(14px * var(--ui-scale, 1)) 1fr auto;
+    gap: calc(8px * var(--ui-scale, 1));
     align-items: center;
-    padding: 6px 8px;
+    padding: calc(6px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
     border-top: 1px solid var(--border-soft);
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     cursor: pointer;
     outline: none;
     transition: background 0.15s ease;
@@ -858,8 +858,8 @@ function onBackdrop(e: MouseEvent) {
 }
 
 .status {
-    width: 7px;
-    height: 7px;
+    width: calc(7px * var(--ui-scale, 1));
+    height: calc(7px * var(--ui-scale, 1));
     border-radius: 50%;
     background: var(--text-dim);
 }
@@ -869,11 +869,11 @@ function onBackdrop(e: MouseEvent) {
 
 .meta strong {
     display: block;
-    font-size: 12.5px;
+    font-size: calc(12.5px * var(--ui-scale, 1));
     line-height: 1.25;
 }
 .meta span {
-    font-size: 10.5px;
+    font-size: calc(10.5px * var(--ui-scale, 1));
     line-height: 1.3;
     color: var(--text-muted);
     font-family: var(--font-mono);
@@ -888,14 +888,14 @@ function onBackdrop(e: MouseEvent) {
 .row-actions {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: calc(2px * var(--ui-scale, 1));
 }
 
 .row-icon-btn {
-    width: 26px;
-    height: 26px;
+    width: calc(26px * var(--ui-scale, 1));
+    height: calc(26px * var(--ui-scale, 1));
     border: none;
-    border-radius: 5px;
+    border-radius: calc(5px * var(--ui-scale, 1));
     background: transparent;
     color: var(--text-dim);
     display: grid;
@@ -931,9 +931,9 @@ function onBackdrop(e: MouseEvent) {
 }
 
 .row-spin {
-    width: 11px;
-    height: 11px;
-    border: 1.5px solid var(--accent-border);
+    width: calc(11px * var(--ui-scale, 1));
+    height: calc(11px * var(--ui-scale, 1));
+    border: calc(1.5px * var(--ui-scale, 1)) solid var(--accent-border);
     border-top-color: var(--accent);
     border-radius: 50%;
     animation: host-row-spin 0.7s linear infinite;
@@ -947,8 +947,8 @@ function onBackdrop(e: MouseEvent) {
 
 .empty {
     color: var(--text-muted);
-    font-size: 13px;
-    padding: 16px;
+    font-size: calc(13px * var(--ui-scale, 1));
+    padding: calc(16px * var(--ui-scale, 1));
     text-align: center;
 }
 
@@ -959,28 +959,28 @@ function onBackdrop(e: MouseEvent) {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 24px;
+    padding: calc(24px * var(--ui-scale, 1));
     background: var(--overlay);
 }
 
 .prompt-box {
-    width: min(360px, 100%);
-    padding: 16px;
-    border-radius: 10px;
+    width: min(calc(360px * var(--ui-scale, 1)), 100%);
+    padding: calc(16px * var(--ui-scale, 1));
+    border-radius: calc(10px * var(--ui-scale, 1));
     border: 1px solid var(--border);
     background: var(--bg-panel);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 calc(12px * var(--ui-scale, 1)) calc(40px * var(--ui-scale, 1)) rgba(0, 0, 0, 0.28);
 }
 
 .prompt-box h3 {
-    margin: 0 0 12px;
-    font-size: 14px;
+    margin: 0 0 calc(12px * var(--ui-scale, 1));
+    font-size: calc(14px * var(--ui-scale, 1));
     font-weight: 600;
 }
 
 .prompt-message {
     margin: 0;
-    font-size: 13px;
+    font-size: calc(13px * var(--ui-scale, 1));
     line-height: 1.5;
     color: var(--text-muted);
 }
@@ -988,7 +988,7 @@ function onBackdrop(e: MouseEvent) {
 .prompt-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    margin-top: 14px;
+    gap: calc(8px * var(--ui-scale, 1));
+    margin-top: calc(14px * var(--ui-scale, 1));
 }
 </style>

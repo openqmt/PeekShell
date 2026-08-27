@@ -106,7 +106,7 @@ function onBackdrop(e: MouseEvent) {
 
 .update-close {
     position: absolute;
-    right: 12px;
+    right: calc(12px * var(--ui-scale, 1));
     top: 50%;
     transform: translateY(-50%);
 }
@@ -114,11 +114,11 @@ function onBackdrop(e: MouseEvent) {
 .update-body {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    font-size: 13px;
+    gap: calc(10px * var(--ui-scale, 1));
+    font-size: calc(13px * var(--ui-scale, 1));
     line-height: 1.55;
     color: var(--text);
-    min-height: 48px;
+    min-height: calc(48px * var(--ui-scale, 1));
 }
 
 .update-version {
@@ -148,7 +148,7 @@ function onBackdrop(e: MouseEvent) {
 
 .update-foot {
     justify-content: center;
-    gap: 10px;
+    gap: calc(10px * var(--ui-scale, 1));
     border-top: none;
 }
 </style>

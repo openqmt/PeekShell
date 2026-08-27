@@ -300,26 +300,26 @@ onBeforeUnmount(() => {
   top: 0;
   left: -3px;
   z-index: 5;
-  width: 6px;
+  width: calc(6px * var(--ui-scale, 1));
   height: 100%;
   cursor: ew-resize;
 }
 
 .ai-head {
-  padding: 4px 6px 4px 10px;
-  min-height: 36px;
+  padding: calc(4px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1)) calc(4px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+  min-height: calc(36px * var(--ui-scale, 1));
   border-bottom: 1px solid var(--border-soft);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: calc(6px * var(--ui-scale, 1));
 }
 
 .ai-head-left,
 .ai-head-right {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: calc(6px * var(--ui-scale, 1));
 }
 
 .ai-head-actions {
@@ -329,32 +329,32 @@ onBeforeUnmount(() => {
 }
 
 .ai-head h2 {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale, 1));
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: calc(6px * var(--ui-scale, 1));
 }
 
 .ai-head h2::before {
   content: "";
-  width: 8px;
-  height: 8px;
+  width: calc(8px * var(--ui-scale, 1));
+  height: calc(8px * var(--ui-scale, 1));
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-dim);
+  box-shadow: 0 0 0 calc(3px * var(--ui-scale, 1)) var(--accent-dim);
 }
 
 .model-select {
-  width: min(120px, 36vw);
+  width: min(calc(120px * var(--ui-scale, 1)), 36vw);
   flex-shrink: 1;
 }
 
 .model-select :deep(.app-select-trigger) {
-  min-height: 26px;
-  height: 26px;
-  padding: 0 8px;
-  font-size: 11px;
+  min-height: calc(26px * var(--ui-scale, 1));
+  height: calc(26px * var(--ui-scale, 1));
+  padding: 0 calc(8px * var(--ui-scale, 1));
+  font-size: calc(11px * var(--ui-scale, 1));
   font-family: var(--font-mono);
 }
 
@@ -363,22 +363,22 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 6px 0 10px;
-  gap: 6px;
+  padding: calc(6px * var(--ui-scale, 1)) 0 calc(10px * var(--ui-scale, 1));
+  gap: calc(6px * var(--ui-scale, 1));
 }
 
 .rail-dot {
-  width: 8px;
-  height: 8px;
+  width: calc(8px * var(--ui-scale, 1));
+  height: calc(8px * var(--ui-scale, 1));
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-dim);
+  box-shadow: 0 0 0 calc(3px * var(--ui-scale, 1)) var(--accent-dim);
 }
 
 .rail-ai-label {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-scale, 1));
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--text-dim);
@@ -394,16 +394,16 @@ onBeforeUnmount(() => {
 .chat {
   flex: 1;
   overflow: auto;
-  padding: 10px;
+  padding: calc(10px * var(--ui-scale, 1));
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: calc(10px * var(--ui-scale, 1));
 }
 
 .msg {
   display: flex;
   width: 100%;
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--ui-scale, 1));
   line-height: 1.5;
 }
 
@@ -416,21 +416,21 @@ onBeforeUnmount(() => {
 }
 
 .msg-inner {
-  max-width: min(100%, 340px);
-  padding: 8px 10px;
-  border-radius: 8px;
+  max-width: min(100%, calc(340px * var(--ui-scale, 1)));
+  padding: calc(8px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+  border-radius: calc(8px * var(--ui-scale, 1));
   border: 1px solid var(--border-soft);
 }
 
 .msg.user .msg-inner {
   background: var(--bg-active);
   border-color: var(--border);
-  border-bottom-right-radius: 3px;
+  border-bottom-right-radius: calc(3px * var(--ui-scale, 1));
 }
 
 .msg.assistant .msg-inner {
   background: var(--bg-elevated);
-  border-bottom-left-radius: 3px;
+  border-bottom-left-radius: calc(3px * var(--ui-scale, 1));
 }
 
 .msg.thinking .msg-inner {
@@ -438,11 +438,11 @@ onBeforeUnmount(() => {
 }
 
 .role {
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-scale, 1));
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  margin-bottom: 5px;
+  margin-bottom: calc(5px * var(--ui-scale, 1));
   color: var(--accent);
 }
 
@@ -458,13 +458,13 @@ onBeforeUnmount(() => {
 
 .setup-link {
   display: inline-block;
-  margin-top: 8px;
+  margin-top: calc(8px * var(--ui-scale, 1));
   padding: 0;
   border: none;
   background: transparent;
   color: var(--accent);
   font: inherit;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale, 1));
   font-weight: 600;
   cursor: pointer;
 }
@@ -475,9 +475,9 @@ onBeforeUnmount(() => {
 
 .stream-caret {
   display: inline-block;
-  width: 6px;
-  height: 12px;
-  margin-left: 2px;
+  width: calc(6px * var(--ui-scale, 1));
+  height: calc(12px * var(--ui-scale, 1));
+  margin-left: calc(2px * var(--ui-scale, 1));
   vertical-align: -1px;
   background: var(--accent);
   animation: stream-blink 1s step-end infinite;
@@ -491,32 +491,32 @@ onBeforeUnmount(() => {
 
 .composer {
   border-top: 1px solid var(--border-soft);
-  padding: 8px;
+  padding: calc(8px * var(--ui-scale, 1));
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: calc(6px * var(--ui-scale, 1));
 }
 
 .err {
   margin: 0;
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-scale, 1));
   color: #c45c5c;
 }
 
 .hint-warn {
   margin: 0;
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-scale, 1));
   color: #c4a035;
   line-height: 1.4;
 }
 
 .composer-box {
-  min-height: 56px;
+  min-height: calc(56px * var(--ui-scale, 1));
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: calc(6px * var(--ui-scale, 1));
   background: var(--bg-root);
-  padding: 8px 10px;
-  font-size: 12.5px;
+  padding: calc(8px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+  font-size: calc(12.5px * var(--ui-scale, 1));
   color: var(--text);
   resize: none;
   outline: none;
@@ -534,27 +534,27 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: calc(8px * var(--ui-scale, 1));
 }
 
 .mode-select {
-  width: min(120px, 36vw);
+  width: min(calc(120px * var(--ui-scale, 1)), 36vw);
   flex-shrink: 0;
 }
 
 .hint {
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-scale, 1));
   color: var(--text-dim);
 }
 
 .send {
-  height: 28px;
-  padding: 0 12px;
+  height: calc(28px * var(--ui-scale, 1));
+  padding: 0 calc(12px * var(--ui-scale, 1));
   border: none;
   border-radius: var(--radius);
   background: var(--accent);
   color: #ffffff;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale, 1));
   font-weight: 600;
   flex-shrink: 0;
 }

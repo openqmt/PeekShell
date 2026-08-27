@@ -466,18 +466,18 @@ function onAboutLogoClick() {
 
 <style scoped>
 .settings-modal {
-    width: min(680px, 100%);
-    height: min(520px, calc(100vh - 48px));
-    max-height: min(520px, calc(100vh - 48px));
+    width: min(calc(680px * var(--ui-scale, 1)), 100%);
+    height: min(calc(520px * var(--ui-scale, 1)), calc(100vh - 48px));
+    max-height: min(calc(520px * var(--ui-scale, 1)), calc(100vh - 48px));
 }
 
 .settings-modal :deep(.modal-head) {
-    padding: 10px 12px;
+    padding: calc(10px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
     flex-shrink: 0;
 }
 
 .settings-modal :deep(.modal-head h2) {
-    font-size: 14px;
+    font-size: calc(14px * var(--ui-scale, 1));
 }
 
 .settings-modal :deep(.modal-head .sub) {
@@ -486,7 +486,7 @@ function onAboutLogoClick() {
 
 .settings-layout {
     display: grid;
-    grid-template-columns: 132px minmax(0, 1fr);
+    grid-template-columns: calc(132px * var(--ui-scale, 1)) minmax(0, 1fr);
     min-height: 0;
     flex: 1;
     overflow: hidden;
@@ -495,8 +495,8 @@ function onAboutLogoClick() {
 .settings-nav {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 8px;
+    gap: calc(2px * var(--ui-scale, 1));
+    padding: calc(8px * var(--ui-scale, 1));
     border-right: 1px solid var(--border-soft);
     /* background: var(--bg-elevated); */
     overflow: auto;
@@ -504,13 +504,13 @@ function onAboutLogoClick() {
 
 .nav-item {
     margin: 0;
-    padding: 8px 10px;
+    padding: calc(8px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
     border: none;
-    border-radius: 6px;
+    border-radius: calc(6px * var(--ui-scale, 1));
     background: transparent;
     color: var(--text-muted);
     font: inherit;
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     text-align: left;
     cursor: pointer;
 }
@@ -538,40 +538,40 @@ function onAboutLogoClick() {
     flex: 1;
     min-height: 0;
     overflow: auto;
-    padding: 10px 12px 14px;
+    padding: calc(10px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1)) calc(14px * var(--ui-scale, 1));
 }
 
 .pane-actions {
-    margin-top: 14px;
-    padding-top: 12px;
+    margin-top: calc(14px * var(--ui-scale, 1));
+    padding-top: calc(12px * var(--ui-scale, 1));
     border-top: 1px solid var(--border-soft);
 }
 
 .section-label {
-    margin: 2px 0 6px;
+    margin: calc(2px * var(--ui-scale, 1)) 0 calc(6px * var(--ui-scale, 1));
     letter-spacing: 0.05em;
-    font-size: 10px;
+    font-size: calc(10px * var(--ui-scale, 1));
     font-weight: 600;
     text-transform: uppercase;
     color: var(--text-dim);
 }
 
 .section-label:not(:first-child) {
-    margin-top: 10px;
+    margin-top: calc(10px * var(--ui-scale, 1));
 }
 
 .scale-field {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    margin-bottom: 10px;
-    font-size: 12px;
+    gap: calc(4px * var(--ui-scale, 1));
+    margin-bottom: calc(10px * var(--ui-scale, 1));
+    font-size: calc(12px * var(--ui-scale, 1));
     color: var(--text);
 }
 
 .scale-field input[type='range'] {
     width: 100%;
-    height: 28px;
+    height: calc(28px * var(--ui-scale, 1));
     padding: 0;
     border: none;
     background: transparent;
@@ -582,8 +582,8 @@ function onAboutLogoClick() {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: calc(8px * var(--ui-scale, 1));
+    margin-bottom: calc(10px * var(--ui-scale, 1));
 }
 
 .accent-swatch {
@@ -591,11 +591,11 @@ function onAboutLogoClick() {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: calc(32px * var(--ui-scale, 1));
+    height: calc(32px * var(--ui-scale, 1));
     padding: 0;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: calc(6px * var(--ui-scale, 1));
     background: var(--bg-elevated);
     cursor: pointer;
     flex-shrink: 0;
@@ -603,47 +603,47 @@ function onAboutLogoClick() {
 
 .accent-swatch.default {
     width: auto;
-    height: 32px;
-    padding: 0 8px 0 6px;
-    gap: 6px;
+    height: calc(32px * var(--ui-scale, 1));
+    padding: 0 calc(8px * var(--ui-scale, 1)) 0 calc(6px * var(--ui-scale, 1));
+    gap: calc(6px * var(--ui-scale, 1));
 }
 
 .accent-swatch .swatch-fill {
     display: block;
-    width: 16px;
-    height: 16px;
-    border-radius: 999px;
+    width: calc(16px * var(--ui-scale, 1));
+    height: calc(16px * var(--ui-scale, 1));
+    border-radius: calc(999px * var(--ui-scale, 1));
     background: var(--swatch);
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
 
 .accent-swatch.default .swatch-fill {
-    width: 14px;
-    height: 14px;
+    width: calc(14px * var(--ui-scale, 1));
+    height: calc(14px * var(--ui-scale, 1));
 }
 
 .swatch-label {
-    font-size: 11px;
+    font-size: calc(11px * var(--ui-scale, 1));
     color: var(--text-muted);
     white-space: nowrap;
 }
 
 .accent-swatch.active {
     border-color: var(--accent-border);
-    box-shadow: 0 0 0 2px var(--accent-dim);
+    box-shadow: 0 0 0 calc(2px * var(--ui-scale, 1)) var(--accent-dim);
 }
 
 .color-swatch {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: calc(8px * var(--ui-scale, 1));
     flex: 0 0 auto;
-    width: 118px;
+    width: calc(118px * var(--ui-scale, 1));
     min-width: 0;
-    height: 32px;
-    padding: 0 8px 0 6px;
-    border-radius: 6px;
+    height: calc(32px * var(--ui-scale, 1));
+    padding: 0 calc(8px * var(--ui-scale, 1)) 0 calc(6px * var(--ui-scale, 1));
+    border-radius: calc(6px * var(--ui-scale, 1));
     border: 1px solid var(--border);
     background: var(--bg-root);
     cursor: pointer;
@@ -658,13 +658,13 @@ function onAboutLogoClick() {
 
 .color-swatch.active {
     border-color: var(--accent-border);
-    box-shadow: 0 0 0 2px var(--accent-dim);
+    box-shadow: 0 0 0 calc(2px * var(--ui-scale, 1)) var(--accent-dim);
 }
 
 .color-chip {
-    width: 18px;
-    height: 18px;
-    border-radius: 4px;
+    width: calc(18px * var(--ui-scale, 1));
+    height: calc(18px * var(--ui-scale, 1));
+    border-radius: calc(4px * var(--ui-scale, 1));
     border: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
     flex-shrink: 0;
@@ -672,7 +672,7 @@ function onAboutLogoClick() {
 
 .color-hex {
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: calc(11px * var(--ui-scale, 1));
     color: var(--text);
     text-transform: uppercase;
     overflow: hidden;
@@ -695,20 +695,20 @@ function onAboutLogoClick() {
 .check-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4px 8px;
-    margin-bottom: 10px;
+    gap: calc(4px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
+    margin-bottom: calc(10px * var(--ui-scale, 1));
 }
 
 .check-grid.nested {
-    margin-top: 6px;
-    padding: 6px 8px;
-    border-radius: 6px;
+    margin-top: calc(6px * var(--ui-scale, 1));
+    padding: calc(6px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
+    border-radius: calc(6px * var(--ui-scale, 1));
     border: 1px solid var(--border-soft);
     background: var(--bg-elevated);
 }
 
 .section-hint {
-    font-size: 11px;
+    font-size: calc(11px * var(--ui-scale, 1));
     color: var(--text-dim);
     margin: -4px 0 0;
     line-height: 1.3;
@@ -717,12 +717,12 @@ function onAboutLogoClick() {
 .check {
     display: flex;
     align-items: center;
-    gap: 5px;
-    font-size: 12px;
+    gap: calc(5px * var(--ui-scale, 1));
+    font-size: calc(12px * var(--ui-scale, 1));
     color: var(--text);
     cursor: pointer;
     user-select: none;
-    min-height: 26px;
+    min-height: calc(26px * var(--ui-scale, 1));
     min-width: 0;
 }
 
@@ -733,8 +733,8 @@ function onAboutLogoClick() {
 }
 
 .check input {
-    width: 14px;
-    height: 14px;
+    width: calc(14px * var(--ui-scale, 1));
+    height: calc(14px * var(--ui-scale, 1));
     accent-color: var(--accent);
     cursor: pointer;
     flex-shrink: 0;
@@ -754,45 +754,45 @@ function onAboutLogoClick() {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
+    gap: calc(16px * var(--ui-scale, 1));
     text-align: center;
-    padding-top: 18px;
-    padding-bottom: 18px;
+    padding-top: calc(18px * var(--ui-scale, 1));
+    padding-bottom: calc(18px * var(--ui-scale, 1));
 }
 
 .about-hero {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: calc(8px * var(--ui-scale, 1));
 }
 
 .about-logo {
-    width: 72px;
-    height: 72px;
-    border-radius: 13px;
+    width: calc(72px * var(--ui-scale, 1));
+    height: calc(72px * var(--ui-scale, 1));
+    border-radius: calc(13px * var(--ui-scale, 1));
     object-fit: cover;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 calc(2px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1)) rgba(0, 0, 0, 0.18);
     user-select: none;
     -webkit-user-drag: none;
 }
 
 .about-name {
-    font-size: 22px;
+    font-size: calc(22px * var(--ui-scale, 1));
     font-weight: 700;
     letter-spacing: 0.01em;
     color: var(--text);
 }
 
 .about-version {
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     color: var(--text-muted);
 }
 
 .about-blurb {
     margin: 0;
     max-width: 36em;
-    font-size: 13px;
+    font-size: calc(13px * var(--ui-scale, 1));
     line-height: 1.65;
     color: var(--text-muted);
 }
@@ -807,8 +807,8 @@ function onAboutLogoClick() {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
-    padding: 6px 10px;
+    gap: calc(16px * var(--ui-scale, 1));
+    padding: calc(6px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
 }
 
 .about-row:last-child {
@@ -817,7 +817,7 @@ function onAboutLogoClick() {
 
 .about-label {
     flex-shrink: 0;
-    font-size: 13px;
+    font-size: calc(13px * var(--ui-scale, 1));
     color: var(--text);
 }
 
@@ -828,7 +828,7 @@ function onAboutLogoClick() {
     background: transparent;
     color: var(--accent);
     font: inherit;
-    font-size: 12.5px;
+    font-size: calc(12.5px * var(--ui-scale, 1));
     line-height: 1.4;
     text-align: right;
     word-break: break-all;
@@ -840,7 +840,7 @@ function onAboutLogoClick() {
 }
 
 .about-value {
-    font-size: 12.5px;
+    font-size: calc(12.5px * var(--ui-scale, 1));
     line-height: 1.45;
     color: var(--text-muted);
     text-align: right;

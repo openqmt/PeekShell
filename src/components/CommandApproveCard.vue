@@ -114,11 +114,11 @@ async function copyCommand() {
 
 <style scoped>
 .cmd-card {
-  margin-top: 8px;
+  margin-top: calc(8px * var(--ui-scale, 1));
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: calc(6px * var(--ui-scale, 1));
   background: var(--bg-root);
-  padding: 8px;
+  padding: calc(8px * var(--ui-scale, 1));
 }
 
 .cmd-card[data-risk="medium"] {
@@ -132,12 +132,12 @@ async function copyCommand() {
 .cmd-meta {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: calc(6px * var(--ui-scale, 1));
+  margin-bottom: calc(6px * var(--ui-scale, 1));
 }
 
 .risk {
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-scale, 1));
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -153,11 +153,11 @@ async function copyCommand() {
 }
 
 .badge {
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-scale, 1));
   color: var(--text-dim);
   border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 1px 5px;
+  border-radius: calc(3px * var(--ui-scale, 1));
+  padding: 1px calc(5px * var(--ui-scale, 1));
 }
 
 .badge.wait {
@@ -175,10 +175,10 @@ async function copyCommand() {
 
 .copy-btn {
   margin-left: auto;
-  width: 24px;
-  height: 24px;
+  width: calc(24px * var(--ui-scale, 1));
+  height: calc(24px * var(--ui-scale, 1));
   border: none;
-  border-radius: 4px;
+  border-radius: calc(4px * var(--ui-scale, 1));
   background: transparent;
   color: var(--text-dim);
   display: grid;
@@ -194,15 +194,15 @@ async function copyCommand() {
 .cmd-text {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale, 1));
   white-space: pre-wrap;
   word-break: break-all;
   color: var(--text);
 }
 
 .why {
-  margin: 6px 0 0;
-  font-size: 11px;
+  margin: calc(6px * var(--ui-scale, 1)) 0 0;
+  font-size: calc(11px * var(--ui-scale, 1));
   color: var(--text-muted);
   line-height: 1.4;
 }
@@ -210,16 +210,16 @@ async function copyCommand() {
 .actions {
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
-  margin-top: 8px;
+  gap: calc(6px * var(--ui-scale, 1));
+  margin-top: calc(8px * var(--ui-scale, 1));
 }
 
 .reject,
 .approve {
-  height: 26px;
-  padding: 0 10px;
+  height: calc(26px * var(--ui-scale, 1));
+  padding: 0 calc(10px * var(--ui-scale, 1));
   border-radius: var(--radius);
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-scale, 1));
   font-weight: 600;
 }
 

@@ -539,24 +539,24 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .modal.sm {
-    width: min(520px, 100%);
+    width: min(calc(520px * var(--ui-scale, 1)), 100%);
 }
 
 .modal :deep(.modal-head) {
-    padding: 10px 12px;
+    padding: calc(10px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
 }
 
 .modal-body {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    max-height: min(68vh, 640px);
+    gap: calc(8px * var(--ui-scale, 1));
+    max-height: min(68vh, calc(640px * var(--ui-scale, 1)));
     overflow: auto;
 }
 
 .section-label {
-    margin-top: 6px;
-    font-size: 10px;
+    margin-top: calc(6px * var(--ui-scale, 1));
+    font-size: calc(10px * var(--ui-scale, 1));
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.07em;
@@ -570,30 +570,30 @@ onBeforeUnmount(() => {
 .field-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr;
-    gap: 8px;
+    gap: calc(8px * var(--ui-scale, 1));
 }
 
 .field {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    font-size: 12px;
+    gap: calc(4px * var(--ui-scale, 1));
+    font-size: calc(12px * var(--ui-scale, 1));
     color: var(--text-muted);
 }
 
 .field input[type='text'] {
-    height: 30px;
-    padding: 0 8px;
-    border-radius: 6px;
+    height: calc(30px * var(--ui-scale, 1));
+    padding: 0 calc(8px * var(--ui-scale, 1));
+    border-radius: calc(6px * var(--ui-scale, 1));
     border: 1px solid var(--border);
     background: var(--bg-root);
     color: var(--text);
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
 }
 
 .field input[type='range'] {
     width: 100%;
-    height: 28px;
+    height: calc(28px * var(--ui-scale, 1));
     padding: 0;
     border: none;
     background: transparent;
@@ -602,8 +602,8 @@ onBeforeUnmount(() => {
 .size-combo {
     display: flex;
     align-items: center;
-    height: 28px;
-    border-radius: var(--radius, 6px);
+    height: calc(28px * var(--ui-scale, 1));
+    border-radius: var(--radius, calc(6px * var(--ui-scale, 1)));
     border: 1px solid var(--border);
     background: var(--bg-root);
     overflow: hidden;
@@ -620,25 +620,25 @@ onBeforeUnmount(() => {
 .size-combo.open,
 .size-combo:focus-within {
     border-color: var(--accent-border);
-    box-shadow: 0 0 0 3px var(--accent-dim);
+    box-shadow: 0 0 0 calc(3px * var(--ui-scale, 1)) var(--accent-dim);
 }
 
 .size-combo-input {
     flex: 1;
     min-width: 0;
     height: 100% !important;
-    padding: 0 8px 0 10px !important;
+    padding: 0 calc(8px * var(--ui-scale, 1)) 0 calc(10px * var(--ui-scale, 1)) !important;
     border: none !important;
     border-radius: 0 !important;
     background: transparent !important;
     color: var(--text);
-    font-size: 12.5px;
+    font-size: calc(12.5px * var(--ui-scale, 1));
     outline: none;
     box-shadow: none !important;
 }
 
 .size-combo-chevron {
-    width: 28px;
+    width: calc(28px * var(--ui-scale, 1));
     height: 100%;
     display: grid;
     place-items: center;
@@ -672,7 +672,7 @@ onBeforeUnmount(() => {
 .color-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
+    gap: calc(10px * var(--ui-scale, 1));
 }
 
 .color-field {
@@ -680,7 +680,7 @@ onBeforeUnmount(() => {
     flex-direction: row;
     align-items: center;
     gap: 0px;
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     color: var(--text-muted);
     min-width: 0;
 }
@@ -694,12 +694,12 @@ onBeforeUnmount(() => {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: calc(8px * var(--ui-scale, 1));
     flex: 1;
     min-width: 0;
-    height: 32px;
-    padding: 0 8px 0 6px;
-    border-radius: 6px;
+    height: calc(32px * var(--ui-scale, 1));
+    padding: 0 calc(8px * var(--ui-scale, 1)) 0 calc(6px * var(--ui-scale, 1));
+    border-radius: calc(6px * var(--ui-scale, 1));
     border: 1px solid var(--border);
     background: var(--bg-root);
     cursor: pointer;
@@ -715,9 +715,9 @@ onBeforeUnmount(() => {
 }
 
 .color-chip {
-    width: 18px;
-    height: 18px;
-    border-radius: 4px;
+    width: calc(18px * var(--ui-scale, 1));
+    height: calc(18px * var(--ui-scale, 1));
+    border-radius: calc(4px * var(--ui-scale, 1));
     border: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
     flex-shrink: 0;
@@ -725,7 +725,7 @@ onBeforeUnmount(() => {
 
 .color-hex {
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: calc(11px * var(--ui-scale, 1));
     color: var(--text);
     text-transform: uppercase;
     overflow: hidden;
@@ -747,7 +747,7 @@ onBeforeUnmount(() => {
 
 .hint {
     margin: 0;
-    font-size: 11px;
+    font-size: calc(11px * var(--ui-scale, 1));
     color: var(--text-dim);
     line-height: 1.4;
 }
@@ -755,8 +755,8 @@ onBeforeUnmount(() => {
 .bg-presets {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: calc(8px * var(--ui-scale, 1));
+    margin-bottom: calc(10px * var(--ui-scale, 1));
 }
 
 .bg-preset-wrap {
@@ -765,10 +765,10 @@ onBeforeUnmount(() => {
 }
 
 .bg-preset {
-    width: 64px;
-    height: 40px;
+    width: calc(64px * var(--ui-scale, 1));
+    height: calc(40px * var(--ui-scale, 1));
     padding: 0;
-    border-radius: 6px;
+    border-radius: calc(6px * var(--ui-scale, 1));
     border: 1px solid var(--border);
     background-color: var(--bg-elevated);
     background-size: cover;
@@ -802,7 +802,7 @@ onBeforeUnmount(() => {
 }
 
 .bg-preset-label {
-    font-size: 11px;
+    font-size: calc(11px * var(--ui-scale, 1));
     color: var(--text-muted);
 }
 
@@ -812,7 +812,7 @@ onBeforeUnmount(() => {
 
 .bg-preset.active {
     border-color: var(--accent-border);
-    box-shadow: 0 0 0 2px var(--accent-dim);
+    box-shadow: 0 0 0 calc(2px * var(--ui-scale, 1)) var(--accent-dim);
 }
 
 .bg-preset-remove {
@@ -822,11 +822,11 @@ onBeforeUnmount(() => {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: calc(16px * var(--ui-scale, 1));
+    height: calc(16px * var(--ui-scale, 1));
     padding: 0;
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: calc(999px * var(--ui-scale, 1));
     background: var(--bg-elevated);
     color: var(--text-muted);
     cursor: pointer;
@@ -849,26 +849,26 @@ onBeforeUnmount(() => {
 .size-combo-menu {
     z-index: 80;
     margin: 0;
-    padding: 6px;
+    padding: calc(6px * var(--ui-scale, 1));
     list-style: none;
     overflow: auto;
-    border-radius: 8px;
+    border-radius: calc(8px * var(--ui-scale, 1));
     border: 1px solid var(--border);
     background: var(--bg-elevated);
     box-shadow:
-        0 10px 28px rgba(0, 0, 0, 0.28),
-        0 2px 6px rgba(0, 0, 0, 0.12);
+        0 calc(10px * var(--ui-scale, 1)) calc(28px * var(--ui-scale, 1)) rgba(0, 0, 0, 0.28),
+        0 calc(2px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1)) rgba(0, 0, 0, 0.12);
     font-family: var(--font-ui);
 }
 
 .size-combo-option {
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-height: 32px;
-    padding: 0 10px;
-    border-radius: 6px;
-    font-size: 13px;
+    gap: calc(8px * var(--ui-scale, 1));
+    min-height: calc(32px * var(--ui-scale, 1));
+    padding: 0 calc(10px * var(--ui-scale, 1));
+    border-radius: calc(6px * var(--ui-scale, 1));
+    font-size: calc(13px * var(--ui-scale, 1));
     color: var(--text);
     cursor: pointer;
     user-select: none;
@@ -886,7 +886,7 @@ onBeforeUnmount(() => {
 .size-combo-check {
     margin-left: auto;
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: calc(11px * var(--ui-scale, 1));
     font-weight: 700;
     color: var(--accent);
 }

@@ -61,7 +61,7 @@ function onBackdrop(e: MouseEvent) {
 
 .note-close {
     position: absolute;
-    right: 12px;
+    right: calc(12px * var(--ui-scale, 1));
     top: 50%;
     transform: translateY(-50%);
 }
@@ -69,11 +69,11 @@ function onBackdrop(e: MouseEvent) {
 .note-body {
     white-space: pre-wrap;
     word-break: break-word;
-    font-size: 13px;
+    font-size: calc(13px * var(--ui-scale, 1));
     line-height: 1.55;
     color: var(--text);
     text-align: center;
-    min-height: 48px;
+    min-height: calc(48px * var(--ui-scale, 1));
 }
 
 .note-foot {

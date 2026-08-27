@@ -506,17 +506,17 @@ const isMacos = computed(() => props.variant === "macos");
 .kind-icon {
   flex-shrink: 0;
   display: inline-flex;
-  width: 14px;
-  height: 14px;
-  margin-right: 4px;
+  width: calc(14px * var(--ui-scale, 1));
+  height: calc(14px * var(--ui-scale, 1));
+  margin-right: calc(4px * var(--ui-scale, 1));
   color: var(--text-dim);
 }
 
 .kind-icon.windows,
 .kind-icon.macos {
-  width: 16px;
-  height: 16px;
-  margin-right: 5px;
+  width: calc(16px * var(--ui-scale, 1));
+  height: calc(16px * var(--ui-scale, 1));
+  margin-right: calc(5px * var(--ui-scale, 1));
 }
 
 .kind-icon :deep(svg) {

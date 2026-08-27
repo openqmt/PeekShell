@@ -387,14 +387,14 @@ else newProvider();
 .ai-pane {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: calc(10px * var(--ui-scale, 1));
   min-height: 100%;
 }
 
 .provider-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: calc(8px * var(--ui-scale, 1));
 }
 
 .provider-select {
@@ -406,7 +406,7 @@ else newProvider();
 .new-badge {
   flex: 1;
   min-width: 0;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale, 1));
   color: var(--text-dim);
 }
 
@@ -416,33 +416,33 @@ else newProvider();
 }
 
 .form-grid {
-  gap: 10px;
+  gap: calc(10px * var(--ui-scale, 1));
 }
 
 .model-editor {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: calc(8px * var(--ui-scale, 1));
 }
 
 .model-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: calc(6px * var(--ui-scale, 1));
 }
 
 .model-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: calc(6px * var(--ui-scale, 1));
   max-width: 100%;
   margin: 0;
-  padding: 4px 6px 4px 8px;
+  padding: calc(4px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1)) calc(4px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: calc(6px * var(--ui-scale, 1));
   background: var(--bg-root);
   color: var(--text);
-  font: 11px var(--font-mono);
+  font: calc(11px * var(--ui-scale, 1)) var(--font-mono);
   cursor: pointer;
 }
 
@@ -463,9 +463,9 @@ else newProvider();
 }
 
 .default-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
+  width: calc(6px * var(--ui-scale, 1));
+  height: calc(6px * var(--ui-scale, 1));
+  border-radius: calc(999px * var(--ui-scale, 1));
   background: var(--accent);
   flex-shrink: 0;
 }
@@ -474,11 +474,11 @@ else newProvider();
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
+  width: calc(16px * var(--ui-scale, 1));
+  height: calc(16px * var(--ui-scale, 1));
+  border-radius: calc(4px * var(--ui-scale, 1));
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale, 1));
   line-height: 1;
   flex-shrink: 0;
 }
@@ -491,15 +491,15 @@ else newProvider();
 .model-add-row {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 8px;
+  gap: calc(8px * var(--ui-scale, 1));
 }
 
 .clear-key {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: calc(7px * var(--ui-scale, 1));
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-scale, 1));
   cursor: pointer;
 }
 
@@ -511,9 +511,9 @@ else newProvider();
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: calc(8px * var(--ui-scale, 1));
   margin-top: auto;
-  padding-top: 12px;
+  padding-top: calc(12px * var(--ui-scale, 1));
   border-top: 1px solid var(--border-soft);
 }
 
@@ -527,19 +527,19 @@ else newProvider();
 
 .secret-input input {
   width: 100%;
-  padding-right: 32px !important;
+  padding-right: calc(32px * var(--ui-scale, 1)) !important;
 }
 
 .secret-toggle {
   position: absolute;
   top: 50%;
-  right: 2px;
-  width: 26px;
-  height: 26px;
+  right: calc(2px * var(--ui-scale, 1));
+  width: calc(26px * var(--ui-scale, 1));
+  height: calc(26px * var(--ui-scale, 1));
   margin: 0;
   padding: 0;
   border: none;
-  border-radius: 5px;
+  border-radius: calc(5px * var(--ui-scale, 1));
   background: transparent;
   color: var(--text-muted);
   display: grid;

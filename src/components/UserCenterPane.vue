@@ -328,20 +328,20 @@ async function syncNow() {
 .user-pane {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: calc(10px * var(--ui-scale, 1));
     min-height: 100%;
 }
 
 .auth-intro {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: calc(4px * var(--ui-scale, 1));
     text-align: center;
 }
 
 .brand-title {
     margin: 0;
-    font-size: 20px;
+    font-size: calc(20px * var(--ui-scale, 1));
     font-weight: 700;
     letter-spacing: 0.01em;
     color: var(--text);
@@ -349,39 +349,39 @@ async function syncNow() {
 
 .hint {
     margin: 0;
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     line-height: 1.45;
     color: var(--text-muted);
 }
 
 .auth-body {
     width: 100%;
-    max-width: 320px;
+    max-width: calc(320px * var(--ui-scale, 1));
     margin-inline: auto;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: calc(10px * var(--ui-scale, 1));
 }
 
 .auth-tabs {
     display: flex;
-    gap: 3px;
-    padding: 2px;
+    gap: calc(3px * var(--ui-scale, 1));
+    padding: calc(2px * var(--ui-scale, 1));
     background: var(--bg-root);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: calc(6px * var(--ui-scale, 1));
 }
 
 .auth-tab {
     flex: 1;
-    height: 28px;
+    height: calc(28px * var(--ui-scale, 1));
     margin: 0;
     border: none;
-    border-radius: 5px;
+    border-radius: calc(5px * var(--ui-scale, 1));
     background: transparent;
     color: var(--text-muted);
     font: inherit;
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     font-weight: 500;
     cursor: pointer;
 }
@@ -399,17 +399,17 @@ async function syncNow() {
 .auth-form {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: calc(10px * var(--ui-scale, 1));
 }
 
 .actions {
     display: flex;
     justify-content: center;
-    margin-top: 2px;
+    margin-top: calc(2px * var(--ui-scale, 1));
 }
 
 .actions .btn {
-    min-width: 88px;
+    min-width: calc(88px * var(--ui-scale, 1));
 }
 
 .actions .btn:disabled {
@@ -420,7 +420,7 @@ async function syncNow() {
 .profile-hero {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: calc(12px * var(--ui-scale, 1));
 }
 
 .profile-hero > .btn {
@@ -428,15 +428,15 @@ async function syncNow() {
 }
 
 .avatar {
-    width: 44px;
-    height: 44px;
+    width: calc(44px * var(--ui-scale, 1));
+    height: calc(44px * var(--ui-scale, 1));
     border-radius: 50%;
     display: grid;
     place-items: center;
     flex-shrink: 0;
     background: var(--accent-dim);
     color: var(--accent);
-    font-size: 18px;
+    font-size: calc(18px * var(--ui-scale, 1));
     font-weight: 700;
     user-select: none;
 }
@@ -447,7 +447,7 @@ async function syncNow() {
 }
 
 .profile-name {
-    font-size: 15px;
+    font-size: calc(15px * var(--ui-scale, 1));
     font-weight: 600;
     color: var(--text);
     overflow: hidden;
@@ -456,8 +456,8 @@ async function syncNow() {
 }
 
 .profile-email {
-    margin-top: 2px;
-    font-size: 12px;
+    margin-top: calc(2px * var(--ui-scale, 1));
+    font-size: calc(12px * var(--ui-scale, 1));
     color: var(--text-muted);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -467,7 +467,7 @@ async function syncNow() {
 .info-card {
     overflow: hidden;
     border: 1px solid var(--border-soft);
-    border-radius: 8px;
+    border-radius: calc(8px * var(--ui-scale, 1));
     background: var(--bg-elevated);
 }
 
@@ -475,8 +475,8 @@ async function syncNow() {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 8px 10px;
+    gap: calc(12px * var(--ui-scale, 1));
+    padding: calc(8px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
     border-bottom: 1px solid var(--border-soft);
 }
 
@@ -485,18 +485,18 @@ async function syncNow() {
 }
 
 .info-label {
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     color: var(--text-muted);
 }
 
 .info-value {
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     color: var(--text);
     text-align: right;
 }
 
 .sync-error {
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     color: var(--danger, #e35d6a);
 }
 

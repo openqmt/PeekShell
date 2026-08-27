@@ -51,7 +51,7 @@ export const SIDEBAR_WIDTH_DEFAULT = 300
 export const SIDEBAR_WIDTH_MIN = 220
 export const SIDEBAR_WIDTH_MAX = 420
 
-/** Whole-UI zoom (text + icons). Terminal/editor keep their own font-size prefs. */
+/** Chrome text and icon scale (percent). Terminal/editor keep separate font prefs. */
 export const UI_SCALE_DEFAULT = 100
 export const UI_SCALE_MIN = 90
 export const UI_SCALE_MAX = 140
@@ -124,7 +124,7 @@ export function clampUiScale(value: number) {
     return Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, snapped))
 }
 
-/** Layout-to-viewport factor from `--ui-scale` (1 when unset). */
+/** Read `--ui-scale` for resize drag math (stored widths stay logical at 100%). */
 export function currentUiScaleFactor(): number {
     const raw = getComputedStyle(document.documentElement)
         .getPropertyValue('--ui-scale')
@@ -134,14 +134,11 @@ export function currentUiScaleFactor(): number {
 }
 
 /**
- * Scale chrome text and icons via `--ui-scale` (consumed as transform on #app).
- * Avoid CSS `zoom`: WKWebView then mismatches mouse clientXY vs getBoundingClientRect,
- * which breaks explorer edge-resize hit testing.
+ * Apply chrome text/icon scale via `--ui-scale` CSS variable (real sizes, not transform).
  */
 export function applyUiScale(percent: number) {
     const n = clampUiScale(percent)
     const root = document.documentElement
-    // Drop leftover `zoom` from earlier builds so hit-testing stays consistent.
     root.style.removeProperty('zoom')
     if (n === UI_SCALE_DEFAULT) {
         root.style.removeProperty('--ui-scale')

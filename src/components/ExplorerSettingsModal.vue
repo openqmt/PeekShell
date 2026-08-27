@@ -113,35 +113,35 @@ function onBackdrop(e: MouseEvent) {
 
 <style scoped>
 .modal.sm {
-  width: min(420px, 100%);
+  width: min(calc(420px * var(--ui-scale, 1)), 100%);
 }
 
 .modal :deep(.modal-head) {
-  padding: 10px 12px;
+  padding: calc(10px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
 }
 
 .modal-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
+  gap: calc(12px * var(--ui-scale, 1));
+  padding: calc(12px * var(--ui-scale, 1));
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
+  gap: calc(4px * var(--ui-scale, 1));
+  font-size: calc(12px * var(--ui-scale, 1));
   color: var(--text-muted);
 }
 
 .field :deep(.app-select-trigger) {
-  min-height: 30px;
-  height: 30px;
+  min-height: calc(30px * var(--ui-scale, 1));
+  height: calc(30px * var(--ui-scale, 1));
 }
 
 .hint {
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-scale, 1));
   color: var(--text-dim);
   line-height: 1.35;
 }
@@ -149,8 +149,8 @@ function onBackdrop(e: MouseEvent) {
 .modal-foot {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: calc(8px * var(--ui-scale, 1));
+  padding: calc(10px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
   border-top: 1px solid var(--border-soft);
 }
 

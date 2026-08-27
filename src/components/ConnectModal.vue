@@ -492,16 +492,16 @@ async function save() {
 
 <style scoped>
 .modal.sm {
-    width: min(460px, 100%);
-    max-height: min(720px, calc(100vh - 48px));
+    width: min(calc(460px * var(--ui-scale, 1)), 100%);
+    max-height: min(calc(720px * var(--ui-scale, 1)), calc(100vh - 48px));
 }
 
 .modal :deep(.modal-head) {
-    padding: 10px 12px;
+    padding: calc(10px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
 }
 
 .modal :deep(.modal-head h2) {
-    font-size: 14px;
+    font-size: calc(14px * var(--ui-scale, 1));
 }
 
 .modal :deep(.modal-head .sub) {
@@ -509,87 +509,87 @@ async function save() {
 }
 
 .modal :deep(.modal-body) {
-    padding: 10px 12px;
+    padding: calc(10px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
 }
 
 .modal :deep(.modal-foot) {
-    padding: 8px 12px;
-    gap: 6px;
+    padding: calc(8px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
+    gap: calc(6px * var(--ui-scale, 1));
 }
 
 .modal :deep(.section-label) {
-    margin: 0 0 6px;
+    margin: 0 0 calc(6px * var(--ui-scale, 1));
 }
 
 .modal :deep(.form-grid) {
-    gap: 8px;
+    gap: calc(8px * var(--ui-scale, 1));
 }
 
 .modal :deep(.field label) {
-    margin-bottom: 4px;
-    font-size: 11px;
+    margin-bottom: calc(4px * var(--ui-scale, 1));
+    font-size: calc(11px * var(--ui-scale, 1));
 }
 
 .modal :deep(.field input),
 .modal :deep(.field select),
 .modal :deep(.field textarea) {
-    height: 28px;
-    padding: 0 8px;
-    font-size: 12.5px;
+    height: calc(28px * var(--ui-scale, 1));
+    padding: 0 calc(8px * var(--ui-scale, 1));
+    font-size: calc(12.5px * var(--ui-scale, 1));
 }
 
 .modal :deep(.app-select-trigger) {
-    height: 28px;
-    padding: 0 8px 0 10px;
-    font-size: 12.5px;
+    height: calc(28px * var(--ui-scale, 1));
+    padding: 0 calc(8px * var(--ui-scale, 1)) 0 calc(10px * var(--ui-scale, 1));
+    font-size: calc(12.5px * var(--ui-scale, 1));
 }
 
 .modal :deep(.field textarea) {
-    height: 52px;
-    padding: 6px 8px;
+    height: calc(52px * var(--ui-scale, 1));
+    padding: calc(6px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
     resize: vertical;
 }
 
 .modal :deep(.error-banner) {
-    margin-bottom: 8px;
-    padding: 6px 8px;
+    margin-bottom: calc(8px * var(--ui-scale, 1));
+    padding: calc(6px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
 }
 
 .ok-banner {
-    margin-bottom: 8px;
-    padding: 6px 8px;
-    border-radius: 6px;
+    margin-bottom: calc(8px * var(--ui-scale, 1));
+    padding: calc(6px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
+    border-radius: calc(6px * var(--ui-scale, 1));
     background: var(--accent-dim);
     color: var(--accent);
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
 }
 
 .auth-section {
-    margin-top: 10px !important;
+    margin-top: calc(10px * var(--ui-scale, 1)) !important;
 }
 
 .auth-fields {
-    margin-top: 8px;
+    margin-top: calc(8px * var(--ui-scale, 1));
 }
 
 .auth-tabs {
     display: flex;
-    gap: 3px;
-    padding: 2px;
+    gap: calc(3px * var(--ui-scale, 1));
+    padding: calc(2px * var(--ui-scale, 1));
     background: var(--bg-root);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    margin-bottom: 8px;
+    border-radius: calc(6px * var(--ui-scale, 1));
+    margin-bottom: calc(8px * var(--ui-scale, 1));
 }
 
 .auth-tab {
     flex: 1;
-    height: 28px;
+    height: calc(28px * var(--ui-scale, 1));
     border: none;
-    border-radius: 5px;
+    border-radius: calc(5px * var(--ui-scale, 1));
     background: transparent;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
     font-weight: 500;
 }
 
@@ -605,19 +605,19 @@ async function save() {
 
 .secret-input input {
     width: 100%;
-    padding-right: 32px !important;
+    padding-right: calc(32px * var(--ui-scale, 1)) !important;
 }
 
 .secret-toggle {
     position: absolute;
     top: 50%;
-    right: 2px;
-    width: 26px;
-    height: 26px;
+    right: calc(2px * var(--ui-scale, 1));
+    width: calc(26px * var(--ui-scale, 1));
+    height: calc(26px * var(--ui-scale, 1));
     margin: 0;
     padding: 0;
     border: none;
-    border-radius: 5px;
+    border-radius: calc(5px * var(--ui-scale, 1));
     background: transparent;
     color: var(--text-muted);
     display: grid;
@@ -632,14 +632,14 @@ async function save() {
 
 .file-pick {
     display: flex;
-    gap: 6px;
+    gap: calc(6px * var(--ui-scale, 1));
     align-items: center;
 }
 
 .file-pick input {
     flex: 1;
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-scale, 1));
 }
 
 .foot-spacer {

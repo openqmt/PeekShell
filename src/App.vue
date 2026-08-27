@@ -60,10 +60,10 @@ onMounted(() => {
 const workspaceStyle = computed(() => {
   const style: Record<string, string> = {};
   if (!sidebarCollapsed.value) {
-    style["--sidebar-width"] = `${sidebarWidth.value}px`;
+    style["--sidebar-width"] = `calc(${sidebarWidth.value}px * var(--ui-scale, 1))`;
   }
   if (showAiPanel.value && !aiCollapsed.value) {
-    style["--ai-panel-width"] = `${aiPanelWidth.value}px`;
+    style["--ai-panel-width"] = `calc(${aiPanelWidth.value}px * var(--ui-scale, 1))`;
   }
   return Object.keys(style).length ? style : undefined;
 });
