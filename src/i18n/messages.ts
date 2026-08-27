@@ -285,6 +285,8 @@ export const messages = {
         'explorer.uploadDone': '上传完成',
         'explorer.dropUpload': '松开以上传到',
         'explorer.dropNoFiles': '未能读取拖入的文件路径，请改用上传按钮',
+        'explorer.moveDone': '已移动',
+        'explorer.moveInvalid': '无法移动到该位置',
 
         'transfers.title': '上传 / 下载',
         'transfers.batchProgress': '{done}/{total}',
@@ -734,6 +736,8 @@ export const messages = {
         'explorer.dropUpload': 'Drop to upload into',
         'explorer.dropNoFiles':
             'Could not read dropped file paths — use Upload instead',
+        'explorer.moveDone': 'Moved',
+        'explorer.moveInvalid': 'Cannot move to that location',
 
         'transfers.title': 'Transfers',
         'transfers.batchProgress': '{done}/{total}',

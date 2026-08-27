@@ -182,8 +182,22 @@ const statusMsg = ref('')
 const actionBusy = ref(false)
 const fileDragActive = ref(false)
 const fileDragTargetPath = ref<string | null>(null)
+/** Pointer-based internal move (HTML5 DnD is unreliable in Tauri WKWebView). */
+const moveDragEntry = ref<RemoteEntry | null>(null)
+const moveDropTargetPath = ref<string | null>(null)
+const moveDragActive = ref(false)
+let movePending: {
+    entry: RemoteEntry
+    startX: number
+    startY: number
+    pointerId: number
+} | null = null
+/** Avoid treating drag-end as a click that re-selects the old path. */
+let suppressNextEntryClick = false
 let unlistenDragDrop: UnlistenFn | null = null
 let statusClearTimer: ReturnType<typeof setTimeout> | null = null
+
+const MOVE_DRAG_THRESHOLD_PX = 5
 
 /**
  * Map Tauri drag-drop position to DOM client coordinates.
@@ -265,11 +279,9 @@ async function handleExternalDrop(
     fileDragActive.value = false
     fileDragTargetPath.value = null
     if (!activeSessionId.value) return
+    // Empty paths usually mean an in-webview HTML5 drag, not OS files.
     const localPaths = normalizeDroppedPaths(paths)
-    if (!localPaths.length) {
-        error.value = t('explorer.dropNoFiles')
-        return
-    }
+    if (!localPaths.length) return
     // Prefer precise hit; otherwise use last hover / current folder (macOS coord quirks)
     const remoteDir =
         (position ? resolveDropRemoteDir(position) : null) ||
@@ -277,6 +289,136 @@ async function handleExternalDrop(
         currentContainerEntry()?.path ||
         ROOT_PATH
     await uploadLocalPaths(remoteDir, localPaths)
+}
+
+function isPathUnder(ancestor: string, path: string) {
+    if (ancestor === ROOT_PATH) return path !== ROOT_PATH
+    return path === ancestor || path.startsWith(`${ancestor}/`)
+}
+
+/** Folder can receive a moved entry; reject self / same-parent / into own subtree. */
+function canMoveOnto(targetDir: string, source: RemoteEntry) {
+    if (!source || source.path === ROOT_PATH) return false
+    if (targetDir === source.path) return false
+    if (parentPath(source.path) === targetDir) return false
+    if (source.isDir && isPathUnder(source.path, targetDir)) return false
+    return true
+}
+
+function resolveMoveDropTarget(clientX: number, clientY: number): string | null {
+    const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null
+    if (!el) return null
+    const hit = el.closest?.('[data-move-target]') as HTMLElement | null
+    const path = hit?.dataset.moveTarget
+    return path || null
+}
+
+function clearMoveDragListeners() {
+    window.removeEventListener('pointermove', onMovePointerMove)
+    window.removeEventListener('pointerup', onMovePointerUp)
+    window.removeEventListener('pointercancel', onMovePointerUp)
+}
+
+function resetMoveDragState() {
+    movePending = null
+    moveDragEntry.value = null
+    moveDropTargetPath.value = null
+    moveDragActive.value = false
+    clearMoveDragListeners()
+}
+
+function onEntryMovePointerDown(entry: RemoteEntry, ev: PointerEvent) {
+    if (ev.button !== 0 || entry.path === ROOT_PATH || actionBusy.value) return
+    // Twist / interactive children handle their own clicks.
+    const target = ev.target as HTMLElement | null
+    if (target?.closest?.('.twist')) return
+    if (nearTopEdge.value || nearEntriesEdge.value) return
+
+    movePending = {
+        entry,
+        startX: ev.clientX,
+        startY: ev.clientY,
+        pointerId: ev.pointerId,
+    }
+    window.addEventListener('pointermove', onMovePointerMove)
+    window.addEventListener('pointerup', onMovePointerUp)
+    window.addEventListener('pointercancel', onMovePointerUp)
+}
+
+function onMovePointerMove(ev: PointerEvent) {
+    if (!movePending || ev.pointerId !== movePending.pointerId) return
+    const dx = ev.clientX - movePending.startX
+    const dy = ev.clientY - movePending.startY
+    if (!moveDragActive.value) {
+        if (Math.hypot(dx, dy) < MOVE_DRAG_THRESHOLD_PX) return
+        moveDragActive.value = true
+        moveDragEntry.value = movePending.entry
+        closeCtxMenu()
+        document.documentElement.classList.add('is-moving-remote')
+    }
+    const source = moveDragEntry.value
+    if (!source) return
+    const target = resolveMoveDropTarget(ev.clientX, ev.clientY)
+    moveDropTargetPath.value =
+        target && canMoveOnto(target, source) ? target : null
+}
+
+async function onMovePointerUp(ev: PointerEvent) {
+    if (!movePending || ev.pointerId !== movePending.pointerId) return
+    const source = moveDragEntry.value
+    const target = moveDropTargetPath.value
+    const wasDragging = moveDragActive.value
+    document.documentElement.classList.remove('is-moving-remote')
+    resetMoveDragState()
+
+    if (!wasDragging) return
+    suppressNextEntryClick = true
+    if (!source || !target || !canMoveOnto(target, source)) {
+        if (source && target) error.value = t('explorer.moveInvalid')
+        return
+    }
+    await moveEntryToDir(source, target)
+}
+
+async function moveEntryToDir(entry: RemoteEntry, targetDir: string) {
+    const sessionId = activeSessionId.value
+    if (!sessionId || actionBusy.value) return
+    const fromParent = parentPath(entry.path)
+    const to = joinPath(targetDir, entry.name)
+    actionBusy.value = true
+    error.value = ''
+    statusMsg.value = t('explorer.working')
+    try {
+        await api.remoteRename(sessionId, entry.path, to)
+        await invalidateDir(fromParent)
+        await invalidateDir(targetDir)
+        await invalidateDir(entry.path)
+        const nextExpanded = { ...expanded.value }
+        if (nextExpanded[entry.path]) {
+            delete nextExpanded[entry.path]
+            nextExpanded[to] = true
+        }
+        nextExpanded[targetDir] = true
+        expanded.value = nextExpanded
+        await Promise.all([
+            fetchDir(fromParent, true),
+            fetchDir(targetDir, true),
+        ])
+        if (selectedPath.value === entry.path) {
+            if (entry.isDir) await selectFolder(to, true)
+            else await selectFile({ ...entry, path: to })
+        } else if (selectedIsDir.value && selectedPath.value === targetDir) {
+            await selectFolder(targetDir, true)
+        } else if (selectedIsDir.value && selectedPath.value === fromParent) {
+            await selectFolder(fromParent, true)
+        }
+        flashStatus(t('explorer.moveDone'))
+    } catch (e) {
+        statusMsg.value = ''
+        error.value = String(e)
+    } finally {
+        actionBusy.value = false
+    }
 }
 
 function flashStatus(message: string, ms = 1600) {
@@ -826,6 +968,10 @@ async function toggleExpand(entry: RemoteEntry, event?: Event) {
 }
 
 async function onTreeClick(entry: RemoteEntry) {
+    if (suppressNextEntryClick) {
+        suppressNextEntryClick = false
+        return
+    }
     if (entry.isDir) {
         const isExpanded = !!expanded.value[entry.path]
         if (isExpanded) {
@@ -844,6 +990,10 @@ async function onTreeClick(entry: RemoteEntry) {
 }
 
 async function onRightEntryClick(entry: RemoteEntry) {
+    if (suppressNextEntryClick) {
+        suppressNextEntryClick = false
+        return
+    }
     if (entry.isDir) {
         expanded.value = { ...expanded.value, [entry.path]: true }
         await selectFolder(entry.path, true)
@@ -1523,6 +1673,14 @@ onMounted(() => {
     void transfers.ensureListening()
     void getCurrentWindow()
         .onDragDropEvent((event) => {
+            // Ignore OS file-drop chrome while an in-app move is active.
+            if (moveDragActive.value || movePending) {
+                if (event.payload.type === 'drop' || event.payload.type === 'leave') {
+                    fileDragActive.value = false
+                    fileDragTargetPath.value = null
+                }
+                return
+            }
             const payload = event.payload
             if (payload.type === 'enter' || payload.type === 'over') {
                 updateFileDragTarget(payload.position)
@@ -1544,6 +1702,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
     draggingHeight.value = false
     draggingWidth.value = false
+    document.documentElement.classList.remove('is-moving-remote')
+    resetMoveDragState()
     if (cwdSyncTimer) {
         clearTimeout(cwdSyncTimer)
         cwdSyncTimer = null
@@ -1569,6 +1729,7 @@ onBeforeUnmount(() => {
             'resize-height': nearTopEdge || draggingHeight,
             'resize-width': nearEntriesEdge || draggingWidth,
             'file-drag-over': fileDragActive,
+            'move-dragging': moveDragActive,
         }"
         :style="{ height: height + 'px' }"
         :data-drop-path="dropRootPath"
@@ -1986,21 +2147,30 @@ onBeforeUnmount(() => {
                         dir: row.entry.isDir,
                         opened:
                             row.entry.isDir && !!childrenMap[row.entry.path],
+                        dragging:
+                            moveDragActive &&
+                            moveDragEntry?.path === row.entry.path,
                         'drop-target':
-                            fileDragActive &&
-                            fileDragTargetPath ===
-                                (row.entry.isDir
-                                    ? row.entry.path
-                                    : parentPath(row.entry.path)),
+                            (fileDragActive &&
+                                fileDragTargetPath ===
+                                    (row.entry.isDir
+                                        ? row.entry.path
+                                        : parentPath(row.entry.path))) ||
+                            (row.entry.isDir &&
+                                moveDropTargetPath === row.entry.path),
                     }"
                     :data-drop-path="
                         row.entry.isDir
                             ? row.entry.path
                             : parentPath(row.entry.path)
                     "
+                    :data-move-target="
+                        row.entry.isDir ? row.entry.path : undefined
+                    "
                     :style="{ paddingLeft: 6 + row.depth * 12 + 'px' }"
                     @click="onTreeClick(row.entry)"
                     @contextmenu.prevent="onEntryContextMenu(row.entry, $event)"
+                    @pointerdown="onEntryMovePointerDown(row.entry, $event)"
                 >
                     <span
                         class="twist"
@@ -2091,6 +2261,16 @@ onBeforeUnmount(() => {
 
                 <template v-else-if="selectedIsDir">
                     <div
+                        class="folder-pane"
+                        :class="{
+                            'drop-target':
+                                !!selectedPath &&
+                                moveDropTargetPath === selectedPath,
+                        }"
+                        :data-drop-path="selectedPath || undefined"
+                        :data-move-target="selectedPath || undefined"
+                    >
+                    <div
                         v-if="visibleAttrCols.length"
                         class="attr-head"
                         :style="attrGridStyle"
@@ -2109,21 +2289,30 @@ onBeforeUnmount(() => {
                         class="attr-row"
                         :class="{
                             dir: entry.isDir,
+                            dragging:
+                                moveDragActive &&
+                                moveDragEntry?.path === entry.path,
                             'drop-target':
-                                fileDragActive &&
-                                fileDragTargetPath ===
-                                    (entry.isDir
-                                        ? entry.path
-                                        : parentPath(entry.path)),
+                                (fileDragActive &&
+                                    fileDragTargetPath ===
+                                        (entry.isDir
+                                            ? entry.path
+                                            : parentPath(entry.path))) ||
+                                (entry.isDir &&
+                                    moveDropTargetPath === entry.path),
                         }"
                         :data-drop-path="
                             entry.isDir ? entry.path : parentPath(entry.path)
+                        "
+                        :data-move-target="
+                            entry.isDir ? entry.path : undefined
                         "
                         :style="attrGridStyle"
                         @click="onRightEntryClick(entry)"
                         @contextmenu.prevent.stop="
                             onEntryContextMenu(entry, $event)
                         "
+                        @pointerdown="onEntryMovePointerDown(entry, $event)"
                     >
                         <span
                             v-for="col in visibleAttrCols"
@@ -2135,6 +2324,7 @@ onBeforeUnmount(() => {
                             >{{ attrCell(entry, col) }}</span
                         >
                     </button>
+                    </div>
                 </template>
 
                 <template v-else-if="preview">
@@ -2963,6 +3153,39 @@ onBeforeUnmount(() => {
 .tree-row.drop-target,
 .attr-row.drop-target {
     outline: 1px solid var(--accent-border);
+    background: var(--accent-dim);
+}
+
+.tree-row.dragging,
+.attr-row.dragging {
+    opacity: 0.45;
+}
+
+.explorer.move-dragging,
+.explorer.move-dragging * {
+    cursor: grabbing !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+
+html.is-moving-remote,
+html.is-moving-remote * {
+    cursor: grabbing !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+
+.folder-pane {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+}
+
+.folder-pane.drop-target {
+    outline: 1px dashed var(--accent-border);
+    outline-offset: -2px;
     background: var(--accent-dim);
 }
 
