@@ -3,7 +3,7 @@
  * 终端快捷命令：分组浏览、一键执行、增删改复制。
  */
 import { storeToRefs } from 'pinia'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 import { useI18n, UNGROUPED_GROUP } from '../i18n'
 import { useQuickCommandsStore } from '../stores/quickCommands'
@@ -25,6 +25,7 @@ const store = useQuickCommandsStore()
 const { grouped, groups } = storeToRefs(store)
 const { activeSessionId } = storeToRefs(sessions)
 
+const panelEl = ref<HTMLElement | null>(null)
 const collapsed = ref<Record<string, boolean>>({})
 const editing = ref<QuickCommand | null>(null)
 const creating = ref(false)
@@ -191,10 +192,30 @@ function deleteGroup(group: string) {
     store.removeGroup(group)
     if (formGroup.value === group) formGroup.value = UNGROUPED_GROUP
 }
+
+function onDocPointerDown(event: PointerEvent) {
+    if (!props.open) return
+    const target = event.target as HTMLElement | null
+    if (
+        target?.closest?.('.quick-commands-panel') ||
+        target?.closest?.('.quick-commands-btn')
+    ) {
+        return
+    }
+    close()
+}
+
+onMounted(() => {
+    window.addEventListener('pointerdown', onDocPointerDown, true)
+})
+
+onBeforeUnmount(() => {
+    window.removeEventListener('pointerdown', onDocPointerDown, true)
+})
 </script>
 
 <template>
-    <div v-if="open" class="quick-commands-panel" @mousedown.stop>
+    <div v-if="open" ref="panelEl" class="quick-commands-panel" @mousedown.stop>
         <div class="qc-head">
             <div>
                 <strong>{{ t('quickCommands.title') }}</strong>
