@@ -116,7 +116,10 @@ function signOut() {
 <template>
     <div class="user-pane">
         <template v-if="!isLoggedIn">
-            <p class="hint">{{ t('userCenter.hint') }}</p>
+            <div class="auth-intro">
+                <h2 class="brand-title">PeekShell</h2>
+                <p class="hint">{{ t('userCenter.hint') }}</p>
+            </div>
             <div class="auth-tabs" role="tablist">
                 <button
                     type="button"
@@ -249,8 +252,23 @@ function signOut() {
     min-height: 100%;
 }
 
+.auth-intro {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: center;
+}
+
+.brand-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--text);
+}
+
 .hint {
-    margin: 0 0 2px;
+    margin: 0;
     font-size: 12px;
     line-height: 1.45;
     color: var(--text-muted);
